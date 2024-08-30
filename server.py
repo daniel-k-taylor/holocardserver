@@ -1,7 +1,6 @@
 from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from matchmaking import Matchmaking
-import json
 import message_types
 from playermanager import PlayerManager
 import uuid

@@ -2,8 +2,11 @@ import asyncio
 import websockets
 import json
 
+azure_url = "wss://holocard-hwdegne5cse4hrfy.eastus-01.azurewebsites.net/ws"
+local_url = "ws://localhost:8000/ws"
+
 async def test_websocket():
-    uri = "ws://localhost:8000/ws"  # The WebSocket URL
+    uri = azure_url
     async with websockets.connect(uri) as websocket:
         # Send a message
         request_data = {

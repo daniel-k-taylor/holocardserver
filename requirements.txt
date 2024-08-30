@@ -1,5 +1,5 @@
+fastapi
+gunicorn
 redis
 uvicorn
-fastapi
-redis
 websockets
