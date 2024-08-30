@@ -1,0 +1,5 @@
+redis
+uvicorn
+fastapi
+redis
+websockets
