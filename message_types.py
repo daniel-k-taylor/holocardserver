@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Any, Dict
 import json
 
@@ -6,8 +6,8 @@ import json
 class Message:
     message_type: str
 
-    def to_json(self) -> str:
-        return json.dumps(self.__dict__)
+    def as_dict(self) -> str:
+        return asdict(self)
 
 # Server Outbound Messages
 @dataclass
@@ -29,6 +29,7 @@ class JoinMatchmakingQueueMessage(Message):
 @dataclass
 class GameActionMessage(Message):
     action_type: str
+    action_data: Dict[str, Any]
 
 def parse_message(json_data: str) -> Message:
     data = json.loads(json_data)

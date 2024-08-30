@@ -4,6 +4,7 @@ class Player:
     def __init__(self, player_id: str, websocket: WebSocket):
         self.player_id = player_id
         self.websocket = websocket
+        self.connected = True
         self.current_game_room = None
 
 class PlayerManager:
@@ -12,6 +13,7 @@ class PlayerManager:
 
     def add_player(self, player_id: str, websocket: WebSocket):
         self.active_players[player_id] = Player(player_id, websocket)
+        return self.active_players[player_id]
 
     def remove_player(self, player_id: str):
         if player_id in self.active_players:

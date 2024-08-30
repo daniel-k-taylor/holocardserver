@@ -16,9 +16,9 @@ class MatchQueue:
 
         # If there are enough players, start a match
         if len(self.players) >= REQUIRED_PLAYERS:
-            match = self.create_match()
+            room = self.create_match()
             self.players = []
-            return match
+            return room
         return None
 
     def remove_player(self, player: str):
@@ -26,9 +26,11 @@ class MatchQueue:
 
     def create_match(self):
         room_id = uuid.uuid4()
+        print("Creating match with ID:", room_id)
         return GameRoom(
             room_id=room_id,
-            players=self.players
+            players=self.players,
+            game_type=self.game_type
         )
 
 class Matchmaking:
@@ -39,19 +41,19 @@ class Matchmaking:
     def add_player_to_queue(self, player: Player, queue_name: str, custom_game: bool, game_type: str):
         for queue in self.all_queues:
             if queue.queue_name == queue_name:
-                match = queue.add_player(player)
-                if match:
+                room = queue.add_player(player)
+                if room:
                     if not queue.permanent_queue:
                         self.all_queues.remove(queue)
-                    return match
+                    return room
                 return None
 
         if custom_game:
             # The user is creating a new custom game.
             new_queue = MatchQueue(queue_name, game_type=game_type, permanent_queue=False)
-            match = new_queue.add_player(player)
-            if match:
-                return match
+            room = new_queue.add_player(player)
+            if room:
+                return room
             else:
                 self.all_queues.append(new_queue)
         return None
