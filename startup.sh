@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-cd /home/site/wwwroot
+# Print working directory.
+pwd
 
 export PORT=${PORT:-8000}
 
