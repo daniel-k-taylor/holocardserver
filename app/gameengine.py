@@ -1,4 +1,6 @@
 from typing import List
+from app.card_database import CardDatabase
+import random
 
 UNKNOWN_CARD_ID = "HIDDEN"
 
@@ -8,41 +10,30 @@ class PlayerState:
         self.deck = []
         self.hand = []
 
-    def get_public_state(self):
-        return {
-            "life": self.life,
-            "cards_in_deck": len(self.deck),
-        }
-
 class GameEngine:
     def __init__(self,
-        previous_state:dict,
+        card_db:CardDatabase,
         player_ids:List[str],
         game_type : str,
     ):
-        if previous_state:
-            self._state = previous_state
-        else:
-            self._state = {
-                "game_type": game_type,
-                "player_ids": player_ids,
-                "player_states": [PlayerState() for _ in player_ids],
-            }
+        self.card_db = card_db
+
+        self.seed = random.randint(0, 2**32 - 1)
+        self.game_type = game_type
+        self.player_ids = player_ids
+        self.player_states = [PlayerState() for _ in player_ids]
 
     def player_state(self, player_id:str):
-        return self._state["player_states"][self._state["player_ids"].index(player_id)]
-
-    def get_state(self):
-        return self._state
-
-    def get_public_state(self):
-        return {
-            "player_ids": self._state["player_ids"],
-            "player_states": [state.get_public_state() for state in self._state["player_states"]],
-        }
+        return self.player_states[self.player_ids.index(player_id)]
 
     def begin_game(self):
         events = []
+
+        # Set the seed.
+        self.random_gen = random.Random(self.seed)
+
+        # Decide first player.
+        first_player = self.random_gen.choice(self._state["player_ids"])
 
 
         return events
@@ -61,11 +52,11 @@ class GameEngine:
         target_id = action_data["target_id"]
 
         target = self.player_state(target_id)
-        original_life = player.life
+        original_life = target.life
         target.life -= damage
         new_life = target.life
 
-        for player in self._state["player_ids"]:
+        for player in self.player_ids:
             events.append({
                 "event_player_id": player,
                 "event_type": "damage_taken",

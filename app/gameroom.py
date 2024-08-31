@@ -1,10 +1,8 @@
-import redis
 import json
 from typing import List
 from app.playermanager import Player
 from app.gameengine import GameEngine
-
-r = redis.Redis(host='localhost', port=6379, db=0)
+from app.card_database import CardDatabase
 
 class GameRoom:
     def __init__(self, room_id : str, players : List[Player], game_type : str):
@@ -15,21 +13,17 @@ class GameRoom:
         for player in self.players:
             player.current_game_room = self
 
-    def load_game_state(self):
-        game_state = r.get(f"game_state:{self.room_id}")
-        if game_state:
-            json_state = json.loads(game_state)
-            self.engine = GameEngine(previous_state=json_state)
-        else:
-            player_ids = [player.player_id for player in self.players]
-            self.engine = GameEngine(
-                previous_state=None,
-                player_ids=player_ids,
-                game_type=self.game_type
-            )
+    def start(self, card_db: CardDatabase):
+        player_ids = [player.player_id for player in self.players]
+        self.engine = GameEngine(
+            card_db=card_db,
+            previous_state=None,
+            player_ids=player_ids,
+            game_type=self.game_type
+        )
 
-            events = self.engine.begin_game()
-            self.send_events(events)
+        events = self.engine.begin_game()
+        self.send_events(events)
 
     def send_events(self, events):
         for event in events:
@@ -40,15 +34,9 @@ class GameRoom:
                         "event_data": event
                     })
 
-    def save_game_state(self):
-        r.set(f"game_state:{self.room_id}", json.dumps(self.engine.get_state()))
-
     def handle_game_message(self, player: Player, action_type:str, action_data: dict):
         # Pass the message to the game engine.
         events = self.engine.handle_game_message(player.player_id, action_type, action_data)
-
-        # Save the state.
-        self.save_game_state()
 
         # Send events to players.
         self.send_events(events)
@@ -60,5 +48,4 @@ class GameRoom:
         player.connected = False
         all_players_disconnected = all([not player.connected for player in self.players])
         if all_players_disconnected:
-            r.delete(f"game_state:{self.room_id}")
             self.cleanup_room = True

@@ -14,6 +14,10 @@ class Message:
 class ServerInfoMessage(Message):
     queue_info: Dict[str, Any]
 
+@dataclass
+class ErrorMessage(Message):
+    error_id: str
+    error_message: str
 
 # Server Inbound Messages
 @dataclass
@@ -25,6 +29,9 @@ class JoinMatchmakingQueueMessage(Message):
     custom_game: bool
     queue_name: str
     game_type: str
+    oshi_id: str
+    deck: Dict[str, int]
+    cheer_deck: Dict[str, int]
 
 @dataclass
 class GameActionMessage(Message):

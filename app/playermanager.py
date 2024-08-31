@@ -1,4 +1,5 @@
 from fastapi import WebSocket
+from typing import Dict
 
 class Player:
     def __init__(self, player_id: str, websocket: WebSocket):
@@ -6,6 +7,15 @@ class Player:
         self.websocket = websocket
         self.connected = True
         self.current_game_room = None
+
+        self.oshi_id = None
+        self.deck = []
+        self.cheer_deck = []
+
+    def save_deck_info(self, oshi_id: str, deck: Dict[str, int], cheer_deck: Dict[str, int]):
+        self.oshi_id = oshi_id
+        self.deck = deck
+        self.cheer_deck = cheer_deck
 
 class PlayerManager:
     def __init__(self):
