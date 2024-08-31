@@ -1,5 +1,5 @@
-from gameroom import GameRoom
-from playermanager import Player
+from app.gameroom import GameRoom
+from app.playermanager import Player
 import uuid
 
 REQUIRED_PLAYERS = 2

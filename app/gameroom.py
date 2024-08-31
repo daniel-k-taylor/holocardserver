@@ -1,8 +1,8 @@
 import redis
 import json
-from playermanager import Player
 from typing import List
-from gameengine import GameEngine
+from app.playermanager import Player
+from app.gameengine import GameEngine
 
 r = redis.Redis(host='localhost', port=6379, db=0)
 

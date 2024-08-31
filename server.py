@@ -1,10 +1,10 @@
+import uuid
 from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from matchmaking import Matchmaking
-import message_types
-from playermanager import PlayerManager
-import uuid
-from gameroom import GameRoom
+from app.matchmaking import Matchmaking
+import app.message_types as message_types
+from app.playermanager import PlayerManager
+from app.gameroom import GameRoom
 
 app = FastAPI()
 
