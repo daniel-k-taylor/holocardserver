@@ -13,6 +13,15 @@ class GamePhase:
     PlayerTurn = "PlayerTurn"
     GameOver = "gameover"
 
+class DecisionType:
+    DecisionMulligan = "decision_mulligan"
+    DecisionInitialPlacement = "decision_initial_placement"
+    DecisionChooseNewCenter = "decision_choose_new_center"
+    DecisionPlaceCheer = "decision_place_cheer"
+    DecisionMainStep = "decision_main_step"
+
+    DecisionEffect_MoveCheerBetweenHolomems = "decision_effect_move_cheer_between_holomems"
+
 class GameAction:
     Mulligan = "mulligan"
     MulliganActionFields = {
@@ -33,6 +42,33 @@ class GameAction:
     PlaceCheer = "place_cheer"
     PlaceCheerActionFields = {
         # A dict of all cheer placed with its target id.
+        "placements": Dict[str, str],
+    }
+
+    MainStepPlaceHolomem = "mainstep_place_holomem"
+    MainStepPlaceHolomemFields = {
+        "card_id": str,
+    }
+
+    MainStepBloom = "mainstep_bloom"
+    MainStepBloomFields = {
+        "card_id": str,
+        "target_id": str,
+    }
+
+    MainStepCollab = "mainstep_collab"
+    MainStepCollabFields = {
+        "card_id": str,
+    }
+
+    MainStepOshiSkill = "mainstep_oshi_skill"
+    MainStepOshiSkillFields = {
+        "skill_id": str,
+    }
+
+    EffectResolution_MoveCheerBetweenHolomems = "effect_resolution_move_cheer_between_holomems"
+    EffectResolution_MoveCheerBetweenHolomemsFields = {
+        # Dict of cheer and target ids.
         "placements": Dict[str, str],
     }
 
@@ -134,6 +170,14 @@ class PlayerState:
     def complete_mulligan(self):
         self.mulligan_completed = True
 
+    def get_cheer_ids_on_holomems(self):
+        cheer_ids = []
+        for card in self.get_holomem_on_stage():
+            for attached_card in card["attached_cards"]:
+                if attached_card["card_type"] == "cheer":
+                    cheer_ids.append(attached_card["game_card"])
+        return cheer_ids
+
     def add_to_deck(self, card, top: bool):
         if top:
             self.deck.insert(0, card)
@@ -168,10 +212,10 @@ class PlayerState:
         card, zone, zone_name = self.find_card(card_id)
         if card:
             zone.remove(card)
-        return card, zone_name
+        return card, zone, zone_name
 
     def move_card(self, card_id, to_zone, zone_card_id=""):
-        card, from_zone = self.find_and_remove_card(card_id)
+        card, _, from_zone_name = self.find_and_remove_card(card_id)
 
         if to_zone == "center":
             self.center.append(card)
@@ -181,13 +225,13 @@ class PlayerState:
             holomem_card, _, _ = self.find_card(zone_card_id)
             attach_card(card, holomem_card)
 
-        if to_zone in ["center", "backstage", "holomem"] and from_zone == "hand":
+        if to_zone in ["center", "backstage", "holomem"] and from_zone_name == "hand":
             card["played_this_turn"] = True
 
         move_card_event = {
             "event_type": "move_card",
             "moving_player_id": self.player_id,
-            "from_zone": from_zone,
+            "from_zone": from_zone_name,
             "to_zone": to_zone,
             "zone_card_id": zone_card_id,
             "card_id": card_id,
@@ -214,6 +258,79 @@ class PlayerState:
         self.collab = []
         return rested_card_ids
 
+    def bloom(self, bloom_card_id, target_card_id):
+        bloom_card, _, bloom_from_zone_name = self.find_and_remove_card(bloom_card_id)
+        target_card, zone, _ = self.find_and_remove_card(target_card_id)
+
+        bloom_card["stacked_cards"].append(target_card)
+        # Add any stacked cards on the target to this too.
+        bloom_card["stacked_cards"] += target_card["stacked_cards"]
+        target_card["stacked_cards"] = []
+
+        bloom_card["attached_cards"] += target_card["attached_cards"]
+        target_card["attached_cards"] = []
+
+        bloom_card["bloomed_this_turn"] = True
+        bloom_card["damage"] = target_card["damage"]
+        bloom_card["resting"] = target_card["resting"]
+
+        # Put the bloom card where the target card was.
+        zone.append(bloom_card)
+
+        bloom_event = {
+            "event_type": "bloom",
+            "bloom_player_id": self.player_id,
+            "bloom_card_id": bloom_card_id,
+            "target_card_id": target_card_id,
+            "bloom_from_zone": bloom_from_zone_name,
+        }
+        self.engine.broadcast_event(bloom_event)
+
+    def generate_holopower(self, amount):
+        for _ in range(amount):
+            self.holopower.insert(0, self.deck.pop())
+
+    def collab_action(self, collab_card_id):
+        collab_card, _, _ = self.find_and_remove_card(collab_card_id)
+        self.collab.append(collab_card)
+        self.collabed_this_turn = True
+        self.generate_holopower(1)
+
+        collab_event = {
+            "event_type": "collab",
+            "collab_player_id": self.player_id,
+            "collab_card_id": collab_card_id,
+            "holopower_generated": 1,
+        }
+        self.engine.broadcast_event(collab_event)
+
+    def trigger_oshi_skill(self, skill_id):
+        oshi_skill = next(skill for skill in self.oshi_card["oshi_skills"] if skill["skill_id"] == skill_id)
+        skill_cost = oshi_skill["cost"]
+
+        # Update skill usage.
+        self.oshi_skills_used_this_game.append(skill_id)
+        self.oshi_skills_used_this_turn.append(skill_id)
+
+        # Remove the cost from holopower to archive.
+        for _ in range(skill_cost):
+            top_holopower_id = self.holopower[0]["game_card_id"]
+            self.move_card(top_holopower_id, "archive")
+
+        oshi_skill_event = {
+            "event_type": "oshi_skill_activation",
+            "oshi_player_id": self.player_id,
+            "skill_id": skill_id,
+        }
+        self.engine.broadcast_event(oshi_skill_event)
+
+        # Get skill effects.
+        skill_effects = oshi_skill["effects"]
+        for effect in skill_effects:
+            effect["player_id"] = self.player_id
+
+        return skill_effects
+
 
 def ids_from_cards(cards):
     return [card["game_card_id"] for card in cards]
@@ -238,6 +355,8 @@ class GameEngine:
         self.card_db = card_db
         self.latest_events = []
         self.current_decision = None
+        self.effects_to_resolve = []
+        self.effect_resolution_continuation = self.blank_continuation
 
         self.seed = random.randint(0, 2**32 - 1)
         self.game_type = game_type
@@ -316,7 +435,7 @@ class GameEngine:
         else:
             # Tell the active player we're waiting on them to mulligan.
             decision_event = {
-                "event_type": "decision_mulligan",
+                "event_type": DecisionType.DecisionMulligan,
                 "active_player": self.active_player_id,
             }
             self.broadcast_event(decision_event)
@@ -346,13 +465,18 @@ class GameEngine:
                             new_event[field] = [UNKNOWN_CARD_ID] * len(new_event[field])
             self.latest_events.append(new_event)
 
+    def set_decision(self, new_decision):
+        if self.current_decision:
+            raise Exception("Decision already set.")
+        self.current_decision = new_decision
+
     def begin_initial_placement(self):
         self.phase = GamePhase.InitialPlacement
         self.active_player_id = self.starting_player_id
 
         # The player must now choose their center holomem and any backstage holomems from hand.
         decision_event = {
-            "event_type": "decision_initial_placement",
+            "event_type": DecisionType.DecisionInitialPlacement,
             "active_player": self.active_player_id,
         }
         self.broadcast_event(decision_event)
@@ -389,7 +513,7 @@ class GameEngine:
         else:
             # Tell the active player we're waiting on them to place cards.
             decision_event = {
-                "event_type": "decision_initial_placement",
+                "event_type": DecisionType.DecisionInitialPlacement,
                 "active_player": self.active_player_id,
             }
             self.broadcast_event(decision_event)
@@ -434,18 +558,17 @@ class GameEngine:
                     active_player.move_card(new_center_id, "center")
                 else:
                     decision_event = {
-                        "event_type": "decision_choose_new_center",
+                        "event_type": DecisionType.DecisionChooseNewCenter,
                         "active_player": self.active_player_id,
                         "center_options": new_center_option_ids,
                     }
                     self.broadcast_event(decision_event)
-
-                    self.current_decision = {
-                        "decision_type": "decision_choose_new_center",
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionChooseNewCenter,
                         "decision_player": self.active_player_id,
                         "options": new_center_option_ids,
                         "continuation": self.continue_begin_turn,
-                    }
+                    })
 
         if self.current_decision:
             # We are waiting on a decision to be made.
@@ -471,24 +594,22 @@ class GameEngine:
         target_options = ids_from_cards(active_player.center + active_player.collab + active_player.backstage)
 
         decision_event = {
-            "event_type": "decision_place_cheer",
+            "event_type": DecisionType.DecisionPlaceCheer,
             "active_player": self.active_player_id,
             "cheer_to_place": [top_cheer_card_id],
             "source": "cheer_deck",
             "options": target_options,
         }
         self.broadcast_event(decision_event)
-        self.current_decision = {
-            "decision_type": "decision_place_cheer",
+        self.set_decision({
+            "decision_type": DecisionType.DecisionPlaceCheer,
             "decision_player": self.active_player_id,
             "cheer_to_place": [top_cheer_card_id],
             "options": target_options,
             "continuation": self.begin_main_step,
-        }
+        })
 
-        # Always wait for the decision.
-
-    def get_available_actions(self):
+    def get_available_mainstep_actions(self):
         active_player = self.get_player(self.active_player_id)
 
         # Determine available actions.
@@ -609,13 +730,12 @@ class GameEngine:
 
         return available_actions
 
-    def begin_main_step(self):
-
+    def send_main_step_actions(self):
         # Determine available actions.
-        available_actions = self.get_available_actions()
+        available_actions = self.get_available_mainstep_actions()
 
         decision_event = {
-            "event_type": "decision_main_step",
+            "event_type": DecisionType.DecisionMainStep,
             "hidden_info_player": self.active_player_id,
             "hidden_info_fields": ["available_actions"],
             "hidden_info_erase": ["available_actions"],
@@ -623,6 +743,61 @@ class GameEngine:
             "available_actions": available_actions,
         }
         self.broadcast_event(decision_event)
+        self.set_decision({
+            "decision_type": DecisionType.DecisionMainStep,
+            "decision_player": self.active_player_id,
+            "available_actions": available_actions,
+            "continuation": self.continue_main_step,
+        })
+
+    def begin_main_step(self):
+        self.send_main_step_actions()
+
+    def continue_main_step(self):
+        self.send_main_step_actions()
+
+    def begin_resolving_effects(self, effects, continuation):
+        self.effects_to_resolve = effects
+        self.effect_resolution_continuation = continuation
+        self.continue_resolving_effects()
+
+    def continue_resolving_effects(self):
+        if not self.effects_to_resolve:
+            continuation = self.effect_resolution_continuation
+            self.effect_resolution_continuation = self.blank_continuation
+            continuation()
+            return
+
+        effect = self.effects_to_resolve.pop(0)
+        effect_player_id = effect["player_id"]
+        effect_player = self.get_player(effect_player_id)
+        match effect["effect_type"]:
+            case "move_cheer_between_holomems":
+                amount = effect["amount"]
+                available_cheer = effect_player.get_cheer_ids_on_holomems()
+                available_targets = ids_from_cards(effect_player.get_holomem_on_stage())
+                decision_event = {
+                    "event_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
+                    "effect_player_id": effect_player_id,
+                    "amount": amount,
+                    "available_cheer": available_cheer,
+                    "available_targets": available_targets,
+                }
+                self.broadcast_event(decision_event)
+                self.set_decision({
+                    "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
+                    "decision_player": effect_player_id,
+                    "amount": amount,
+                    "available_cheer": available_cheer,
+                    "available_targets": available_targets,
+                    "continuation": self.continue_resolving_effects,
+                })
+
+            case _:
+                raise NotImplementedError(f"Unimplemented effect type: {effect['effect_type']}")
+
+        if not self.current_decision:
+            self.continue_resolving_effects()
 
 
     def end_game(self, loser_id):
@@ -687,6 +862,16 @@ class GameEngine:
                 return self.handle_choose_new_center(player_id, action_data)
             case GameAction.PlaceCheer:
                 return self.handle_place_cheer(player_id, action_data)
+            case GameAction.MainStepPlaceHolomem:
+                return self.handle_main_step_place_holomem(player_id, action_data)
+            case GameAction.MainStepBloom:
+                return self.handle_main_step_bloom(player_id, action_data)
+            case GameAction.MainStepCollab:
+                return self.handle_main_step_collab(player_id, action_data)
+            case GameAction.MainStepOshiSkill:
+                return self.handle_main_step_oshi_skill(player_id, action_data)
+            case GameAction.EffectResolution_MoveCheerBetweenHolomems:
+                return self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
             case _:
                 error_event = self.make_error_event(player_id, "invalid_action", "Invalid action type.")
                 return [error_event]
@@ -786,25 +971,9 @@ class GameEngine:
         self.continue_initial_placement()
 
     def validate_choose_new_center(self, player_id:str, action_data:dict):
-        # The action_data must have the new center card id.
-        # The player_id must match the current_decision decision_player
-        # decision_choose_new_center must be the current decision type.
         # The center card id must be in the current_decision options
         # The center card id has to be a card that is in the player's backstage.
-        if not self.current_decision:
-            self.send_event(self.make_error_event(player_id, "invalid_decision", "No current decision."))
-            return False
-
-        if not self.validate_action_fields(action_data, GameAction.ChooseNewCenterActionFields):
-            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid choose new center action."))
-            return False
-
-        if player_id != self.current_decision["decision_player"]:
-            self.send_event(self.make_error_event(player_id, "invalid_player", "Not your turn to choose new center."))
-            return False
-
-        if self.current_decision["decision_type"] != "decision_choose_new_center":
-            self.send_event(self.make_error_event(player_id, "invalid_decision", "Not a choose new center decision."))
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionChooseNewCenter, GameAction.ChooseNewCenterActionFields):
             return False
 
         new_center_card_id = action_data["new_center_card_id"]
@@ -819,39 +988,30 @@ class GameEngine:
 
         return True
 
-    def call_decision_continuation(self):
-        decision_continuation = self.current_decision["continuation"]
-        self.current_decision = None
-        decision_continuation()
+    def blank_continuation(self):
+        raise NotImplementedError("Continuation expected.")
+
+    def clear_decision(self):
+        continuation = self.blank_continuation
+        if self.current_decision:
+            continuation = self.current_decision["continuation"]
+            self.current_decision = None
+        return continuation
 
     def handle_choose_new_center(self, player_id:str, action_data:dict):
         if not self.validate_choose_new_center(player_id, action_data):
             return
 
+        continuation = self.clear_decision()
+
         player = self.get_player(player_id)
         new_center_card_id = action_data["new_center_card_id"]
         player.move_card(new_center_card_id, "center")
 
-        self.call_decision_continuation()
+        continuation()
 
     def validate_place_cheer(self, player_id:str, action_data:dict):
-        # The action_data must have the right fields.
-        # The player_id must match the current_decision decision_player
-        # decision_place_cheer must be the current decision type.
-        if not self.current_decision:
-            self.send_event(self.make_error_event(player_id, "invalid_decision", "No current decision."))
-            return False
-
-        if not self.validate_action_fields(action_data, GameAction.PlaceCheerActionFields):
-            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid place cheer action."))
-            return False
-
-        if player_id != self.current_decision["decision_player"]:
-            self.send_event(self.make_error_event(player_id, "invalid_player", "Not your turn to place cheer."))
-            return False
-
-        if self.current_decision["decision_type"] != "decision_place_cheer":
-            self.send_event(self.make_error_event(player_id, "invalid_decision", "Not a place cheer decision."))
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionPlaceCheer, GameAction.PlaceCheerActionFields):
             return False
 
         placements = action_data["placements"]
@@ -869,9 +1029,178 @@ class GameEngine:
         if not self.validate_place_cheer(player_id, action_data):
             return
 
+        continuation = self.clear_decision()
+
         player = self.get_player(player_id)
         placements = action_data["placements"]
         for cheer_id, target_id in placements.items():
             player.move_card(cheer_id, "holomem", target_id)
 
-        self.call_decision_continuation()
+        continuation()
+
+    def validate_main_step_place_holomem(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepPlaceHolomemFields):
+            return False
+
+        chosen_card_id = action_data["card_id"]
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == "place_holomem" and action["card_id"] == chosen_card_id:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
+            return False
+
+        return True
+
+    def handle_main_step_place_holomem(self, player_id:str, action_data:dict):
+        if not self.validate_main_step_place_holomem(player_id, action_data):
+            return
+
+        continuation = self.clear_decision()
+
+        player = self.get_player(player_id)
+        card_id = action_data["card_id"]
+        player.move_card(card_id, "backstage")
+
+        continuation()
+
+
+    def validate_main_step_bloom(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepBloomFields):
+            return False
+
+        chosen_card_id = action_data["card_id"]
+        target_id = action_data["target_id"]
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == "bloom" and action["card_id"] == chosen_card_id and action["target_id"] == target_id:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
+            return False
+
+        return True
+
+    def handle_main_step_bloom(self, player_id:str, action_data:dict):
+        if not self.validate_main_step_bloom(player_id, action_data):
+            return
+
+        continuation = self.clear_decision()
+
+        player = self.get_player(player_id)
+        card_id = action_data["card_id"]
+        target_id = action_data["target_id"]
+        player.bloom(card_id, target_id)
+
+        continuation()
+
+    def validate_main_step_collab(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepCollabFields):
+            return False
+
+        chosen_card_id = action_data["card_id"]
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == "collab" and action["card_id"] == chosen_card_id:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
+            return False
+
+        return True
+
+    def handle_main_step_collab(self, player_id:str, action_data:dict):
+        if not self.validate_main_step_collab(player_id, action_data):
+            return
+
+        continuation = self.clear_decision()
+
+        player = self.get_player(player_id)
+        card_id = action_data["card_id"]
+        player.collab_action(card_id)
+
+        continuation()
+
+    def validate_decision_base(self, player_id:str, action_data:dict, expected_decision_type, expected_action_type):
+        if not self.current_decision:
+            self.send_event(self.make_error_event(player_id, "invalid_decision", "No current decision."))
+            return False
+
+        if not self.validate_action_fields(action_data, expected_action_type):
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action fields."))
+            return False
+
+        if player_id != self.current_decision["decision_player"]:
+            self.send_event(self.make_error_event(player_id, "invalid_player", "Not your turn."))
+            return False
+
+        if self.current_decision["decision_type"] != expected_decision_type:
+            self.send_event(self.make_error_event(player_id, "invalid_decision", "Invalid decision."))
+            return False
+
+        return True
+
+    def validate_main_step_oshi_skill(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepOshiSkillFields):
+            return False
+
+        skill_id = action_data["skill_id"]
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == "oshi_skill" and action["skill_id"] == skill_id:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
+            return False
+
+        return True
+
+    def handle_main_step_oshi_skill(self, player_id:str, action_data:dict):
+        if not self.validate_main_step_oshi_skill(player_id, action_data):
+            return
+
+        continuation = self.clear_decision()
+
+        player = self.get_player(player_id)
+        skill_id = action_data["skill_id"]
+
+        skill_effects = player.trigger_oshi_skill(skill_id)
+        self.begin_resolving_effects(skill_effects, continuation)
+
+    def validate_move_cheer_between_holomems(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_MoveCheerBetweenHolomems, GameAction.EffectResolution_MoveCheerBetweenHolomemsFields):
+            return False
+
+        placements = action_data["placements"]
+        # All placement cheer_ids must be unique.
+        if len(set(placements.keys())) != len(placements):
+            self.send_event(self.make_error_event(player_id, "invalid_cheer", "Duplicate cheer placements."))
+            return False
+
+        for cheer_id, target_id in placements.items():
+            if cheer_id not in self.current_decision["available_cheer"]:
+                self.send_event(self.make_error_event(player_id, "invalid_cheer", "Invalid cheer to place."))
+                return False
+            if target_id not in self.current_decision["available_targets"]:
+                self.send_event(self.make_error_event(player_id, "invalid_target", "Invalid target for cheer."))
+                return False
+
+        return True
+
+    def handle_effect_resolution_move_cheer_between_holomems(self, player_id:str, action_data:dict):
+        if not self.validate_move_cheer_between_holomems(player_id, action_data):
+            return
+
+        player = self.get_player(player_id)
+        cheer_id = action_data["cheer_id"]
+        target_id = action_data["target_id"]
+        amount = action_data["amount"]
+
+
+        # TODO: Implement this.
+
+        player.move_cheer_between_holomems(cheer_id, target_id, amount)
+
+        continuation = self.clear_decision()
+        continuation()
