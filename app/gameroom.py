@@ -14,15 +14,16 @@ class GameRoom:
             player.current_game_room = self
 
     def start(self, card_db: CardDatabase):
-        player_ids = [player.player_id for player in self.players]
+        player_info = [player.get_player_game_info() for player in self.players]
         self.engine = GameEngine(
             card_db=card_db,
             previous_state=None,
-            player_ids=player_ids,
+            player_info=player_info,
             game_type=self.game_type
         )
 
-        events = self.engine.begin_game()
+        self.engine.begin_game()
+        events = self.engine.grab_events()
         self.send_events(events)
 
     def send_events(self, events):
@@ -35,10 +36,8 @@ class GameRoom:
                     })
 
     def handle_game_message(self, player: Player, action_type:str, action_data: dict):
-        # Pass the message to the game engine.
-        events = self.engine.handle_game_message(player.player_id, action_type, action_data)
-
-        # Send events to players.
+        self.engine.handle_game_message(player.player_id, action_type, action_data)
+        events = self.engine.grab_events()
         self.send_events(events)
 
     def is_game_over(self):

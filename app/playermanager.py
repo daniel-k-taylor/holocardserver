@@ -17,6 +17,14 @@ class Player:
         self.deck = deck
         self.cheer_deck = cheer_deck
 
+    def get_player_game_info(self):
+        return {
+            "player_id": self.player_id,
+            "oshi_id": self.oshi_id,
+            "deck": self.deck,
+            "cheer_deck": self.cheer_deck
+        }
+
 class PlayerManager:
     def __init__(self):
         self.active_players = {}

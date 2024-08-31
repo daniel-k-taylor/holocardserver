@@ -94,6 +94,7 @@
         "rarity": "c",
         "colors": ["white"],
         "hp": 60,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -116,6 +117,7 @@
         "rarity": "r",
         "colors": ["white"],
         "hp": 50,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -146,6 +148,7 @@
         "rarity": "u",
         "colors": ["white"],
         "hp": 150,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -178,6 +181,7 @@
         "rarity": "rr",
         "colors": ["white"],
         "hp": 240,
+        "baton_cost": 2,
         "tags": [
             "#JP",
             "#Gen0",
@@ -219,6 +223,7 @@
         "rarity": "c",
         "colors": ["white"],
         "hp": 50,
+        "baton_cost": 1,
         "tags": [
             "#EN",
             "#Promise",
@@ -256,6 +261,7 @@
         "rarity": "c",
         "colors": ["green"],
         "hp": 70,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -278,6 +284,7 @@
         "rarity": "r",
         "colors": ["green"],
         "hp": 60,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -339,6 +346,7 @@
         "rarity": "u",
         "colors": ["green"],
         "hp": 160,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen0",
@@ -363,6 +371,7 @@
         "rarity": "rr",
         "colors": ["green"],
         "hp": 190,
+        "baton_cost": 2,
         "tags": [
             "#JP",
             "#Gen0",
@@ -441,6 +450,7 @@
         "rarity": "c",
         "colors": ["green"],
         "hp": 70,
+        "baton_cost": 1,
         "tags": [
             "#ID",
             "#IDGen1",
@@ -476,6 +486,7 @@
         "rarity": "r",
         "colors": ["green", "white"],
         "hp": 130,
+        "baton_cost": 1,
         "tags": [
             "#ID",
             "#IDGen1",
@@ -527,6 +538,7 @@
         "rarity": "u",
         "colors": ["none"],
         "hp": 150,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#Gen4",
@@ -551,6 +563,7 @@
         "rarity": "u",
         "colors": ["none"],
         "hp": 150,
+        "baton_cost": 1,
         "tags": [
             "#JP",
             "#SecretSocietyholoX",

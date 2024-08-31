@@ -5,6 +5,7 @@ from typing import Dict, List, Any
 
 REQUIRED_DECK_COUNT = 50
 REQUIRED_CHEER_COUNT = 20
+MAX_ANY_CARD_COUNT = 4
 
 ALLOWED_DECK_TYPES = [
     "holomem_debut",
@@ -45,6 +46,9 @@ class CardDatabase:
         # Check the deck
         deck_count = 0
         for card_id, count in deck.items():
+            if count > MAX_ANY_CARD_COUNT:
+                return False
+
             deck_count += count
             deck_card = self.get_card_by_id(card_id)
             if not deck_card or deck_card["card_type"] not in ALLOWED_DECK_TYPES:
