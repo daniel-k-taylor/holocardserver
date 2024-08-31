@@ -34,6 +34,7 @@
                     {
                         "effect_type": "add_turn_effect",
                         "turn_effect": {
+                            "timing": "before_art",
                             "effect_type": "center_arts_bonus",
                             "condition": "center_is_color",
                             "condition_colors": ["white"],
@@ -136,8 +137,11 @@
         "collab_effects": [
             {
                 "effect_type": "add_turn_effect",
-                "turn_effect_type": "center_arts_bonus",
-                "amount": 20
+                "turn_effect": {
+                    "timing": "before_art",
+                    "effect_type": "center_arts_bonus",
+                    "amount": 20
+                }
             }
         ]
     },
@@ -670,7 +674,8 @@
         "play_conditions": [
             {
                 "condition": "cheer_in_play",
-                "amount_min": 1
+                "amount_min": 1,
+                "amount_max": -1
             }
         ],
         "play_requirements": {

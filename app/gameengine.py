@@ -40,14 +40,12 @@ class EffectType:
     #"take_from_deck"
 
 class Condition:
+    Condition_CardsInHand = "cards_in_hand"
     Condition_CenterIsColor = "center_is_color"
-
-    # Unimplemented
-    #"cards_in_hand"
-    #"cheer_in_play"
-    #"holomem_on_stage"
-    #"target_color"
-    #"collab_with"
+    Condition_CheerInPlay = "cheer_in_play"
+    Condition_CollabWith = "collab_with"
+    Condition_HolomemOnStage = "holomem_on_stage"
+    Condition_TargetColor = "target_color"
 
 
 class TurnEffectType:
@@ -386,7 +384,8 @@ class PlayerState:
         for _ in range(amount):
             self.holopower.insert(0, self.deck.pop(0))
 
-    def collab_action(self, collab_card_id):
+    def collab_action(self, collab_card_id, continuation):
+        # Move the card and generate holopower.
         collab_card, _, _ = self.find_and_remove_card(collab_card_id)
         self.collab.append(collab_card)
         self.collabed_this_turn = True
@@ -399,6 +398,10 @@ class PlayerState:
             "holopower_generated": 1,
         }
         self.engine.broadcast_event(collab_event)
+
+        # Handle collab effects.
+        collab_effects = collab_card["collab_effects"]
+        self.engine.begin_resolving_effects(collab_effects, continuation)
 
     def trigger_oshi_skill(self, skill_id):
         oshi_skill = next(skill for skill in self.oshi_card["oshi_skills"] if skill["skill_id"] == skill_id)
@@ -1096,8 +1099,10 @@ class GameEngine:
         self.performance_continuation = continuation
 
         # Get any before effects and resolve them.
-        effects = get_effects_at_timing(art["art_effects"], "before_art")
-        self.begin_resolving_effects(effects, self.continue_perform_art)
+        art_effects = get_effects_at_timing(art["art_effects"], "before_art")
+        player_turn_effects = get_effects_at_timing(player.turn_effects, "before_art")
+        all_effects = art_effects + player_turn_effects
+        self.begin_resolving_effects(all_effects, self.continue_perform_art)
 
     def continue_perform_art(self):
         # Now all before effects have been resolved.
@@ -1205,11 +1210,34 @@ class GameEngine:
             return True
 
         match effect["condition"]:
+            case Condition.Condition_CardsInHand:
+                amount_min = effect["amount_min"]
+                amount_max = effect["amount_max"]
+                if amount_max == -1:
+                    amount_max = 1000
+                return amount_min <= len(effect_player.hand) <= amount_max
             case Condition.Condition_CenterIsColor:
                 condition_colors = effect["condition_colors"]
                 center_colors = effect_player.center[0]["colors"]
                 if any(color in center_colors for color in condition_colors):
                     return True
+            case Condition.Condition_CheerInPlay:
+                amount_min = effect["amount_min"]
+                amount_max = effect["amount_max"]
+                if amount_max == -1:
+                    amount_max = 1000
+                return amount_min <= len(effect_player.get_cheer_ids_on_holomems()) <= amount_max
+            case Condition.Condition_CollabWith:
+                required_member_name = effect["required_member_name"]
+                holomems = effect_player.get_holomem_on_stage(only_performers=True)
+                return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_HolomemOnStage:
+                required_member_name = effect["required_member_name"]
+                holomems = effect_player.get_holomem_on_stage()
+                return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_TargetColor:
+                color_requirement = effect["color_requirement"]
+                return color_requirement in self.performance_target_card["colors"]
             case _:
                 raise NotImplementedError(f"Unimplemented condition: {effect['condition']}")
 
@@ -1602,9 +1630,7 @@ class GameEngine:
 
         player = self.get_player(player_id)
         card_id = action_data["card_id"]
-        player.collab_action(card_id)
-
-        continuation()
+        player.collab_action(card_id, continuation)
 
     def validate_decision_base(self, player_id:str, action_data:dict, expected_decision_type, expected_action_type):
         if not self.current_decision:
