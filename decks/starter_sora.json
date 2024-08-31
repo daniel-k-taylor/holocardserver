@@ -1,0 +1,94 @@
+{
+    "deck_id": "starter_sora",
+    "oshi": {
+        "id": "hSD01-001"
+    },
+    "deck": [
+        {
+            "card_id": "hSD01-003",
+            "count": 4
+        },
+        {
+            "card_id": "hSD01-004",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-005",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-006",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-007",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-008",
+            "count": 4
+        },
+        {
+            "card_id": "hSD01-009",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-010",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-011",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-012",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-013",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-014",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-015",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-016",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-017",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-018",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-019",
+            "count": 3
+        },
+        {
+            "card_id": "hSD01-020",
+            "count": 2
+        },
+        {
+            "card_id": "hSD01-021",
+            "count": 2
+        }
+    ],
+    "cheer_deck": [
+        {
+            "card_id": "hY01-001",
+            "count": 10
+        },
+        {
+            "card_id": "hY02-001",
+            "count": 10
+        }
+    ]
+}
