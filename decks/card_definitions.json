@@ -29,15 +29,16 @@
                 "effects": [
                     {
                         "effect_type": "switch_center_with_back",
-                        "target_player": "opponent",
-                        "amount": 1
+                        "target_player": "opponent"
                     },
                     {
                         "effect_type": "add_turn_effect",
-                        "turn_effect_type": "center_arts_bonus",
-                        "condition": "center_is_color",
-                        "condition_color": "white",
-                        "amount": 50
+                        "turn_effect": {
+                            "effect_type": "center_arts_bonus",
+                            "condition": "center_is_color",
+                            "condition_colors": ["white"],
+                            "amount": 50
+                        }
                     }
                 ]
             }
@@ -182,6 +183,7 @@
         "colors": ["white"],
         "hp": 240,
         "baton_cost": 2,
+        "down_life_cost": 2,
         "tags": [
             "#JP",
             "#Gen0",
@@ -204,8 +206,9 @@
                     { "color": "any", "amount": 1 }
                 ],
                 "power": 60,
-                "bonus_effects": [
+                "art_effects": [
                     {
+                        "timing": "before_art",
                         "condition": "holomem_on_stage",
                         "required_member_name": "azki",
                         "effect_type": "power_boost",
@@ -213,8 +216,7 @@
                     }
                 ]
             }
-        ],
-        "down_life_cost": 2
+        ]
     },
     {
         "card_id": "hSD01-007",
@@ -384,14 +386,16 @@
                     { "color": "green", "amount": 1 }
                 ],
                 "power": 60,
-                "bonus_effects": [
+                "art_effects": [
                     {
+                        "timing": "before_art",
                         "condition": "target_color",
                         "color_requirement": "blue",
                         "effect_type": "power_boost",
                         "amount": 50
                     },
                     {
+                        "timing": "before_art",
                         "condition": "holomem_on_stage",
                         "required_member_name": "tokino_sora",
                         "effect_type": "send_cheer",
@@ -409,8 +413,9 @@
                     { "color": "any", "amount": 1 }
                 ],
                 "power": 100,
-                "bonus_effects": [
+                "art_effects": [
                     {
+                        "timing": "before_art",
                         "condition": "target_color",
                         "color_requirement": "blue",
                         "effect_type": "power_boost",
@@ -499,8 +504,9 @@
                     { "color": "any", "amount": 2 }
                 ],
                 "power": 50,
-                "bonus_effects": [
+                "art_effects": [
                     {
+                        "timing": "before_art",
                         "effect_type": "roll_die",
                         "die_effects": [
                             {
@@ -618,7 +624,7 @@
         "support_names": ["manechan"],
         "rarity": "c",
         "limited": true,
-        "play_requirements": [
+        "play_conditions": [
             {
                 "condition": "cards_in_hand",
                 "amount_min": 2,
@@ -661,13 +667,19 @@
         "support_names": ["amazingpc"],
         "rarity": "c",
         "limited": true,
-        "play_requirements": [
+        "play_conditions": [
             {
-                "condition": "archive_cheer_in_play",
-                "amount_min": 1,
-                "amount_max": 1
+                "condition": "cheer_in_play",
+                "amount_min": 1
             }
         ],
+        "play_requirements": {
+            "cheer_to_archive_from_play": {
+                "type": "list",
+                "length": 1,
+                "content_type": "cheer_in_play"
+            }
+        },
         "effects": [
             {
                 "effect_type": "choose_from_deck",
@@ -716,7 +728,7 @@
         "support_names": ["first_gravity"],
         "rarity": "c",
         "limited": true,
-        "play_requirements": [
+        "play_conditions": [
             {
                 "condition": "cards_in_hand",
                 "amount_min": 0,
