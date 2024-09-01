@@ -14,6 +14,7 @@ class GamePhase:
     GameOver = "gameover"
 
 class DecisionType:
+    DecisionChoice = "decision_choice"
     DecisionChooseNewCenter = "decision_choose_new_center"
     DecisionPlaceCheer = "decision_place_cheer"
     DecisionMainStep = "decision_main_step"
@@ -28,6 +29,7 @@ class EffectType:
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_PowerBoost = "power_boost"
     EffectType_SendCheer = "send_cheer"
+    EffectType_SendCollabBack = "send_collab_back"
     EffectType_ShuffleHandToDeck = "shuffle_hand_to_deck"
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
 
@@ -35,7 +37,6 @@ class EffectType:
     ### Unimplemented
     #"choose_die_result"
     #"roll_die"
-    #"send_collab_back"
     #"choose_from_deck"
     #"take_from_deck"
 
@@ -54,6 +55,7 @@ class TurnEffectType:
 class EventType:
     EventType_Bloom = "bloom"
     EventType_BoostStat = "boost_stat"
+    EventType_Choice_SendCollabBack = "choice_send_collab_back"
     EventType_Collab = "collab"
     EventType_Decision_ChooseCard = "decision_choose_card"
     EventType_Decision_MainStep = "decision_main_step"
@@ -154,6 +156,11 @@ class GameAction:
     EffectResolution_ChooseCardForEffect = "effect_resolution_choose_card_for_effect"
     EffectResolution_ChooseCardForEffectFields = {
         "card_id": str,
+    }
+
+    EffectResolution_MakeChoice = "effect_resolution_make_choice"
+    EffectResolution_MakeChoiceFields = {
+        "choice_index": int,
     }
 
 class PlayerState:
@@ -372,6 +379,12 @@ class PlayerState:
             rested_card_ids.append(card["game_card_id"])
         self.collab = []
         return rested_card_ids
+
+    def return_collab(self):
+        # For all cards in collab, move them back to backstage and rest them.
+        collab_card_ids = ids_from_cards(self.collab)
+        for card_id in collab_card_ids:
+            self.move_card(card_id, "backstage")
 
     def bloom(self, bloom_card_id, target_card_id):
         bloom_card, _, bloom_from_zone_name = self.find_and_remove_card(bloom_card_id)
@@ -1444,6 +1457,36 @@ class GameEngine:
                         "available_targets": ids_from_cards(to_options),
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_SendCollabBack:
+                optional = effect.get("optional", False)
+                if optional:
+                    # Ask the user if they want to send this collab back to the backstage.
+                    choice_info = {
+                        "specific_options": ["pass", "ok"]
+                    }
+                    min_choice = 0
+                    max_choice = 2
+                    decision_event = {
+                        "event_type": EventType.EventType_Choice_SendCollabBack,
+                        "choice_event": True,
+                        "effect_player_id": effect_player_id,
+                        "choice_info": choice_info,
+                        "min_choice": min_choice,
+                        "max_choice": max_choice,
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionChoice,
+                        "decision_player": effect_player_id,
+                        "choice_info": choice_info,
+                        "min_choice": min_choice,
+                        "max_choice": max_choice,
+                        "resolution_func": self.handle_choice_return_collab,
+                        "continuation": self.continue_resolving_effects,
+                    })
+                else:
+                    effect_player.return_collab()
+
             case EffectType.EffectType_ShuffleHandToDeck:
                 effect_player.shuffle_hand_to_deck()
             case EffectType.EffectType_SwitchCenterWithBack:
@@ -1570,6 +1613,8 @@ class GameEngine:
                 self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
             case GameAction.EffectResolution_ChooseCardForEffect:
                 self.handle_effect_resolution_choose_card_for_effect(player_id, action_data)
+            case GameAction.EffectResolution_MakeChoice:
+                self.handle_effect_resolution_make_choice(player_id, action_data)
             case _:
                 self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
 
@@ -2093,6 +2138,27 @@ class GameEngine:
         continuation = self.clear_decision()
         continuation()
 
+    def validate_effect_resolution_make_choice(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionChoice, GameAction.EffectResolution_MakeChoiceFields):
+            return
+
+        choice_index = action_data["choice_index"]
+        if choice_index < self.current_decision["min_choice"] or choice_index > self.current_decision["max_choice"]:
+            self.send_event(self.make_error_event(player_id, "invalid_choice", "Invalid choice."))
+            return False
+
+        return True
+
+    def handle_effect_resolution_make_choice(self, player_id:str, action_data:dict):
+        if not self.validate_effect_resolution_make_choice(player_id, action_data):
+            return
+
+        choice_index = action_data["choice_index"]
+        resolution_func = self.current_decision["resolution_func"]
+
+        continuation = self.clear_decision()
+        resolution_func(player_id, choice_index, continuation)
+
     def handle_holomem_swap(self, performing_player_id:str, card_id:str):
         owner_id = get_owner_id_from_card_id(card_id)
         owner = self.get_player(owner_id)
@@ -2105,3 +2171,11 @@ class GameEngine:
 
         player = self.get_player(performing_player_id)
         player.move_card(self, card_id, to_zone, zone_card_id="", hidden_info=not reveal)
+
+    def handle_choice_return_collab(self, player_id, choice_index, continuation):
+        # 0 is pass, 1 is okay
+        if choice_index == 1:
+            player = self.get_player(player_id)
+            player.return_collab()
+
+        continuation()
