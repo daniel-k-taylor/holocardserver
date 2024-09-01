@@ -20,25 +20,22 @@ class DecisionType:
     DecisionMainStep = "decision_main_step"
     DecisionPerformanceStep = "decision_performance_step"
     DecisionEffect_MoveCheerBetweenHolomems = "decision_effect_move_cheer_between_holomems"
-    DecisionEffect_ChooseCardForEffect = "decision_choose_card_for_effect"
+    DecisionEffect_ChooseCardsForEffect = "decision_choose_cards_for_effect"
+    DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
-    EffectType_ChooseCard = "choose_card"
+    EffectType_ChooseCards = "choose_cards"
     EffectType_Draw = "draw"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_PowerBoost = "power_boost"
+    EffectType_RollDie = "roll_die"
+    EffectType_RollDie_ChooseResult = "choose_die_result"
+    EffectType_RollDie_Internal = "roll_die_INTERNAL"
     EffectType_SendCheer = "send_cheer"
     EffectType_SendCollabBack = "send_collab_back"
     EffectType_ShuffleHandToDeck = "shuffle_hand_to_deck"
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
-
-
-    ### Unimplemented
-    #"choose_die_result"
-    #"roll_die"
-    #"choose_from_deck"
-    #"take_from_deck"
 
 class Condition:
     Condition_CardsInHand = "cards_in_hand"
@@ -57,13 +54,15 @@ class EventType:
     EventType_BoostStat = "boost_stat"
     EventType_Choice_SendCollabBack = "choice_send_collab_back"
     EventType_Collab = "collab"
-    EventType_Decision_ChooseCard = "decision_choose_card"
+    EventType_Decision_ChooseCards = "decision_choose_cards"
     EventType_Decision_MainStep = "decision_main_step"
     EventType_Decision_MoveCheerChoice = "decision_move_cheer_choice"
+    EventType_Decision_OrderCards = "decision_order_cards"
     EventType_Decision_PerformanceStep = "decision_performance_step"
     EventType_Decision_SwapHolomemToCenter = "decision_choose_holomem_swap_to_center"
     EventType_Draw = "draw"
     EventType_EndTurn = "end_turn"
+    EventType_ForceDieResult = "force_die_result"
     EventType_GameStartInfo = "game_start_info"
     EventType_InitialPlacement = "initial_placement"
     EventType_MoveCard = "move_card"
@@ -154,13 +153,18 @@ class GameAction:
     }
 
     EffectResolution_ChooseCardForEffect = "effect_resolution_choose_card_for_effect"
-    EffectResolution_ChooseCardForEffectFields = {
-        "card_id": str,
+    EffectResolution_ChooseCardsForEffectFields = {
+        "card_ids": List[str],
     }
 
     EffectResolution_MakeChoice = "effect_resolution_make_choice"
     EffectResolution_MakeChoiceFields = {
         "choice_index": int,
+    }
+
+    EffectResolution_OrderCards = "effect_resolution_order_cards"
+    EffectResolution_OrderCardsFields = {
+        "card_ids": List[str],
     }
 
 class PlayerState:
@@ -185,6 +189,7 @@ class PlayerState:
         self.oshi_skills_used_this_game = []
         self.used_limited_this_turn = False
         self.turn_effects = []
+        self.set_next_die_roll = 0
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -275,6 +280,21 @@ class PlayerState:
         }
         self.engine.broadcast_event(shuffle_event)
 
+    def get_effects_by_timing(self, timing, source):
+        effects = []
+        for oshi_skill in self.oshi_card["oshi_skills"]:
+            if oshi_skill["timing"] == timing and oshi_skill["timing_source"] == source:
+                if oshi_skill["limit"] == "once_per_turn" and oshi_skill["skill_id"] in self.oshi_skills_used_this_turn:
+                    continue
+                if oshi_skill["limit"] == "once_per_game" and oshi_skill["skill_id"] in self.oshi_skills_used_this_game:
+                    continue
+                if oshi_skill["cost"] > len(self.holopower):
+                    continue
+
+                # The ability hasn't been used and the player can pay for it.
+                effects.append(oshi_skill["effects"])
+        return effects
+
     def get_cheer_ids_on_holomems(self):
         cheer_ids = []
         for card in self.get_holomem_on_stage():
@@ -323,7 +343,7 @@ class PlayerState:
             zone.remove(card)
         return card, zone, zone_name
 
-    def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False):
+    def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False, add_to_bottom=False):
         card, _, from_zone_name = self.find_and_remove_card(card_id)
 
         if to_zone == "center":
@@ -338,7 +358,10 @@ class PlayerState:
         elif to_zone == "holopower":
             self.holopower.insert(0, card)
         elif to_zone == "deck":
-            self.deck.insert(0, card)
+            if add_to_bottom:
+                self.deck.append(card)
+            else:
+                self.deck.insert(0, card)
 
         if to_zone in ["center", "backstage", "holomem"] and from_zone_name == "hand":
             card["played_this_turn"] = True
@@ -634,6 +657,7 @@ class GameEngine:
         self.effects_to_resolve = []
         self.effect_resolution_continuation = self.blank_continuation
         self.effect_resolution_cleanup_card = None
+        self.test_random_override = None
 
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performer_card = None
@@ -651,6 +675,9 @@ class GameEngine:
         self.all_game_cards_map = {}
         for player_state in self.player_states:
             self.all_game_cards_map.update(player_state.game_cards_map)
+
+    def set_random_test_hook(self, random_override):
+        self.test_random_override = random_override
 
     def grab_events(self):
         events = self.latest_events
@@ -675,6 +702,8 @@ class GameEngine:
     def begin_game(self):
         # Set the seed.
         self.random_gen = random.Random(self.seed)
+        if self.test_random_override:
+            self.random_gen = self.test_random_override
 
         # Shuffle decks.
         for player_state in self.player_states:
@@ -1304,45 +1333,79 @@ class GameEngine:
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
-            case EffectType.EffectType_ChooseCard:
+            case EffectType.EffectType_ChooseCards:
                 from_zone = effect["from"]
-                to_zone = effect["to"]
-                amount = effect["amount"]
-                reveal = effect["reveal"]
+                destination = effect["destination"]
+                look_at = effect["look_at"]
+                amount_min = effect["amount_min"]
+                amount_max = effect["amount_max"]
+                requirement = effect.get("requirement", None)
+                requirement_bloom_levels = effect.get("requirement_bloom_levels", [])
+                requirement_buzz_blocked = effect.get("requirement_buzz_blocked", False)
+                requirement_names = effect.get("requirement_names", [])
+                reveal_chosen = effect.get("reveal_chosen", False)
+                remaining_cards_action = effect["remaining_cards_action"]
 
-                card_options = []
-                hidden_zone = False
+                cards_to_choose_from = []
                 if from_zone == "hand":
-                    card_options = ids_from_cards(effect_player.hand)
-                    hidden_zone = True
+                    cards_to_choose_from = ids_from_cards(effect_player.hand)
                 elif from_zone == "holopower":
-                    card_options = ids_from_cards(effect_player.holopower)
-                    hidden_zone = True
+                    cards_to_choose_from = ids_from_cards(effect_player.holopower)
+                elif from_zone == "deck":
+                    cards_to_choose_from = ids_from_cards(effect_player.deck)
 
-                if reveal:
-                    hidden_zone = False
+                # If look_at is -1, look at all cards.
+                if look_at == -1:
+                    look_at = len(cards_to_choose_from)
 
+                # If look_at is greater than the number of cards, look at as many as you can.
+                look_at = min(look_at, len(cards_to_choose_from))
+
+                cards_to_choose_from = cards_to_choose_from[:look_at]
+                if requirement:
+                    match requirement:
+                        case "holomem_bloom":
+                            cards_to_choose_from = [card for card in cards_to_choose_from if card["card_type"] == "holomem_bloom" \
+                                and card["bloom_level"] in requirement_bloom_levels
+                            ]
+                        case "holomem_named":
+                            # Only include cards that have a name in the requirement_names list.
+                            cards_to_choose_from = [card for card in cards_to_choose_from \
+                                if any(name in card["holomem_names"] for name in requirement_names)]
+                        case "limited":
+                            # only include cards that are limited
+                            cards_to_choose_from = [card for card in cards_to_choose_from if is_card_limited(card)]
+
+                    # Exclude any buzz if required.
+                    if requirement_buzz_blocked:
+                        cards_to_choose_from = [card for card in cards_to_choose_from if "buzz" not in card or not card["buzz"]]
+
+                card_options = ids_from_cards(cards_to_choose_from)
                 choose_event = {
-                    "event_type": EventType.EventType_Decision_ChooseCard,
+                    "event_type": EventType.EventType_Decision_ChooseCards,
                     "effect_player_id": effect_player_id,
                     "card_options": card_options,
                     "from_zone": from_zone,
-                    "to_zone": to_zone,
-                    "amount": amount,
-                    "reveal": reveal,
+                    "to_zone": destination,
+                    "amount_min": amount_min,
+                    "amount_max": amount_max,
+                    "reveal_chosen": reveal_chosen,
+                    "remaining_cards_action": remaining_cards_action,
+                    "hidden_info_player": effect_player_id,
+                    "hidden_info_fields": ["card_options"],
                 }
-                if hidden_zone:
-                    choose_event["hidden_info_player"] = effect_player_id
-                    choose_event["hidden_info_fields"] = ["card_options"]
                 self.broadcast_event(choose_event)
                 self.set_decision({
-                    "decision_type": DecisionType.DecisionEffect_ChooseCardForEffect,
+                    "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                     "decision_player": effect_player_id,
                     "choice_ids": card_options,
                     "from_zone": from_zone,
-                    "to_zone": to_zone,
-                    "reveal": reveal,
-                    "effect_resolution": self.handle_choose_card_result,
+                    "to_zone": destination,
+                    "amount_min": amount_min,
+                    "amount_max": amount_max,
+                    "reveal_chosen": reveal_chosen,
+                    "remaining_cards_action": remaining_cards_action,
+                    "effect_resolution": self.handle_choose_cards_result,
                     "continuation": self.continue_resolving_effects,
                 })
             case EffectType.EffectType_Draw:
@@ -1370,10 +1433,81 @@ class GameEngine:
                     "available_targets": available_targets,
                     "continuation": self.continue_resolving_effects,
                 })
+
             case EffectType.EffectType_PowerBoost:
                 amount = effect["amount"]
                 self.performance_artstatboosts.power += amount
                 self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+
+            case EffectType.EffectType_RollDie:
+                # Put the actual roll in front on the queue, but
+                # check afterwards to see if we should add any more effects up front.
+                rolldie_internal_effect = effect.copy()
+                self.add_effects_to_front([rolldie_internal_effect])
+
+                # When we roll a die, check if there are any choices to be made like oshi abilities.
+                ability_effects = effect_player.get_effects_by_timing("before_die_roll", effect["source"])
+                if ability_effects:
+                    self.add_effects_to_front(ability_effects)
+            case EffectType.EffectType_RollDie_ChooseResult:
+                # Ask the user if they want to send this collab back to the backstage.
+                choice_info = {
+                    "specific_options": ["pass", "1", "2", "3", "4", "5", "6"],
+                }
+                min_choice = 0
+                max_choice = 6
+                is_oshi_effect = "oshi_skill" in effect
+                decision_event = {
+                    "event_type": EventType.EventType_ForceDieResult,
+                    "choice_event": True,
+                    "effect_player_id": effect_player_id,
+                    "choice_info": choice_info,
+                    "min_choice": min_choice,
+                    "max_choice": max_choice,
+                    "is_oshi_effect": is_oshi_effect,
+                    "oshi_skill_id": effect["skill_id"],
+                    "cost": effect["cost"],
+                }
+                self.broadcast_event(decision_event)
+                self.set_decision({
+                    "decision_type": DecisionType.DecisionChoice,
+                    "decision_player": effect_player_id,
+                    "choice_info": choice_info,
+                    "min_choice": min_choice,
+                    "max_choice": max_choice,
+                    "is_oshi_effect": is_oshi_effect,
+                    "oshi_skill_id": effect["skill_id"],
+                    "cost": effect["cost"],
+                    "resolution_func": self.handle_force_die_result,
+                    "continuation": self.continue_resolving_effects,
+                })
+            case EffectType.EffectType_RollDie_Internal:
+                die_effects = effect["die_effects"]
+                rigged = False
+                if effect_player.set_next_die_roll:
+                    die_result = effect_player.set_next_die_roll
+                    effect_player.set_next_die_roll = 0
+                    rigged = True
+                else:
+                    die_result = self.random_gen.randint(1, 6)
+
+                die_event = {
+                    "event_type": EventType.EventType_RollDie,
+                    "effect_player_id": effect_player_id,
+                    "die_result": die_result,
+                    "rigged": rigged,
+                }
+                self.broadcast_event(die_event)
+                effects_to_resolve = []
+                for die_effects_option in die_effects:
+                    activate_on_values = die_effects_option["activate_on_values"]
+                    if die_result in activate_on_values:
+                        effects_to_resolve = die_effects_option["effects"]
+                        break
+                if effects_to_resolve:
+                    # Push these effects onto the front of the effect list.
+                    self.add_effects_to_front(effects_to_resolve)
+
             case EffectType.EffectType_SendCheer:
                 # Required params
                 amount_min = effect["amount_min"]
@@ -1509,14 +1643,19 @@ class GameEngine:
                     }
                     self.broadcast_event(decision_event)
                     self.set_decision({
-                        "decision_type": DecisionType.DecisionEffect_ChooseCardForEffect,
+                        "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                         "decision_player": effect_player_id,
                         "choice_ids": available_backstage_ids,
+                        "amount_min": 1,
+                        "amount_max": 1,
                         "effect_resolution": self.handle_holomem_swap,
                         "continuation": self.continue_resolving_effects,
                     })
             case _:
                 raise NotImplementedError(f"Unimplemented effect type: {effect['effect_type']}")
+
+    def add_effects_to_front(self, new_effects):
+        self.effects_to_resolve = new_effects + self.effects_to_resolve
 
     def end_game(self, loser_id):
         self.phase = GamePhase.GameOver
@@ -1612,9 +1751,11 @@ class GameEngine:
             case GameAction.EffectResolution_MoveCheerBetweenHolomems:
                 self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
             case GameAction.EffectResolution_ChooseCardForEffect:
-                self.handle_effect_resolution_choose_card_for_effect(player_id, action_data)
+                self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
             case GameAction.EffectResolution_MakeChoice:
                 self.handle_effect_resolution_make_choice(player_id, action_data)
+            case GameAction.EffectResolution_OrderCards:
+                self.handle_effect_resolution_order_cards(player_id, action_data)
             case _:
                 self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
 
@@ -2116,27 +2257,36 @@ class GameEngine:
         continuation = self.clear_decision()
         continuation()
 
-    def validate_choose_card_for_effect(self, player_id:str, action_data:dict):
-        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_ChooseCardForEffect, GameAction.EffectResolution_ChooseCardForEffectFields):
+    def validate_choose_cards_for_effect(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_ChooseCardsForEffect, GameAction.EffectResolution_ChooseCardsForEffectFields):
             return False
 
-        chosen_card_id = action_data["card_id"]
-        if chosen_card_id not in self.current_decision["choice_ids"]:
-            self.send_event(self.make_error_event(player_id, "invalid_card", "Invalid card choice."))
+        chosen_cards = action_data["card_ids"]
+        for card_id in chosen_cards:
+            if card_id not in self.current_decision["choice_ids"]:
+                self.send_event(self.make_error_event(player_id, "invalid_card", "Invalid card choice."))
+                return False
+        # Check the amounts against amount_min/max
+        if len(chosen_cards) < self.current_decision["amount_min"] or len(chosen_cards) > self.current_decision["amount_max"]:
+            self.send_event(self.make_error_event(player_id, "invalid_amount", "Invalid amount of cards chosen."))
+            return False
+        # Check for dupes.
+        if len(set(chosen_cards)) != len(chosen_cards):
+            self.send_event(self.make_error_event(player_id, "invalid_card", "Duplicate cards chosen."))
             return False
 
         return True
 
-    def handle_effect_resolution_choose_card_for_effect(self, player_id:str, action_data:dict):
-        if not self.validate_choose_card_for_effect(player_id, action_data):
+    def handle_effect_resolution_choose_cards_for_effect(self, player_id:str, action_data:dict):
+        if not self.validate_choose_cards_for_effect(player_id, action_data):
             return
 
-        chosen_card_id = action_data["card_id"]
-        resolution = self.current_decision["effect_resolution"]
-        resolution(player_id, chosen_card_id)
-
+        decision_info_copy = self.current_decision.copy()
         continuation = self.clear_decision()
-        continuation()
+
+        chosen_cards = action_data["card_ids"]
+        resolution = self.current_decision["effect_resolution"]
+        resolution(decision_info_copy, player_id, chosen_cards, continuation)
 
     def validate_effect_resolution_make_choice(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionChoice, GameAction.EffectResolution_MakeChoiceFields):
@@ -2159,23 +2309,109 @@ class GameEngine:
         continuation = self.clear_decision()
         resolution_func(player_id, choice_index, continuation)
 
-    def handle_holomem_swap(self, performing_player_id:str, card_id:str):
+    def validate_effect_resolution_order_cards(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_OrderCards, GameAction.EffectResolution_OrderCardsFields):
+            return False
+
+        card_ids = action_data["card_ids"]
+        # Ensure length matches the decision cards and they are unique.
+        if len(card_ids) != len(self.current_decision["card_ids"]) or len(set(card_ids)) != len(card_ids):
+            self.send_event(self.make_error_event(player_id, "invalid_cards", "Invalid cards for ordering."))
+            return False
+
+        return True
+
+    def handle_effect_resolution_order_cards(self, player_id:str, action_data:dict):
+        if not self.validate_effect_resolution_order_cards(player_id, action_data):
+            return
+
+        player = self.get_player(player_id)
+        card_ids = action_data["card_ids"]
+        to_zone = action_data["to_zone"]
+
+        # The cards are in the order they should be put at that location.
+        for card_id in card_ids:
+            player.move_card(card_id, to_zone, zone_card_id="", hidden_info=True, add_to_bottom=action_data["bottom"])
+
+        continuation = self.clear_decision()
+        continuation()
+
+
+    def handle_holomem_swap(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
+        card_id = card_ids[0]
         owner_id = get_owner_id_from_card_id(card_id)
         owner = self.get_player(owner_id)
         owner.swap_center_with_back(card_id)
 
-    def handle_choose_card_result(self, performing_player_id:str, card_id:str):
-        from_zone = self.current_decision["from_zone"]
-        to_zone = self.current_decision["to_zone"]
-        reveal = self.current_decision["reveal"]
+        continuation()
+
+    def handle_choose_cards_result(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
+        from_zone = decision_info_copy["from_zone"]
+        to_zone = decision_info_copy["to_zone"]
+        reveal_chosen = decision_info_copy["reveal_chosen"]
+        remaining_cards_action = decision_info_copy["remaining_cards_action"]
+        card_options = decision_info_copy["choice_ids"]
 
         player = self.get_player(performing_player_id)
-        player.move_card(self, card_id, to_zone, zone_card_id="", hidden_info=not reveal)
+
+        # Deal with chosen cards.
+        for card_id in card_ids:
+            player.move_card(self, card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+
+        # Deal with unchosen cards.
+        remaining_card_ids = [card_id for card_id in card_options if card_id not in card_ids]
+        for card_id in remaining_card_ids:
+            match remaining_cards_action:
+                case "nothing":
+                    pass
+                case "shuffle":
+                    if from_zone == "deck":
+                        player.shuffle_deck()
+                    else:
+                        raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
+                case "order_on_bottom":
+                    order_cards_event = {
+                        "event_type": EventType.EventType_Decision_OrderCards,
+                        "player_id": performing_player_id,
+                        "card_ids": remaining_card_ids,
+                        "from_zone": from_zone,
+                        "to_zone": from_zone,
+                        "bottom": True,
+                        "hidden_info_player": performing_player_id,
+                        "hidden_info_fields": ["remaining_card_ids"],
+                    }
+                    self.broadcast_event(order_cards_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_OrderCards,
+                        "decision_player": performing_player_id,
+                        "card_ids": remaining_card_ids,
+                        "from_zone": from_zone,
+                        "to_zone": from_zone,
+                        "bottom": True,
+                        "continuation": continuation,
+                    })
+                case _:
+                    raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
+
+        if not self.current_decision:
+            continuation()
 
     def handle_choice_return_collab(self, player_id, choice_index, continuation):
         # 0 is pass, 1 is okay
         if choice_index == 1:
             player = self.get_player(player_id)
             player.return_collab()
+
+        continuation()
+
+    def handle_force_die_result(self, player_id, choice_index, continuation):
+        # 0 is pass, 1-6 is a die result and uses the ability.
+        if choice_index > 0:
+            player = self.get_player(player_id)
+            player.set_next_die_roll = choice_index
+
+            if self.current_decision["is_oshi_effect"]:
+                skill_id = self.current_decision["skill_id"]
+                _ = player.trigger_oshi_skill(skill_id)
 
         continuation()

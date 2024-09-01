@@ -53,14 +53,17 @@
         "oshi_skills": [
             {
                 "skill_id": "mapinthelefthand",
-                "timing": "die_roll_holomem_ability",
+                "timing": "before_die_roll",
+                "timing_source": "holomem_ability",
                 "cost_type": "holopower",
                 "cost": 3,
                 "limit": "once_per_turn",
-                "effects":
-                [
+                "effects": [
                     {
-                        "effect_type": "choose_die_result"
+                        "effect_type": "choose_die_result",
+                        "oshi_effect": "true",
+                        "skill_id": "mapinthelefthand",
+                        "cost": 3
                     }
                 ]
             },
@@ -246,18 +249,24 @@
         ],
         "collab_effects": [
             {
-                "effect_type": "choose_card",
+                "effect_type": "choose_cards",
                 "from": "holopower",
-                "to": "hand",
-                "amount": 1,
-                "reveal": true
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing"
             },
             {
-                "effect_type": "choose_card",
+                "effect_type": "choose_cards",
                 "from": "hand",
-                "to": "holopower",
-                "amount": 1,
-                "reveal": false
+                "look_at": -1,
+                "destination": "holopower",
+                "amount_min": 1,
+                "amount_max": 1,
+                "reveal_chosen": false,
+                "remaining_cards_action": "nothing"
             }
         ]
     },
@@ -309,6 +318,7 @@
         "collab_effects": [
             {
                 "effect_type": "roll_die",
+                "source": "holomem_ability",
                 "die_effects": [
                     {
                         "activate_on_values": [1],
@@ -427,6 +437,7 @@
                     },
                     {
                         "effect_type": "roll_die",
+                        "source": "holomem_ability",
                         "die_effects": [
                             {
                                 "activate_on_values": [1],
@@ -654,13 +665,15 @@
         "limited": false,
         "effects": [
             {
-                "effect_type": "choose_from_deck",
-                "destination": "hand",
+                "effect_type": "choose_cards",
+                "from": "deck",
                 "look_at": 5,
-                "amount": 1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
                 "requirement": "limited",
-                "reveal": true,
-                "remaining": "order_on_bottom"
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
             }
         ]
     },
@@ -687,15 +700,17 @@
         },
         "effects": [
             {
-                "effect_type": "choose_from_deck",
-                "destination": "hand",
+                "effect_type": "choose_cards",
+                "from": "deck",
                 "look_at": -1,
-                "amount": 1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
                 "requirement": "holomem_bloom",
                 "requirement_bloom_levels": [1,2],
-                "requirement_buzz_allowed": false,
-                "reveal": true,
-                "remaining": "shuffle"
+                "requirement_buzz_blocked": true,
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
             }
         ]
     },
@@ -742,14 +757,16 @@
         ],
         "effects": [
             {
-                "effect_type": "take_from_deck",
-                "destination": "hand",
+                "effect_type": "choose_cards",
+                "from": "deck",
                 "look_at": 4,
-                "automatic": true,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
                 "requirement": "holomem_named",
                 "requirement_names": ["azki", "tokino_sora"],
-                "reveal": true,
-                "remaining": "order_on_bottom"
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
             }
         ],
 
