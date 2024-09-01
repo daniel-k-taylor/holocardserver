@@ -6,7 +6,7 @@ from app.gameengine import GameEngine, UNKNOWN_CARD_ID, ids_from_cards
 from app.gameengine import EventType
 from app.gameengine import GameAction, GamePhase
 from app.card_database import CardDatabase
-
+from helpers import RandomOverride, initialize_game_to_third_turn
 
 card_db = CardDatabase()
 
@@ -18,31 +18,6 @@ with open(azki_path, "r") as f:
     azki_starter = json.load(f)
 with open(sora_path, "r") as f:
     sora_starter = json.load(f)
-
-class RandomOverride:
-    def __init__(self):
-        self.random_values = []
-        self.move_cards_down = 0
-
-    def randint(self, a, b):
-        if self.random_values:
-            return self.random_values.pop(0)
-        return a
-
-    def choice(self, seq):
-        if self.random_values:
-            return seq[self.random_values.pop(0)]
-        return seq[0]
-
-    def shuffle(self, x : list):
-        if self.move_cards_down:
-            temp = x[:self.move_cards_down]
-            temp.reverse()
-            for i in range(self.move_cards_down):
-                x.pop(0)
-            for i in range(self.move_cards_down):
-                x.insert(self.move_cards_down + i, temp[i])
-
 
 class TestGameEngine(unittest.TestCase):
 
