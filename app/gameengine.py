@@ -52,6 +52,7 @@ class TurnEffectType:
 class EventType:
     EventType_Bloom = "bloom"
     EventType_BoostStat = "boost_stat"
+    EventType_CheerStep = "cheer_step"
     EventType_Choice_SendCollabBack = "choice_send_collab_back"
     EventType_Collab = "collab"
     EventType_Decision_ChooseCards = "decision_choose_cards"
@@ -63,14 +64,23 @@ class EventType:
     EventType_Draw = "draw"
     EventType_EndTurn = "end_turn"
     EventType_ForceDieResult = "force_die_result"
+    EventType_GameError = "game_error"
+    EventType_GameOver = "game_over"
     EventType_GameStartInfo = "game_start_info"
     EventType_InitialPlacementBegin = "initial_placement_begin"
     EventType_InitialPlacementPlaced = "initial_placement_placed"
+    EventType_InitialPlacementReveal = "initial_placement_reveal"
+    EventType_MainStepStart = "main_step_start"
     EventType_MoveCard = "move_card"
     EventType_MoveCheer = "move_cheer"
     EventType_MulliganDecision = "mulligan_decision"
+    EventType_MulliganReveal = "mulligan_reveal"
     EventType_OshiSkillActivation = "oshi_skill_activation"
+    EventType_PerformanceStepStart = "performance_step_start"
     EventType_PerformArt = "perform_art"
+    EventType_PlaySupportCard = "play_support_card"
+    EventType_ResetStepActivate = "reset_step_activate"
+    EventType_ResetStepCollab = "reset_step_collab"
     EventType_ShuffleDeck = "shuffle_deck"
     EventType_TurnStart = "turn_start"
     EventType_Decision_SendCheer = "decision_send_cheer"
@@ -332,11 +342,24 @@ class PlayerState:
             on_stage += self.backstage
         return on_stage
 
+    def get_zone_name(self, zone):
+        match zone:
+            case self.hand: return "hand"
+            case self.archive: return "archive"
+            case self.backstage: return "backstage"
+            case self.center: return "center"
+            case self.collab: return "collab"
+            case self.deck: return "deck"
+            case self.cheer_deck: return "cheer_deck"
+            case self.holopower: return "holopower"
+            case _: return "unknown"
+
     def find_card(self, card_id):
-        for zone in [self.hand, self.archive, self.backstage, self.center, self.collab, self.deck, self.cheer_deck, self.holopower]:
+        zones = [self.hand, self.archive, self.backstage, self.center, self.collab, self.deck, self.cheer_deck, self.holopower]
+        for zone in zones:
             for card in zone:
                 if card["game_card_id"] == card_id:
-                    zone_name = zone.__class__.__name__.lower()
+                    zone_name = self.get_zone_name(zone)
                     return card, zone, zone_name
         return None, None, None
 
@@ -817,7 +840,7 @@ class GameEngine:
 
             # Reveal all oshis, center, and backstage cards.
             reveal_event = {
-                "event_type": "reveal_initial_placement",
+                "event_type": EventType.EventType_InitialPlacementReveal,
                 "placement_info": [
                     {
                         "player_id": player_state.player_id,
@@ -858,11 +881,11 @@ class GameEngine:
         self.broadcast_event(start_event)
 
         # Reset Step
-        if not self.first_turn:
+        if not active_player.first_turn:
             # 1. Activate resting cards.
             activated_cards = active_player.active_resting_cards()
             activation_event = {
-                "event_type": "reset_step_activate",
+                "event_type": EventType.EventType_ResetStepActivate,
                 "active_player": self.active_player_id,
                 "activated_card_ids": activated_cards,
             }
@@ -871,7 +894,7 @@ class GameEngine:
             # 2. Move and rest collab.
             rested_cards = active_player.reset_collab()
             reset_collab_event = {
-                "event_type": "reset_step_collab",
+                "event_type": EventType.EventType_ResetStepCollab,
                 "active_player": self.active_player_id,
                 "rested_card_ids": rested_cards,
             }
@@ -931,7 +954,7 @@ class GameEngine:
             target_options = ids_from_cards(active_player.center + active_player.collab + active_player.backstage)
 
             decision_event = {
-                "event_type": DecisionType.DecisionPlaceCheer,
+                "event_type": EventType.EventType_CheerStep,
                 "active_player": self.active_player_id,
                 "cheer_to_place": [top_cheer_card_id],
                 "source": "cheer_deck",
@@ -961,7 +984,7 @@ class GameEngine:
             for card in active_player.hand:
                 if card["card_type"] in ["holomem_debut", "holomem_spot"]:
                     available_actions.append({
-                        "action_type": "place_holomem",
+                        "action_type": GameAction.MainStepPlaceHolomem,
                         "card_id": card["game_card_id"]
                     })
 
@@ -1002,7 +1025,7 @@ class GameEngine:
             for card in active_player.backstage:
                 if not is_card_resting(card):
                     available_actions.append({
-                        "action_type": "collab",
+                        "action_type": GameAction.MainStepCollab,
                         "card_id": card["game_card_id"],
                     })
 
@@ -1023,7 +1046,7 @@ class GameEngine:
                 continue
 
             available_actions.append({
-                "action_type": "oshi_skill",
+                "action_type": GameAction.MainStepOshiSkill,
                 "skill_cost": skill_cost,
                 "skill_id": skill_id,
             })
@@ -1047,7 +1070,7 @@ class GameEngine:
                     play_requirements = card["play_requirements"]
 
                 available_actions.append({
-                    "action_type": "play_support",
+                    "action_type": GameAction.MainStepPlaySupport,
                     "card_id": card["game_card_id"],
                     "play_requirements": play_requirements,
                 })
@@ -1061,10 +1084,10 @@ class GameEngine:
             backstage_options = []
             for card in active_player.backstage:
                 if not is_card_resting(card):
-                    backstage_options.append(card)["game_card_id"]
+                    backstage_options.append(card["game_card_id"])
             if backstage_options:
                 available_actions.append({
-                    "action_type": "pass_baton",
+                    "action_type": GameAction.MainStepBatonPass,
                     "center_id": center_mem["game_card_id"],
                     "backstage_options": backstage_options,
                     "cost": baton_cost,
@@ -1073,12 +1096,12 @@ class GameEngine:
         # G. Begin Performance
         if not (self.starting_player_id == active_player.player_id and active_player.first_turn):
             available_actions.append({
-                "action_type": "begin_performance",
+                "action_type": GameAction.MainStepBeginPerformance,
             })
 
         # H. End Turn
         available_actions.append({
-            "action_type": "end_turn",
+            "action_type": GameAction.MainStepEndTurn,
         })
 
         return available_actions
@@ -1104,6 +1127,12 @@ class GameEngine:
         })
 
     def begin_main_step(self):
+        # Send a main step start event
+        start_event = {
+            "event_type": EventType.EventType_MainStepStart,
+            "active_player": self.active_player_id,
+        }
+        self.broadcast_event(start_event)
         self.send_main_step_actions()
 
     def continue_main_step(self):
@@ -1173,18 +1202,24 @@ class GameEngine:
                         "performer_id": performer["game_card_id"],
                         "art_id": art["art_id"],
                         "power": art["power"],
-                        "art_effects": art["art_effects"],
+                        "art_effects": art.get("art_effects", []),
                         "valid_targets": ids_from_cards(opponent_performers),
                     })
 
         # End Performance
         available_actions.append({
-            "action_type": "end_turn",
+            "action_type": GameAction.PerformanceStepEndTurn,
         })
 
         return available_actions
 
     def begin_performance_step(self):
+        # Send a start performance event.
+        start_event = {
+            "event_type": EventType.EventType_PerformanceStepStart,
+            "active_player": self.active_player_id,
+        }
+        self.broadcast_event(start_event)
         self.send_performance_step_actions()
 
     def continue_performance_step(self):
@@ -1203,7 +1238,7 @@ class GameEngine:
         self.performance_continuation = continuation
 
         # Get any before effects and resolve them.
-        art_effects = get_effects_at_timing(art["art_effects"], "before_art")
+        art_effects = get_effects_at_timing(art.get("art_effects", []), "before_art")
         add_card_id_to_effects(art_effects, performer_id)
         player_turn_effects = get_effects_at_timing(player.turn_effects, "before_art")
         all_effects = art_effects + player_turn_effects
@@ -1684,7 +1719,7 @@ class GameEngine:
         self.phase = GamePhase.GameOver
 
         gameover_event = {
-            "event_type": "gameover",
+            "event_type": EventType.EventType_GameOver,
             "loser": loser_id,
         }
         self.broadcast_event(gameover_event)
@@ -1702,7 +1737,7 @@ class GameEngine:
         if forced:
             revealed_card_ids = ids_from_cards(active_player.hand)
             mulligan_reveal_event = {
-                "event_type": "mulligan_reveal",
+                "event_type": EventType.EventType_MulliganReveal,
                 "revealed_card_ids": revealed_card_ids,
             }
             self.broadcast_event(mulligan_reveal_event)
@@ -1730,7 +1765,7 @@ class GameEngine:
     def make_error_event(self, player_id:str, error_id:str, error_message:str):
         return {
             "event_player_id": player_id,
-            "event_type": "game_error",
+            "event_type": EventType.EventType_GameError,
             "error_id": error_id,
             "error_message": error_message,
         }
@@ -1772,8 +1807,8 @@ class GameEngine:
                 self.handle_main_step_oshi_skill(player_id, action_data)
             case GameAction.MainStepPlaySupport:
                 self.handle_main_step_play_support(player_id, action_data)
-            case GameAction.MainStepPassBaton:
-                self.handle_main_step_pass_baton(player_id, action_data)
+            case GameAction.MainStepBatonPass:
+                self.handle_main_step_baton_pass(player_id, action_data)
             case GameAction.MainStepBeginPerformance:
                 self.handle_main_step_begin_performance(player_id, action_data)
             case GameAction.MainStepEndTurn:
@@ -1966,7 +2001,7 @@ class GameEngine:
         chosen_card_id = action_data["card_id"]
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "place_holomem" and action["card_id"] == chosen_card_id:
+            if action["action_type"] == GameAction.MainStepPlaceHolomem and action["card_id"] == chosen_card_id:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2023,7 +2058,7 @@ class GameEngine:
         chosen_card_id = action_data["card_id"]
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "collab" and action["card_id"] == chosen_card_id:
+            if action["action_type"] == GameAction.MainStepCollab and action["card_id"] == chosen_card_id:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2067,7 +2102,7 @@ class GameEngine:
         skill_id = action_data["skill_id"]
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "oshi_skill" and action["skill_id"] == skill_id:
+            if action["action_type"] == GameAction.MainStepOshiSkill and action["skill_id"] == skill_id:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2096,7 +2131,7 @@ class GameEngine:
         chosen_card_id = action_data["card_id"]
         action_found = None
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "play_support" and action["card_id"] == chosen_card_id:
+            if action["action_type"] == GameAction.MainStepPlaySupport and action["card_id"] == chosen_card_id:
                 action_found = action
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2146,7 +2181,7 @@ class GameEngine:
 
         # Send an event showing the card being played.
         play_event = {
-            "event_type": "play_support",
+            "event_type": EventType.EventType_PlaySupportCard,
             "player_id": player_id,
             "card_id": card_id,
             "limited": is_card_limited(card),
@@ -2177,7 +2212,7 @@ class GameEngine:
         # The card must be in the options in the available action.
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "pass_baton" and card_id in action["backstage_options"]:
+            if action["action_type"] == GameAction.MainStepBatonPass and card_id in action["backstage_options"]:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2185,7 +2220,7 @@ class GameEngine:
 
         return True
 
-    def handle_main_step_pass_baton(self, player_id:str, action_data:dict):
+    def handle_main_step_baton_pass(self, player_id:str, action_data:dict):
         if not self.validate_main_step_baton_pass(player_id, action_data):
             return
 
@@ -2202,6 +2237,15 @@ class GameEngine:
 
     def validate_main_step_begin_performance(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepBeginPerformanceFields):
+            return False
+
+        # Ensure this action is in the available actions.
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == GameAction.MainStepBeginPerformance:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
             return False
 
         return True

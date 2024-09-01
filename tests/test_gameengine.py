@@ -176,7 +176,69 @@ class TestGameEngine(unittest.TestCase):
         # - P1's cheer choice
         self.assertEqual(len(events), 10)
         self.assertEqual(self.engine.phase, GamePhase.PlayerTurn)
+        self.assertEqual(len(player1.hand), 6)
+        self.assertEqual(len(player1.center), 1)
+        self.assertEqual(len(player1.backstage), 1)
+        self.assertEqual(len(player2.center), 1)
+        self.assertEqual(len(player2.backstage), 5)
+        self.validate_event(events[8], EventType.EventType_CheerStep, self.player1, { "active_player": self.player1, })
+        cheer_event = events[8]
+        self.assertEqual(len(cheer_event['options']), 2)
+        self.assertEqual(cheer_event['options'][0], player1.center[0]["game_card_id"])
+        self.assertEqual(cheer_event['options'][1], player1.backstage[0]["game_card_id"])
+        self.assertEqual(len(cheer_event["cheer_to_place"]), 1)
+        self.assertEqual(cheer_event["cheer_to_place"][0], player1.cheer_deck[0]["game_card_id"])
+        # Give the cheer to our center.
+        cheer_to_place = player1.cheer_deck[0]["game_card_id"]
+        cheer_placement = {
+            cheer_event["cheer_to_place"][0]: player1.center[0]["game_card_id"]
+        }
+        self.engine.handle_game_message(self.player1, GameAction.PlaceCheer, {"placements": cheer_placement })
+        events = self.engine.grab_events()
+        # Expected events:
+        # - Cheer placed
+        # - Main step start
+        # - Turn start event with available actions
+        self.assertEqual(len(events), 6)
+        self.validate_event(events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "cheer_deck",
+            "to_zone": "holomem",
+            "zone_card_id": player1.center[0]["game_card_id"],
+            "card_id": cheer_to_place
+        })
+        self.validate_event(events[2], EventType.EventType_MainStepStart, self.player1, { "active_player": self.player1 })
+        self.assertEqual(player1.center[0]["attached_cards"][0]["game_card_id"], cheer_to_place)
+        self.validate_event(events[4], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        actions = events[4]["available_actions"]
+        # Expected actions
+        # + 1 placement, we drew an azki 008
+        # Can't bloom on first turn (and only irys in play anyway)
+        # + Can collab, 1 choice
+        # Can't oshi, no holopower
+        # No support in hand
+        # +Can baton pass
+        # - can't perform on first turn!
+        # +Can end turn
+        self.assertEqual(len(actions), 4)
+        self.assertEqual(actions[0]["action_type"], GameAction.MainStepPlaceHolomem)
+        self.assertEqual(actions[1]["action_type"], GameAction.MainStepCollab)
+        self.assertEqual(actions[2]["action_type"], GameAction.MainStepBatonPass)
+        self.assertEqual(actions[3]["action_type"], GameAction.MainStepEndTurn)
 
+        self.engine.handle_game_message(self.player1, GameAction.MainStepEndTurn, {})
+        events = self.engine.grab_events()
+        # Expected events:
+        # - Turn end event
+        # - Turn start event for p2
+        #    First turn, skip reset activate/collab
+        # - P2's turn draw
+        # - P2's cheer choice
+        self.assertEqual(len(events), 8)
+        self.validate_event(events[0], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1, "next_player_id": self.player2 })
+        self.validate_event(events[2], EventType.EventType_TurnStart, self.player1, { "active_player": self.player2, "turn_count": 2 })
+        self.validate_event(events[4], EventType.EventType_Draw, self.player1, { "drawing_player_id": self.player2 })
+        self.validate_event(events[6], EventType.EventType_CheerStep, self.player1, { "active_player": self.player2 })
 
 
 if __name__ == '__main__':
