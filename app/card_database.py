@@ -32,7 +32,7 @@ class CardDatabase:
 
     def get_card_by_id(self, card_id):
         for card in self.all_cards:
-            if card["id"] == card_id:
+            if card["card_id"] == card_id:
                 return card
         return None
 

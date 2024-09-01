@@ -64,12 +64,15 @@ class EventType:
     EventType_EndTurn = "end_turn"
     EventType_ForceDieResult = "force_die_result"
     EventType_GameStartInfo = "game_start_info"
-    EventType_InitialPlacement = "initial_placement"
+    EventType_InitialPlacementBegin = "initial_placement_begin"
+    EventType_InitialPlacementPlaced = "initial_placement_placed"
     EventType_MoveCard = "move_card"
     EventType_MoveCheer = "move_cheer"
     EventType_MulliganDecision = "mulligan_decision"
     EventType_OshiSkillActivation = "oshi_skill_activation"
     EventType_PerformArt = "perform_art"
+    EventType_ShuffleDeck = "shuffle_deck"
+    EventType_TurnStart = "turn_start"
     EventType_Decision_SendCheer = "decision_send_cheer"
 
 class ArtStatBoosts:
@@ -268,14 +271,14 @@ class PlayerState:
         self.mulligan_completed = True
 
     def shuffle_hand_to_deck(self):
-        for card in self.hand:
-            self.move_card(card["game_card_id"], "deck", hidden_info=True)
+        while len(self.hand) > 0:
+            self.move_card(self.hand[0]["game_card_id"], "deck", hidden_info=True)
         self.shuffle_deck()
 
     def shuffle_deck(self):
         self.engine.shuffle_list(self.deck)
         shuffle_event = {
-            "event_type": EffectType.EffectType_ShuffleDeck,
+            "event_type": EventType.EventType_ShuffleDeck,
             "shuffling_player_id": self.player_id,
         }
         self.engine.broadcast_event(shuffle_event)
@@ -343,7 +346,7 @@ class PlayerState:
             zone.remove(card)
         return card, zone, zone_name
 
-    def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False, add_to_bottom=False):
+    def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False, add_to_bottom=False, no_events=False):
         card, _, from_zone_name = self.find_and_remove_card(card_id)
 
         if to_zone == "center":
@@ -377,7 +380,8 @@ class PlayerState:
         if hidden_info:
             move_card_event["hidden_info_player"] = self.player_id
             move_card_event["hidden_info_fields"] = ["card_id"]
-        self.engine.broadcast_event(move_card_event)
+        if not no_events:
+            self.engine.broadcast_event(move_card_event)
 
     def active_resting_cards(self):
         # For each card in the center, backstage, and collab zones, check if they are resting.
@@ -658,6 +662,7 @@ class GameEngine:
         self.effect_resolution_continuation = self.blank_continuation
         self.effect_resolution_cleanup_card = None
         self.test_random_override = None
+        self.turn_number = 0
 
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performer_card = None
@@ -745,12 +750,21 @@ class GameEngine:
         if all(player_state.mulligan_completed for player_state in self.player_states):
             self.begin_initial_placement()
         else:
-            # Tell the active player we're waiting on them to mulligan.
-            decision_event = {
-                "event_type": EventType.EventType_MulliganDecision,
-                "active_player": self.active_player_id,
-            }
-            self.broadcast_event(decision_event)
+            # To get here, the player's hand must not be forced mulligan'd.
+            # If they already mulligan'd once, then they're done now.
+            # Otherwise, they need to decide.
+            active_player = self.get_player(self.active_player_id)
+            if active_player.mulligan_count == 0:
+                # Tell the active player we're waiting on them to mulligan.
+                decision_event = {
+                    "event_type": EventType.EventType_MulliganDecision,
+                    "active_player": self.active_player_id,
+                }
+                self.broadcast_event(decision_event)
+            else:
+                active_player.complete_mulligan()
+                self.switch_active_player()
+                self.handle_mulligan_phase()
 
     def send_event(self, event):
         self.latest_events.append(event)
@@ -788,7 +802,7 @@ class GameEngine:
 
         # The player must now choose their center holomem and any backstage holomems from hand.
         decision_event = {
-            "event_type": EventType.EventType_InitialPlacement,
+            "event_type": EventType.EventType_InitialPlacementBegin,
             "active_player": self.active_player_id,
         }
         self.broadcast_event(decision_event)
@@ -825,7 +839,7 @@ class GameEngine:
         else:
             # Tell the active player we're waiting on them to place cards.
             decision_event = {
-                "event_type": EventType.EventType_InitialPlacement,
+                "event_type": EventType.EventType_InitialPlacementBegin,
                 "active_player": self.active_player_id,
             }
             self.broadcast_event(decision_event)
@@ -833,6 +847,15 @@ class GameEngine:
     def begin_player_turn(self):
         self.phase = GamePhase.PlayerTurn
         active_player = self.get_player(self.active_player_id)
+
+        # Send a start turn event.
+        self.turn_number += 1
+        start_event = {
+            "event_type": EventType.EventType_TurnStart,
+            "active_player": self.active_player_id,
+            "turn_count": self.turn_number,
+        }
+        self.broadcast_event(start_event)
 
         # Reset Step
         if not self.first_turn:
@@ -1675,13 +1698,14 @@ class GameEngine:
         }
         self.broadcast_event(boost_event)
 
-    def perform_mulligan(self, active_player: PlayerState):
-        revealed_card_ids = ids_from_cards(active_player.hand)
-        mulligan_reveal_event = {
-            "event_type": "mulligan_reveal",
-            "revealed_card_ids": revealed_card_ids,
-        }
-        self.broadcast_event(mulligan_reveal_event)
+    def perform_mulligan(self, active_player: PlayerState, forced):
+        if forced:
+            revealed_card_ids = ids_from_cards(active_player.hand)
+            mulligan_reveal_event = {
+                "event_type": "mulligan_reveal",
+                "revealed_card_ids": revealed_card_ids,
+            }
+            self.broadcast_event(mulligan_reveal_event)
 
         # Do the mulligan reshuffle/drawing.
         active_player.mulligan()
@@ -1699,7 +1723,7 @@ class GameEngine:
             self.switch_active_player()
         else:
             if not any(card["card_type"] == "holomem_debut" for card in active_player.hand):
-                self.perform_mulligan(active_player)
+                self.perform_mulligan(active_player, forced=True)
                 return True
         return False
 
@@ -1715,8 +1739,18 @@ class GameEngine:
         for field_name, field_type in expected_fields.items():
             if field_name not in action_data:
                 return False
-            if not isinstance(action_data[field_name], field_type):
-                return False
+            # If the field type is the list typing.
+            if hasattr(field_type, '__origin__') and field_type.__origin__ == list:
+                element_type = field_type.__args__[0]
+                if not isinstance(action_data[field_name], list) or not all(isinstance(item, element_type) for item in action_data[field_name]):
+                    return False
+             # Check for dict type with specific key and value types
+            elif hasattr(field_type, '__origin__') and field_type.__origin__ == dict:
+                key_type, value_type = field_type.__args__
+                if not isinstance(action_data[field_name], dict) or not all(isinstance(k, key_type) and isinstance(v, value_type) for k, v in action_data[field_name].items()):
+                    print(f"Field {field_name} is not of type {field_type}")
+                    return False
+        return True
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
         match action_type:
@@ -1781,7 +1815,7 @@ class GameEngine:
         player_state = self.get_player(player_id)
         do_mulligan = action_data["do_mulligan"]
         if do_mulligan:
-            self.perform_mulligan(player_state)
+            self.perform_mulligan(player_state, forced=False)
         else:
             player_state.complete_mulligan()
             self.switch_active_player()
@@ -1805,6 +1839,10 @@ class GameEngine:
         center_holomem_card_id = action_data["center_holomem_card_id"]
         backstage_holomem_card_ids = action_data["backstage_holomem_card_ids"]
         chosen_card_ids = [center_holomem_card_id] + backstage_holomem_card_ids
+
+        if len(backstage_holomem_card_ids) > MAX_MEMBERS_ON_STAGE - 1:
+            self.send_event(self.make_error_event(player_id, "invalid_backstage", "Too many cards for initial placement."))
+            return False
 
         # These cards must be in hand and unique.
         if not player_state.are_cards_in_hand(chosen_card_ids) or len(set(chosen_card_ids)) != len(chosen_card_ids):
@@ -1833,15 +1871,15 @@ class GameEngine:
         backstage_holomem_card_ids = action_data["backstage_holomem_card_ids"]
 
         # Move the cards from the player's hand to the center and backstage.
-        player_state.move_card(center_holomem_card_id, "center")
+        player_state.move_card(center_holomem_card_id, "center", no_events=True)
         for card_id in backstage_holomem_card_ids:
-            player_state.move_card(card_id, "backstage")
+            player_state.move_card(card_id, "backstage", no_events=True)
 
         player_state.initial_placement_completed = True
 
         # Broadcast the event.
         placement_event = {
-            "event_type": "initial_placement",
+            "event_type": EventType.EventType_InitialPlacementPlaced,
             "hidden_info_player": player_id,
             "hidden_info_fields": ["center_card_id", "backstage_card_ids"],
             "active_player": player_id,

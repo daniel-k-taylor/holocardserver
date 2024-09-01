@@ -1,8 +1,6 @@
 {
     "deck_id": "starter_azki",
-    "oshi": {
-        "id": "hSD01-002"
-    },
+    "oshi_id": "hSD01-002",
     "deck": {
         "hSD01-003": 4,
         "hSD01-004": 3,

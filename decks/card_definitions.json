@@ -4,6 +4,7 @@
 
         "card_id": "hSD01-001",
         "card_type": "oshi",
+        "oshi_name": "tokino_sora",
         "rarity": "osr",
         "life": 5,
         "oshi_skills": [
@@ -46,8 +47,9 @@
         ]
     },
     {
-        "card_id": "hSD01-001",
+        "card_id": "hSD01-002",
         "card_type": "oshi",
+        "oshi_name": "azki",
         "rarity": "osr",
         "life": 5,
         "oshi_skills": [
@@ -781,17 +783,17 @@
         "color": "white"
     },
     {
-        "card_id": "hY01-002",
+        "card_id": "hY02-001",
         "card_type": "cheer",
         "color": "green"
     },
     {
-        "card_id": "hY01-003",
+        "card_id": "hY03-001",
         "card_type": "cheer",
         "color": "red"
     },
     {
-        "card_id": "hY01-004",
+        "card_id": "hY04-001",
         "card_type": "cheer",
         "color": "blue",
 
