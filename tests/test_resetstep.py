@@ -115,7 +115,9 @@ class TestResetStep(unittest.TestCase):
         # Center is 003
         # Backstage has 3 003 and 2 004.
 
-        """Test that when replacing the center and you have multiple backstage options, you can choose minus a rested card"""
+        """Test that when replacing the center and you have multiple backstage options,
+            if all are resting, you can choose among all.
+        """
         # Prep for player 2 to have a choice.
         player2.archive_holomem_from_play(player2.center[0]["game_card_id"])
         # Put 1 into the collab slot

@@ -3,9 +3,12 @@ Todo:
 
 To Test:
     ☐ Oshi skills
+        - individual oshi skills
     ☐ Support Cards
+        ☐ -individual support cards
 
     ☐ Effects
+        - any remaining effects that need tests
 Revisit:
     - What happens when the cheer deck runs out.
         ☐ For now, just no more cheer
