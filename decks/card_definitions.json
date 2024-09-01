@@ -36,10 +36,15 @@
                         "effect_type": "add_turn_effect",
                         "turn_effect": {
                             "timing": "before_art",
-                            "effect_type": "center_arts_bonus",
-                            "condition": "center_is_color",
-                            "condition_colors": ["white"],
-                            "amount": 50
+                            "effect_type": "power_boost",
+                            "amount": 50,
+                            "conditions": [
+                                { "condition": "performer_is_center" },
+                                {
+                                    "condition": "center_is_color",
+                                    "condition_colors": ["white"]
+                                }
+                            ]
                         }
                     }
                 ]
@@ -132,7 +137,7 @@
         ],
         "arts": [
             {
-                "art_id": "osntage",
+                "art_id": "onstage",
                 "costs": [
                     { "color": "any", "amount": 1 }
                 ],
@@ -144,8 +149,9 @@
                 "effect_type": "add_turn_effect",
                 "turn_effect": {
                     "timing": "before_art",
-                    "effect_type": "center_arts_bonus",
-                    "amount": 20
+                    "effect_type": "power_boost",
+                    "amount": 20,
+                    "conditions": [{ "condition": "performer_is_center" }]
                 }
             }
         ]
@@ -218,10 +224,12 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "condition": "holomem_on_stage",
-                        "required_member_name": "azki",
                         "effect_type": "power_boost",
-                        "amount": 50
+                        "amount": 50,
+                        "conditions": [{
+                            "condition": "holomem_on_stage",
+                            "required_member_name": "azki"
+                        }]
                     }
                 ]
             }
@@ -405,20 +413,24 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "condition": "target_color",
-                        "color_requirement": "blue",
                         "effect_type": "power_boost",
-                        "amount": 50
+                        "amount": 50,
+                        "conditions": [{
+                            "condition": "target_color",
+                            "color_requirement": "blue"
+                        }]
                     },
                     {
                         "timing": "before_art",
-                        "condition": "holomem_on_stage",
-                        "required_member_name": "tokino_sora",
                         "effect_type": "send_cheer",
                         "amount_min": 1,
                         "amount_max": 1,
                         "from": "cheer_deck",
-                        "to": "holomem"
+                        "to": "holomem",
+                        "conditions": [{
+                            "condition": "holomem_on_stage",
+                            "required_member_name": "tokino_sora"
+                        }]
                     }
                 ]
             },
@@ -432,10 +444,12 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "condition": "target_color",
-                        "color_requirement": "blue",
                         "effect_type": "power_boost",
-                        "amount": 50
+                        "amount": 50,
+                        "conditions": [{
+                            "condition": "target_color",
+                            "color_requirement": "blue"
+                        }]
                     },
                     {
                         "effect_type": "roll_die",
@@ -603,20 +617,24 @@
         ],
         "collab_effects": [
             {
-                "condition": "collab_with",
-                "required_member_name": "tokino_sora",
                 "effect_type": "draw",
-                "amount": 1
+                "amount": 1,
+                "conditions": [{
+                    "condition": "collab_with",
+                    "required_member_name": "tokino_sora"
+                }]
             },
             {
-                "condition": "collab_with",
-                "required_member_name": "azki",
                 "effect_type": "send_cheer",
                 "amount_min": 1,
                 "amount_max": 1,
                 "from": "cheer_deck",
                 "to": "holomem",
-                "to_limitation": "center"
+                "to_limitation": "center",
+                "conditions": [{
+                    "condition": "collab_with",
+                    "required_member_name": "azki"
+                }]
             }
         ]
     },
