@@ -246,17 +246,18 @@
         ],
         "collab_effects": [
             {
-                "effect_type": "move_card",
+                "effect_type": "choose_card",
                 "from": "holopower",
                 "to": "hand",
                 "amount": 1,
                 "reveal": true
             },
             {
-                "effect_type": "move_card",
+                "effect_type": "choose_card",
                 "from": "hand",
                 "to": "holopower",
-                "amount": 1
+                "amount": 1,
+                "reveal": false
             }
         ]
     },

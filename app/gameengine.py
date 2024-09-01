@@ -23,19 +23,19 @@ class DecisionType:
 
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
+    EffectType_ChooseCard = "choose_card"
+    EffectType_Draw = "draw"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
+    EffectType_PowerBoost = "power_boost"
+    EffectType_SendCheer = "send_cheer"
+    EffectType_ShuffleHandToDeck = "shuffle_hand_to_deck"
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
 
 
     ### Unimplemented
     #"choose_die_result"
-    #"send_cheer"
-    #"power_boost"
-    #"move_card"
     #"roll_die"
     #"send_collab_back"
-    #"draw"
-    #"shuffle_hand_to_deck"
     #"choose_from_deck"
     #"take_from_deck"
 
@@ -53,7 +53,9 @@ class TurnEffectType:
 
 class EventType:
     EventType_Bloom = "bloom"
+    EventType_BoostStat = "boost_stat"
     EventType_Collab = "collab"
+    EventType_Decision_ChooseCard = "decision_choose_card"
     EventType_Decision_MainStep = "decision_main_step"
     EventType_Decision_MoveCheerChoice = "decision_move_cheer_choice"
     EventType_Decision_PerformanceStep = "decision_performance_step"
@@ -67,6 +69,7 @@ class EventType:
     EventType_MulliganDecision = "mulligan_decision"
     EventType_OshiSkillActivation = "oshi_skill_activation"
     EventType_PerformArt = "perform_art"
+    EventType_Decision_SendCheer = "decision_send_cheer"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -243,11 +246,7 @@ class PlayerState:
         self.mulligan_count += 1
 
         # Move cards from hand to deck.
-        self.deck += self.hand
-        self.hand = []
-
-        # Shuffle.
-        self.engine.shuffle_list(self.deck)
+        self.shuffle_hand_to_deck()
 
         # Draw new hand, don't ever let them draw 0 and lose.
         draw_amount = max(STARTING_HAND_SIZE - (self.mulligan_count - 1), 1)
@@ -255,6 +254,19 @@ class PlayerState:
 
     def complete_mulligan(self):
         self.mulligan_completed = True
+
+    def shuffle_hand_to_deck(self):
+        for card in self.hand:
+            self.move_card(card["game_card_id"], "deck", hidden_info=True)
+        self.shuffle_deck()
+
+    def shuffle_deck(self):
+        self.engine.shuffle_list(self.deck)
+        shuffle_event = {
+            "event_type": EffectType.EffectType_ShuffleDeck,
+            "shuffling_player_id": self.player_id,
+        }
+        self.engine.broadcast_event(shuffle_event)
 
     def get_cheer_ids_on_holomems(self):
         cheer_ids = []
@@ -304,16 +316,22 @@ class PlayerState:
             zone.remove(card)
         return card, zone, zone_name
 
-    def move_card(self, card_id, to_zone, zone_card_id=""):
+    def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False):
         card, _, from_zone_name = self.find_and_remove_card(card_id)
 
         if to_zone == "center":
             self.center.append(card)
         elif to_zone == "backstage":
             self.backstage.append(card)
+        elif to_zone == "hand":
+            self.hand.append(card)
         elif to_zone == "holomem":
             holomem_card, _, _ = self.find_card(zone_card_id)
             attach_card(card, holomem_card)
+        elif to_zone == "holopower":
+            self.holopower.insert(0, card)
+        elif to_zone == "deck":
+            self.deck.insert(0, card)
 
         if to_zone in ["center", "backstage", "holomem"] and from_zone_name == "hand":
             card["played_this_turn"] = True
@@ -326,6 +344,9 @@ class PlayerState:
             "zone_card_id": zone_card_id,
             "card_id": card_id,
         }
+        if hidden_info:
+            move_card_event["hidden_info_player"] = self.player_id
+            move_card_event["hidden_info_fields"] = ["card_id"]
         self.engine.broadcast_event(move_card_event)
 
     def active_resting_cards(self):
@@ -401,6 +422,7 @@ class PlayerState:
 
         # Handle collab effects.
         collab_effects = collab_card["collab_effects"]
+        add_card_id_to_effects(collab_effects, collab_card_id)
         self.engine.begin_resolving_effects(collab_effects, continuation)
 
     def trigger_oshi_skill(self, skill_id):
@@ -445,6 +467,16 @@ class PlayerState:
                 cheer_card = next(card for card in self.life if card["game_card_id"] == cheer_id)
                 self.life.remove(cheer_card)
                 previous_holder_id = "life"
+            # And the archive.
+            elif cheer_id in ids_from_cards(self.archive):
+                cheer_card = next(card for card in self.archive if card["game_card_id"] == cheer_id)
+                self.archive.remove(cheer_card)
+                previous_holder_id = "archive"
+            # And the cheer deck.
+            elif cheer_id in ids_from_cards(self.cheer_deck):
+                cheer_card = next(card for card in self.cheer_deck if card["game_card_id"] == cheer_id)
+                self.cheer_deck.remove(cheer_card)
+                previous_holder_id = "cheer_deck"
         return cheer_card, previous_holder_id
 
     def move_cheer_between_holomems(self, placements):
@@ -512,6 +544,13 @@ def ids_from_cards(cards):
 
 def is_card_resting(card):
     return "resting" in card and card["resting"]
+
+def add_card_id_to_effects(effects, card_id):
+    for effect in effects:
+        effect["source_card_id"] = card_id
+
+def get_owner_id_from_card_id(card_id):
+    return card_id.split("_")[0]
 
 def art_requirement_met(card, art):
     attached_cheer_cards = [attached_card for attached_card in card["attached_cards"] if attached_card["card_type"] == "cheer"]
@@ -1100,6 +1139,7 @@ class GameEngine:
 
         # Get any before effects and resolve them.
         art_effects = get_effects_at_timing(art["art_effects"], "before_art")
+        add_card_id_to_effects(art_effects, performer_id)
         player_turn_effects = get_effects_at_timing(player.turn_effects, "before_art")
         all_effects = art_effects + player_turn_effects
         self.begin_resolving_effects(all_effects, self.continue_perform_art)
@@ -1151,7 +1191,8 @@ class GameEngine:
             decision_event = {
                 "event_type": EventType.EventType_Decision_MoveCheerChoice,
                 "effect_player_id": owner.player_id,
-                "amount": len(life_to_distribute),
+                "amount_min": len(life_to_distribute),
+                "amount_max": len(life_to_distribute),
                 "available_cheer": life_to_distribute,
                 "available_targets": remaining_holomems,
                 "from_life_pool": True,
@@ -1160,7 +1201,8 @@ class GameEngine:
             self.set_decision({
                 "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
                 "decision_player": owner.player_id,
-                "amount": len(life_to_distribute),
+                "amount_min": len(life_to_distribute),
+                "amount_max": len(life_to_distribute),
                 "available_cheer": life_to_distribute,
                 "available_targets": remaining_holomems,
                 "continuation": self.performance_continuation,
@@ -1247,8 +1289,52 @@ class GameEngine:
         effect_player_id = effect_player.player_id
         match effect["effect_type"]:
             case EffectType.EffectType_AddTurnEffect:
+                effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
+            case EffectType.EffectType_ChooseCard:
+                from_zone = effect["from"]
+                to_zone = effect["to"]
+                amount = effect["amount"]
+                reveal = effect["reveal"]
 
+                card_options = []
+                hidden_zone = False
+                if from_zone == "hand":
+                    card_options = ids_from_cards(effect_player.hand)
+                    hidden_zone = True
+                elif from_zone == "holopower":
+                    card_options = ids_from_cards(effect_player.holopower)
+                    hidden_zone = True
+
+                if reveal:
+                    hidden_zone = False
+
+                choose_event = {
+                    "event_type": EventType.EventType_Decision_ChooseCard,
+                    "effect_player_id": effect_player_id,
+                    "card_options": card_options,
+                    "from_zone": from_zone,
+                    "to_zone": to_zone,
+                    "amount": amount,
+                    "reveal": reveal,
+                }
+                if hidden_zone:
+                    choose_event["hidden_info_player"] = effect_player_id
+                    choose_event["hidden_info_fields"] = ["card_options"]
+                self.broadcast_event(choose_event)
+                self.set_decision({
+                    "decision_type": DecisionType.DecisionEffect_ChooseCardForEffect,
+                    "decision_player": effect_player_id,
+                    "choice_ids": card_options,
+                    "from_zone": from_zone,
+                    "to_zone": to_zone,
+                    "reveal": reveal,
+                    "effect_resolution": self.handle_choose_card_result,
+                    "continuation": self.continue_resolving_effects,
+                })
+            case EffectType.EffectType_Draw:
+                amount = effect["amount"]
+                effect_player.draw(amount)
             case EffectType.EffectType_MoveCheerBetweenHolomems:
                 amount = effect["amount"]
                 available_cheer = effect_player.get_cheer_ids_on_holomems()
@@ -1256,7 +1342,8 @@ class GameEngine:
                 decision_event = {
                     "event_type": EventType.EventType_Decision_MoveCheerChoice,
                     "effect_player_id": effect_player_id,
-                    "amount": amount,
+                    "amount_min": amount,
+                    "amount_max": amount,
                     "available_cheer": available_cheer,
                     "available_targets": available_targets,
                 }
@@ -1264,11 +1351,101 @@ class GameEngine:
                 self.set_decision({
                     "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
                     "decision_player": effect_player_id,
-                    "amount": amount,
+                    "amount_min": amount,
+                    "amount_max": amount,
                     "available_cheer": available_cheer,
                     "available_targets": available_targets,
                     "continuation": self.continue_resolving_effects,
                 })
+            case EffectType.EffectType_PowerBoost:
+                amount = effect["amount"]
+                self.performance_artstatboosts.power += amount
+                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+            case EffectType.EffectType_SendCheer:
+                # Required params
+                amount_min = effect["amount_min"]
+                amount_max = effect["amount_max"]
+                from_zone = effect["from"]
+                to_zone = effect["to"]
+                # Optional
+                from_limitation = effect.get("from_limitation", "")
+                from_limitation_colors = effect.get("from_limitation_colors", [])
+                to_limitation = effect.get("to_limitation", "")
+                to_limitation_colors = effect.get("to_limitation_colors", [])
+
+                # Determine options
+                from_options = []
+                to_options = []
+
+                match from_zone:
+                    case "archive":
+                        # Get archive cheer cards.
+                        relevant_archive_cards = [card for card in effect_player.archive if card["card_type"] == "cheer"]
+                        if from_limitation:
+                            match from_limitation:
+                                case "color_in":
+                                    from_options = [card for card in relevant_archive_cards if any(color in card["colors"] for color in from_limitation_colors)]
+                                case _:
+                                    raise NotImplementedError(f"Unimplemented from limitation: {from_limitation}")
+
+                    case "cheer_deck":
+                        # Cheer deck is from top.
+                        if len(effect_player.cheer_deck) > 0:
+                            from_options = [effect_player.cheer_deck[0]]
+                    case _:
+                        raise NotImplementedError(f"Unimplemented from zone: {from_zone}")
+
+                match to_zone:
+                    case "holomem":
+                        if to_limitation:
+                            match to_limitation:
+                                case "color_in":
+                                    to_options = [card for card in effect_player.get_holomem_on_stage() if any(color in card["colors"] for color in to_limitation_colors)]
+                                case "back":
+                                    to_options = [card for card in effect_player.backstage]
+                                case "center":
+                                    to_options = effect_player.center
+                                case _:
+                                    raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
+                    case "this_holomem":
+                        to_options = [effect["source_card_id"]]
+
+                if len(to_options) == 0 or len(from_options) == 0:
+                    # No effect.
+                    pass
+                else:
+                    if len(from_options) < amount_min:
+                        # If there's less cheer than the min, do as many as you can.
+                        amount_min = len(from_options)
+                    if amount_max == -1:
+                        amount_max = 1000
+
+                    decision_event = {
+                        "event_type": EventType.EventType_Decision_SendCheer,
+                        "effect_player_id": effect_player_id,
+                        "amount_min": amount_min,
+                        "amount_max": amount_max,
+                        "from_zone": from_zone,
+                        "from_limitation": from_limitation,
+                        "from_limitation_colors": from_limitation_colors,
+                        "to_zone": to_zone,
+                        "to_limitation": to_limitation,
+                        "to_limitation_colors": to_limitation_colors,
+                        "from_options": ids_from_cards(from_options),
+                        "to_options": ids_from_cards(to_options),
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
+                        "decision_player": effect_player_id,
+                        "amount_min": amount_min,
+                        "amount_max": amount_max,
+                        "available_cheer": ids_from_cards(from_options),
+                        "available_targets": ids_from_cards(to_options),
+                        "continuation": self.continue_resolving_effects,
+                    })
+            case EffectType.EffectType_ShuffleHandToDeck:
+                effect_player.shuffle_hand_to_deck()
             case EffectType.EffectType_SwitchCenterWithBack:
                 target_player = effect_player
                 if effect["target_player"] == "opponent":
@@ -1291,7 +1468,6 @@ class GameEngine:
                     self.set_decision({
                         "decision_type": DecisionType.DecisionEffect_ChooseCardForEffect,
                         "decision_player": effect_player_id,
-                        "target_player": target_player.player_id,
                         "choice_ids": available_backstage_ids,
                         "effect_resolution": self.handle_holomem_swap,
                         "continuation": self.continue_resolving_effects,
@@ -1307,6 +1483,15 @@ class GameEngine:
             "loser": loser_id,
         }
         self.broadcast_event(gameover_event)
+
+    def send_boost_event(self, card_id, stat:str, amount:int):
+        boost_event = {
+            "event_type": EventType.EventType_BoostStat,
+            "card_id": card_id,
+            "stat": stat,
+            "amount": amount,
+        }
+        self.broadcast_event(boost_event)
 
     def perform_mulligan(self, active_player: PlayerState):
         revealed_card_ids = ids_from_cards(active_player.hand)
@@ -1676,6 +1861,7 @@ class GameEngine:
         skill_id = action_data["skill_id"]
 
         skill_effects = player.trigger_oshi_skill(skill_id)
+        add_card_id_to_effects(skill_effects, "oshi")
         self.begin_resolving_effects(skill_effects, continuation)
 
     def validate_main_step_play_support(self, player_id:str, action_data:dict):
@@ -1756,6 +1942,7 @@ class GameEngine:
             player.used_limited_this_turn = True
 
         card_effects = card["effects"]
+        add_card_id_to_effects(card_effects, card_id)
         self.begin_resolving_effects(card_effects, continuation, cleanup_card_to_archive=card)
 
     def validate_main_step_baton_pass(self, player_id:str, action_data:dict):
@@ -1859,7 +2046,7 @@ class GameEngine:
             return False
 
         # Amount must match.
-        if len(placements) != self.current_decision["amount"]:
+        if len(placements) < self.current_decision["amount_min"] or len(placements) > self.current_decision["amount_max"]:
             self.send_event(self.make_error_event(player_id, "invalid_amount", "Invalid amount of cheer to move."))
             return False
 
@@ -1906,6 +2093,15 @@ class GameEngine:
         continuation = self.clear_decision()
         continuation()
 
-    def handle_holomem_swap(self, player_id:str, card_id:str):
-        player = self.get_player(player_id)
-        player.swap_center_with_back(card_id)
+    def handle_holomem_swap(self, performing_player_id:str, card_id:str):
+        owner_id = get_owner_id_from_card_id(card_id)
+        owner = self.get_player(owner_id)
+        owner.swap_center_with_back(card_id)
+
+    def handle_choose_card_result(self, performing_player_id:str, card_id:str):
+        from_zone = self.current_decision["from_zone"]
+        to_zone = self.current_decision["to_zone"]
+        reveal = self.current_decision["reveal"]
+
+        player = self.get_player(performing_player_id)
+        player.move_card(self, card_id, to_zone, zone_card_id="", hidden_info=not reveal)
