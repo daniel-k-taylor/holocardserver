@@ -418,9 +418,18 @@ class PlayerState:
                 activated_card_ids.append(card["game_card_id"])
         return activated_card_ids
 
-    def clear_used_art_this_turn(self):
+    def clear_tracked_turn_data(self):
+        self.first_turn = False
+        self.baton_pass_this_turn = False
+        self.collabed_this_turn = False
+        self.oshi_skills_used_this_turn = []
+        self.used_limited_this_turn = False
+        self.turn_effects = []
+
         for card in self.get_holomem_on_stage():
             card["used_art_this_turn"] = False
+            card["played_this_turn"] = False
+            card["bloomed_this_turn"] = False
 
     def reset_collab(self):
         # For all cards in collab, move them back to backstage and rest them.
@@ -565,7 +574,7 @@ class PlayerState:
     def archive_cheer(self, cheer_ids):
         for cheer_id in cheer_ids:
             cheer_card, previous_holder_id = self.find_and_remove_cheer(cheer_id)
-            self.archive.append(cheer_card)
+            self.archive.insert(0, cheer_card)
             move_cheer_event = {
                 "event_type": EventType.EventType_MoveCheer,
                 "owning_player_id": self.player_id,
@@ -578,7 +587,7 @@ class PlayerState:
     def archive_cheer_from_deck(self, amount):
         for _ in range(amount):
             cheer_card = self.cheer_deck.pop(0)
-            self.archive.append(cheer_card)
+            self.archive.insert(0, cheer_card)
             move_cheer_event = {
                 "event_type": EventType.EventType_MoveCheer,
                 "owning_player_id": self.player_id,
@@ -1003,21 +1012,22 @@ class GameEngine:
                     # Can't bloom if already bloomed this turn.
                     continue
 
-                target_bloom_level = 0
+                accepted_bloom_levels = []
                 if mem_card["card_type"] == "holomem_debut":
-                    target_bloom_level = 1
+                    accepted_bloom_levels = [1]
                 elif mem_card["card_type"] == "holomem_bloom":
-                    target_bloom_level = mem_card["bloom_level"] + 1
+                    current_bloom_level = mem_card["bloom_level"]
+                    accepted_bloom_levels = [current_bloom_level, current_bloom_level+1]
 
-                if target_bloom_level > 0:
+                if accepted_bloom_levels:
                     for card in active_player.hand:
-                        if card["card_type"] == "holomem_bloom" and card["bloom_level"] == target_bloom_level:
+                        if card["card_type"] == "holomem_bloom" and card["bloom_level"] in accepted_bloom_levels:
                             # Check the names of the bloom card, at last one must match a name from the base card.
                             if any(name in card["holomem_names"] for name in mem_card["holomem_names"]):
                                 # Check the damage, if the bloom version would die, you can't.
                                 if mem_card["damage"] < card["hp"]:
                                     available_actions.append({
-                                        "action_type": "bloom",
+                                        "action_type": GameAction.MainStepBloom,
                                         "card_id": card["game_card_id"],
                                         "target_id": mem_card["game_card_id"],
                                     })
@@ -1144,14 +1154,9 @@ class GameEngine:
 
     def end_player_turn(self):
         active_player = self.get_player(self.active_player_id)
-        active_player.first_turn = False
-        active_player.baton_pass_this_turn = False
-        active_player.collabed_this_turn = False
-        active_player.oshi_skills_used_this_turn = []
-        active_player.used_limited_this_turn = False
-        active_player.turn_effects = []
-        active_player.clear_used_art_this_turn()
+        active_player.clear_tracked_turn_data()
 
+        # This is no longer the game's first turn.
         self.first_turn = False
 
         ending_player_id = self.active_player_id
@@ -1328,7 +1333,7 @@ class GameEngine:
         if not self.effects_to_resolve:
             if self.effect_resolution_cleanup_card:
                 owner = self.get_player(self.effect_resolution_cleanup_card["owner_id"])
-                owner.archive.append(self.effect_resolution_cleanup_card)
+                owner.archive.insert(0, self.effect_resolution_cleanup_card)
                 cleanup_event = {
                     "event_type": EventType.EventType_MoveCard,
                     "moving_player_id": owner.player_id,
@@ -1449,11 +1454,10 @@ class GameEngine:
                     if requirement_buzz_blocked:
                         cards_to_choose_from = [card for card in cards_to_choose_from if "buzz" not in card or not card["buzz"]]
 
-                card_options = ids_from_cards(cards_to_choose_from)
                 choose_event = {
                     "event_type": EventType.EventType_Decision_ChooseCards,
                     "effect_player_id": effect_player_id,
-                    "card_options": card_options,
+                    "card_options": cards_to_choose_from,
                     "from_zone": from_zone,
                     "to_zone": destination,
                     "amount_min": amount_min,
@@ -1467,7 +1471,7 @@ class GameEngine:
                 self.set_decision({
                     "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                     "decision_player": effect_player_id,
-                    "choice_ids": card_options,
+                    "choice_ids": cards_to_choose_from,
                     "from_zone": from_zone,
                     "to_zone": destination,
                     "amount_min": amount_min,
@@ -2041,7 +2045,7 @@ class GameEngine:
         target_id = action_data["target_id"]
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == "bloom" and action["card_id"] == chosen_card_id and action["target_id"] == target_id:
+            if action["action_type"] == GameAction.MainStepBloom and action["card_id"] == chosen_card_id and action["target_id"] == target_id:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -2378,7 +2382,7 @@ class GameEngine:
         continuation = self.clear_decision()
 
         chosen_cards = action_data["card_ids"]
-        resolution = self.current_decision["effect_resolution"]
+        resolution = decision_info_copy["effect_resolution"]
         resolution(decision_info_copy, player_id, chosen_cards, continuation)
 
     def validate_effect_resolution_make_choice(self, player_id:str, action_data:dict):
@@ -2449,7 +2453,7 @@ class GameEngine:
 
         # Deal with chosen cards.
         for card_id in card_ids:
-            player.move_card(self, card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+            player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
 
         # Deal with unchosen cards.
         remaining_card_ids = [card_id for card_id in card_options if card_id not in card_ids]
