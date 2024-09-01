@@ -81,6 +81,7 @@ class EventType:
     EventType_PerformArt = "perform_art"
     EventType_PlaySupportCard = "play_support_card"
     EventType_ResetStepActivate = "reset_step_activate"
+    EventType_ResetStepChooseNewCenter = "reset_step_choose_new_center"
     EventType_ResetStepCollab = "reset_step_collab"
     EventType_ShuffleDeck = "shuffle_deck"
     EventType_TurnStart = "turn_start"
@@ -226,6 +227,7 @@ class PlayerState:
                 generated_card["stacked_cards"] = []
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
+                generated_card["rest_extra_turn"] = False
                 generated_card["used_art_this_turn"] = False
                 card_number += 1
                 self.deck.append(generated_card)
@@ -414,8 +416,11 @@ class PlayerState:
         activated_card_ids = []
         for card in self.get_holomem_on_stage():
             if is_card_resting(card):
-                card["resting"] = False
-                activated_card_ids.append(card["game_card_id"])
+                if card["rest_extra_turn"]:
+                    card["rest_extra_turn"] = False
+                else:
+                    card["resting"] = False
+                    activated_card_ids.append(card["game_card_id"])
         return activated_card_ids
 
     def clear_tracked_turn_data(self):
@@ -930,7 +935,7 @@ class GameEngine:
                     active_player.move_card(new_center_id, "center")
                 else:
                     decision_event = {
-                        "event_type": DecisionType.DecisionChooseNewCenter,
+                        "event_type": EventType.EventType_ResetStepChooseNewCenter,
                         "active_player": self.active_player_id,
                         "center_options": new_center_option_ids,
                     }

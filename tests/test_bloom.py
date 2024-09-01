@@ -69,7 +69,7 @@ class TestBloom(unittest.TestCase):
         # Center is 003
         # Backstage has 3 003 and 2 004.
 
-        """Test that you can't bloom if you would die"""
+        """Test that you bloom level 2 works"""
         # First, bloom a 013 Soraz, also, grab a 011 2nd bloom azki
         bloom_card1 = add_card_to_hand(self, player1, "hSD01-013")
         bloom_card2 = add_card_to_hand(self, player1, "hSD01-011")

@@ -189,3 +189,11 @@ def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_defini
     player.hand.append(found_card)
     reset_mainstep(self)
     return found_card
+
+def end_turn(self : unittest.TestCase):
+    active_player_id = self.engine.active_player_id
+    self.engine.handle_game_message(active_player_id, GameAction.MainStepEndTurn, {})
+    events = self.engine.grab_events()
+    validate_last_event_not_error(self, events)
+    self.assertTrue(self.engine.active_player_id != active_player_id)
+    return events
