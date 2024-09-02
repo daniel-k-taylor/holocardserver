@@ -1461,11 +1461,11 @@ class GameEngine:
 
                 cards_to_choose_from = []
                 if from_zone == "hand":
-                    cards_to_choose_from = ids_from_cards(effect_player.hand)
+                    cards_to_choose_from = effect_player.hand
                 elif from_zone == "holopower":
-                    cards_to_choose_from = ids_from_cards(effect_player.holopower)
+                    cards_to_choose_from = effect_player.holopower
                 elif from_zone == "deck":
-                    cards_to_choose_from = ids_from_cards(effect_player.deck)
+                    cards_to_choose_from = effect_player.deck
 
                 # If look_at is -1, look at all cards.
                 if look_at == -1:
@@ -1475,28 +1475,35 @@ class GameEngine:
                 look_at = min(look_at, len(cards_to_choose_from))
 
                 cards_to_choose_from = cards_to_choose_from[:look_at]
+                cards_can_choose = []
                 if requirement:
                     match requirement:
                         case "holomem_bloom":
-                            cards_to_choose_from = [card for card in cards_to_choose_from if card["card_type"] == "holomem_bloom" \
+                            cards_can_choose = [card for card in cards_to_choose_from if card["card_type"] == "holomem_bloom" \
                                 and card["bloom_level"] in requirement_bloom_levels
                             ]
                         case "holomem_named":
                             # Only include cards that have a name in the requirement_names list.
-                            cards_to_choose_from = [card for card in cards_to_choose_from \
+                            cards_can_choose = [card for card in cards_to_choose_from \
                                 if any(name in card["holomem_names"] for name in requirement_names)]
                         case "limited":
                             # only include cards that are limited
-                            cards_to_choose_from = [card for card in cards_to_choose_from if is_card_limited(card)]
+                            cards_can_choose = [card for card in cards_to_choose_from if is_card_limited(card)]
 
                     # Exclude any buzz if required.
                     if requirement_buzz_blocked:
-                        cards_to_choose_from = [card for card in cards_to_choose_from if "buzz" not in card or not card["buzz"]]
+                        cards_can_choose = [card for card in cards_can_choose if "buzz" not in card or not card["buzz"]]
+                else:
+                    cards_can_choose = cards_to_choose_from
+
+                if len(cards_can_choose) < amount_min:
+                    amount_min = len(cards_can_choose)
 
                 choose_event = {
                     "event_type": EventType.EventType_Decision_ChooseCards,
                     "effect_player_id": effect_player_id,
-                    "card_options": cards_to_choose_from,
+                    "all_card_options": ids_from_cards(cards_to_choose_from),
+                    "cards_can_choose": ids_from_cards(cards_can_choose),
                     "from_zone": from_zone,
                     "to_zone": destination,
                     "amount_min": amount_min,
@@ -1504,13 +1511,14 @@ class GameEngine:
                     "reveal_chosen": reveal_chosen,
                     "remaining_cards_action": remaining_cards_action,
                     "hidden_info_player": effect_player_id,
-                    "hidden_info_fields": ["card_options"],
+                    "hidden_info_fields": ["all_card_options", "cards_can_choose"],
                 }
                 self.broadcast_event(choose_event)
                 self.set_decision({
                     "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                     "decision_player": effect_player_id,
-                    "choice_ids": cards_to_choose_from,
+                    "all_card_options": ids_from_cards(cards_to_choose_from),
+                    "cards_can_choose": ids_from_cards(cards_can_choose),
                     "from_zone": from_zone,
                     "to_zone": destination,
                     "amount_min": amount_min,
@@ -1755,13 +1763,14 @@ class GameEngine:
                     decision_event = {
                         "event_type": EventType.EventType_Decision_SwapHolomemToCenter,
                         "effect_player_id": effect_player_id,
-                        "choice_ids": available_backstage_ids,
+                        "cards_can_choose": available_backstage_ids,
                     }
                     self.broadcast_event(decision_event)
                     self.set_decision({
                         "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                         "decision_player": effect_player_id,
-                        "choice_ids": available_backstage_ids,
+                        "all_card_options": available_backstage_ids,
+                        "cards_can_choose": available_backstage_ids,
                         "amount_min": 1,
                         "amount_max": 1,
                         "effect_resolution": self.handle_holomem_swap,
@@ -2192,35 +2201,37 @@ class GameEngine:
         for action in self.current_decision["available_actions"]:
             if action["action_type"] == GameAction.MainStepPlaySupport and action["card_id"] == chosen_card_id:
                 action_found = action
+                break
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
             return False
 
         if "play_requirements" in action_found:
             # All fields in play_requirements must exist in action_data.
-            for required_field in action_found["play_requirements"]:
-                if required_field not in action_data:
+            for required_field_name, required_field_info in action_found["play_requirements"].items():
+                if required_field_name not in action_data:
                     self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
                     return False
 
-                if required_field["type"] == "list":
-                    if not isinstance(action_data[required_field], list) or len(action_data[required_field]) != required_field["length"]:
+                passed_in_data = action_data[required_field_name]
+                if required_field_info["type"] == "list":
+                    if not isinstance(passed_in_data, list) or len(passed_in_data) != required_field_info["length"]:
                         self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
                         return False
 
-                    if required_field["content_type"] == "cheer_in_play":
+                    if required_field_info["content_type"] == "cheer_in_play":
                         # Validate that all items in the list are cheer cards on holomems.
                         validated = True
-                        for cheer_id in action_data[required_field]:
+                        for cheer_id in passed_in_data:
                             if not isinstance(cheer_id, str):
                                 validated = False
                                 break
-                            if cheer_id in player.get_cheer_ids_on_holomems():
+                            if cheer_id not in player.get_cheer_ids_on_holomems():
                                 validated = False
                                 break
 
                         # The list must also be unique.
-                        if len(set(action_data[required_field])) != len(action_data[required_field]):
+                        if len(set(passed_in_data)) != len(passed_in_data):
                             validated = False
 
                         if not validated:
@@ -2237,6 +2248,7 @@ class GameEngine:
 
         player = self.get_player(player_id)
         card_id = action_data["card_id"]
+        card, _, _ = player.find_card(card_id)
 
         # Send an event showing the card being played.
         play_event = {
@@ -2411,7 +2423,7 @@ class GameEngine:
 
         chosen_cards = action_data["card_ids"]
         for card_id in chosen_cards:
-            if card_id not in self.current_decision["choice_ids"]:
+            if card_id not in self.current_decision["cards_can_choose"]:
                 self.send_event(self.make_error_event(player_id, "invalid_card", "Invalid card choice."))
                 return False
         # Check the amounts against amount_min/max
@@ -2476,11 +2488,12 @@ class GameEngine:
 
         player = self.get_player(player_id)
         card_ids = action_data["card_ids"]
-        to_zone = action_data["to_zone"]
+        to_zone = self.current_decision["to_zone"]
+        bottom = self.current_decision["bottom"]
 
         # The cards are in the order they should be put at that location.
         for card_id in card_ids:
-            player.move_card(card_id, to_zone, zone_card_id="", hidden_info=True, add_to_bottom=action_data["bottom"])
+            player.move_card(card_id, to_zone, zone_card_id="", hidden_info=True, add_to_bottom=bottom)
 
         continuation = self.clear_decision()
         continuation()
@@ -2499,7 +2512,7 @@ class GameEngine:
         to_zone = decision_info_copy["to_zone"]
         reveal_chosen = decision_info_copy["reveal_chosen"]
         remaining_cards_action = decision_info_copy["remaining_cards_action"]
-        card_options = decision_info_copy["choice_ids"]
+        all_card_options = decision_info_copy["all_card_options"]
 
         player = self.get_player(performing_player_id)
 
@@ -2508,39 +2521,39 @@ class GameEngine:
             player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
 
         # Deal with unchosen cards.
-        remaining_card_ids = [card_id for card_id in card_options if card_id not in card_ids]
-        for card_id in remaining_card_ids:
-            match remaining_cards_action:
-                case "nothing":
-                    pass
-                case "shuffle":
-                    if from_zone == "deck":
-                        player.shuffle_deck()
-                    else:
-                        raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
-                case "order_on_bottom":
-                    order_cards_event = {
-                        "event_type": EventType.EventType_Decision_OrderCards,
-                        "player_id": performing_player_id,
-                        "card_ids": remaining_card_ids,
-                        "from_zone": from_zone,
-                        "to_zone": from_zone,
-                        "bottom": True,
-                        "hidden_info_player": performing_player_id,
-                        "hidden_info_fields": ["remaining_card_ids"],
-                    }
-                    self.broadcast_event(order_cards_event)
-                    self.set_decision({
-                        "decision_type": DecisionType.DecisionEffect_OrderCards,
-                        "decision_player": performing_player_id,
-                        "card_ids": remaining_card_ids,
-                        "from_zone": from_zone,
-                        "to_zone": from_zone,
-                        "bottom": True,
-                        "continuation": continuation,
-                    })
-                case _:
-                    raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
+        remaining_card_ids = [card_id for card_id in all_card_options if card_id not in card_ids]
+        match remaining_cards_action:
+            case "nothing":
+                pass
+            case "shuffle":
+                if from_zone == "deck":
+                    # The cards weren't moved out, so just shuffle.
+                    player.shuffle_deck()
+                else:
+                    raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
+            case "order_on_bottom":
+                order_cards_event = {
+                    "event_type": EventType.EventType_Decision_OrderCards,
+                    "player_id": performing_player_id,
+                    "card_ids": remaining_card_ids,
+                    "from_zone": from_zone,
+                    "to_zone": from_zone,
+                    "bottom": True,
+                    "hidden_info_player": performing_player_id,
+                    "hidden_info_fields": ["card_ids"],
+                }
+                self.broadcast_event(order_cards_event)
+                self.set_decision({
+                    "decision_type": DecisionType.DecisionEffect_OrderCards,
+                    "decision_player": performing_player_id,
+                    "card_ids": remaining_card_ids,
+                    "from_zone": from_zone,
+                    "to_zone": from_zone,
+                    "bottom": True,
+                    "continuation": continuation,
+                })
+            case _:
+                raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
 
         if not self.current_decision:
             continuation()

@@ -440,7 +440,7 @@ class TestGameEngine(unittest.TestCase):
             "collab_card_id": current_backstage,
             "holopower_generated": 1,
         })
-        self.assertEqual(events[3]["card_options"][0], UNKNOWN_CARD_ID)
+        self.assertEqual(events[3]["cards_can_choose"][0], UNKNOWN_CARD_ID)
         self.validate_event(events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "holopower",
@@ -450,7 +450,7 @@ class TestGameEngine(unittest.TestCase):
             "reveal_chosen": True,
             "remaining_cards_action": "nothing",
         })
-        self.assertEqual(len(events[2]["card_options"]), len(player1.holopower))
+        self.assertEqual(len(events[2]["cards_can_choose"]), len(player1.holopower))
         self.assertEqual(len(player1.holopower), 4) # +1 from the collab
         current_holopower_cards = player1.holopower.copy()
         chosen_card = player1.holopower[2]

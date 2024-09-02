@@ -196,7 +196,7 @@ class TestOshiSkills(unittest.TestCase):
         validate_event(self, events[7], EventType.EventType_Decision_SwapHolomemToCenter, self.player2, {
             "effect_player_id": self.player2,
         })
-        choice_ids = events[7]["choice_ids"]
+        choice_ids = events[7]["cards_can_choose"]
         opponent_current_center = player1.center[0]["game_card_id"]
         self.assertEqual(len(choice_ids), 5)
         self.assertTrue(opponent_current_center not in choice_ids)
