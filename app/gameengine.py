@@ -664,13 +664,13 @@ def art_requirement_met(card, art):
     red_cheer = 0
 
     for attached_cheer_card in attached_cheer_cards:
-        if attached_cheer_card["color"] == "white":
+        if "white" in attached_cheer_card["colors"]:
             white_cheer += 1
-        elif attached_cheer_card["color"] == "green":
+        elif "green" in attached_cheer_card["colors"]:
             green_cheer += 1
-        elif attached_cheer_card["color"] == "blue":
+        elif "blue" in attached_cheer_card["colors"]:
             blue_cheer += 1
-        elif attached_cheer_card["color"] == "red":
+        elif "red" in attached_cheer_card["colors"]:
             red_cheer += 1
 
     cheer_costs = art["costs"]
@@ -1667,6 +1667,7 @@ class GameEngine:
                             from_options = [effect_player.cheer_deck[0]]
                     case _:
                         raise NotImplementedError(f"Unimplemented from zone: {from_zone}")
+                from_options = ids_from_cards(from_options)
 
                 match to_zone:
                     case "holomem":
@@ -1680,14 +1681,21 @@ class GameEngine:
                                     to_options = effect_player.center
                                 case _:
                                     raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
+                            to_options = ids_from_cards(to_options)
                         else:
-                            to_options = effect_player.get_holomem_on_stage()
+                            to_options = ids_from_cards(effect_player.get_holomem_on_stage())
                     case "this_holomem":
                         to_options = [effect["source_card_id"]]
 
                 if len(to_options) == 0 or len(from_options) == 0:
                     # No effect.
                     pass
+                elif len(to_options) == 1 and len(from_options) == 1 and amount_min == len(from_options):
+                    # Do it automatically.
+                    placements = {}
+                    for from_id in from_options:
+                        placements[from_id] = to_options[0]
+                    effect_player.move_cheer_between_holomems(placements)
                 else:
                     if len(from_options) < amount_min:
                         # If there's less cheer than the min, do as many as you can.
@@ -1706,8 +1714,8 @@ class GameEngine:
                         "to_zone": to_zone,
                         "to_limitation": to_limitation,
                         "to_limitation_colors": to_limitation_colors,
-                        "from_options": ids_from_cards(from_options),
-                        "to_options": ids_from_cards(to_options),
+                        "from_options": from_options,
+                        "to_options": to_options,
                     }
                     self.broadcast_event(decision_event)
                     self.set_decision({
@@ -1715,8 +1723,8 @@ class GameEngine:
                         "decision_player": effect_player_id,
                         "amount_min": amount_min,
                         "amount_max": amount_max,
-                        "available_cheer": ids_from_cards(from_options),
-                        "available_targets": ids_from_cards(to_options),
+                        "available_cheer": from_options,
+                        "available_targets": to_options,
                         "continuation": self.continue_resolving_effects,
                     })
             case EffectType.EffectType_SendCollabBack:

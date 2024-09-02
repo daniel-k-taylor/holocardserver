@@ -310,7 +310,7 @@ class TestGameEngine(unittest.TestCase):
             "game_over": False,
         })
         self.validate_event(events[5], EventType.EventType_Decision_MoveCheerChoice, self.player2, {
-            "effect_player_id": self.player2,
+            "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_life_pool": True,

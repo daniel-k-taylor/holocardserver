@@ -4,11 +4,6 @@ Todo:
 To Test:
     ☐ AI Harness
 
-    ☐ 011 - weakness boost
-    ☐ 012 - color in limitation
-    ☐ 013 - send cheer this mem
-    ☐ 015 - collab_with, "to_limitation": "center" on send_cheer
-
 Revisit:
     - What happens when the cheer deck runs out.
         ☐ For now, just no more cheer

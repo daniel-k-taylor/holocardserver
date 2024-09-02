@@ -251,5 +251,353 @@ class TestStarterDeckCards(unittest.TestCase):
         self.assertEqual(len(player1.backstage[0]["attached_cards"]), 2)
         validate_event(self, events[4], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player2 })
 
+
+    def test_support_hSD01_011_weakness_boost_none(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-011"""
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hSD01-011", player1.center)
+        test_card_id = test_card["game_card_id"]
+        spawn_cheer_on_card(self, player1, test_card_id, "green", "g1")
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        validate_last_event_not_error(self, events)
+
+        actions = reset_performancestep(self)
+        self.assertEqual(len(actions), 2)
+        self.assertEqual(actions[0]["art_id"], "sorazgravity")
+
+        # Perform the art
+        top_cheer = player1.cheer_deck[0]["game_card_id"]
+        target = player2.center[0]["game_card_id"]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "sorazgravity",
+            "target_id": target
+        })
+        events = engine.grab_events()
+        # Events - no weakness boost, send_cheer from sora for any holomem
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player1,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "cheer_deck",
+            "to_zone": "holomem",
+        })
+        from_options = events[0]["from_options"]
+        to_options = events[0]["to_options"]
+        cheer_placement = {
+            from_options[0]: player1.backstage[0]["game_card_id"]
+        }
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 6)
+        # Events - move cheer, use art, p2 distribute life
+        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": "cheer_deck",
+            "to_holomem_id": player1.backstage[0]["game_card_id"],
+            "cheer_id": top_cheer,
+        })
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "sorazgravity",
+            "target_id": target,
+            "power": 60,
+            "died": True,
+            "game_over": False,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+            "effect_player_id": self.player2,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_life_pool": True,
+        })
+
+    def test_support_hSD01_011_weakness_boost_active(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-011"""
+        # Force a color onto p2's center.
+        player2.center[0]["colors"].append("blue")
+        player1.center = []
+        player1.backstage = [] # Clear out the backstage
+        test_card = put_card_in_play(self, player1, "hSD01-011", player1.center)
+        test_card_id = test_card["game_card_id"]
+        spawn_cheer_on_card(self, player1, test_card_id, "green", "g1")
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        validate_last_event_not_error(self, events)
+
+        actions = reset_performancestep(self)
+        self.assertEqual(len(actions), 2)
+        self.assertEqual(actions[0]["art_id"], "sorazgravity")
+
+        # Perform the art
+        top_cheer = player1.cheer_deck[0]["game_card_id"]
+        target = player2.center[0]["game_card_id"]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "sorazgravity",
+            "target_id": target
+        })
+        events = engine.grab_events()
+        # Events - weakness boost, art, distribute
+        self.assertEqual(len(events), 6)
+        # Events - move cheer, use art, p2 distribute life
+        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+            "card_id": test_card["game_card_id"],
+            "stat": "power",
+            "amount": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "sorazgravity",
+            "target_id": target,
+            "power": 110,
+            "died": True,
+            "game_over": False,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+            "effect_player_id": self.player2,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_life_pool": True,
+        })
+
+
+    def test_support_hSD01_012_send_cheer_color_in(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-012"""
+        player1.backstage.pop()
+        test_card = put_card_in_play(self, player1, "hSD01-012", player1.backstage)
+        test_card_id = test_card["game_card_id"]
+        actions = reset_mainstep(self)
+
+        # As prep, put some cheer in the archive.
+        spawn_cheer_on_card(self, player1, "archive", "white", "whitecheer1")
+        spawn_cheer_on_card(self, player1, "archive", "white", "whitecheer2")
+        spawn_cheer_on_card(self, player1, "archive", "green", "greencheer1")
+        spawn_cheer_on_card(self, player1, "archive", "red", "redcheer1")
+        spawn_cheer_on_card(self, player1, "archive", "blue", "bluecheer1")
+
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card_id,
+        })
+        events = engine.grab_events()
+        # Events - collab, send_cheer
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player1,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "archive",
+            "to_zone": "holomem",
+            "to_limitation": "center",
+        })
+        from_options = events[2]["from_options"]
+        to_options = events[2]["to_options"]
+        self.assertEqual(len(to_options), 1)
+        self.assertEqual(to_options[0], player1.center[0]["game_card_id"])
+        self.assertEqual(len(from_options), 3) # Only white and green.
+        self.assertTrue("redcheer1" not in from_options)
+        self.assertTrue("bluecheer1" not in from_options)
+        cheer_placement = {
+            from_options[1]: to_options[0]
+        }
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
+        events = self.engine.grab_events()
+        # Events - move card, back to main
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": "archive",
+            "to_holomem_id": player1.center[0]["game_card_id"],
+            "cheer_id": from_options[1],
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        self.assertEqual(player1.center[0]["attached_cards"][-1]["game_card_id"], from_options[1])
+
+
+    def test_support_hSD01_013_send_cheer_thismem(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-013"""
+        player1.center = []
+        set_next_die_rolls(self, [1])
+        test_card = put_card_in_play(self, player1, "hSD01-013", player1.center)
+        test_card_id = test_card["game_card_id"]
+        spawn_cheer_on_card(self, player1, test_card_id, "red", "redcheer1")
+        spawn_cheer_on_card(self, player1, test_card_id, "red", "redcheer2")
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        validate_last_event_not_error(self, events)
+
+        actions = reset_performancestep(self)
+        self.assertEqual(len(actions), 2)
+        self.assertEqual(actions[0]["art_id"], "brighterfuture")
+
+        # Perform the art
+        top_cheer = player1.cheer_deck[0]["game_card_id"]
+        target = player2.center[0]["game_card_id"]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "brighterfuture",
+            "target_id": target
+        })
+        events = engine.grab_events()
+        # Events - roll die, send_cheer, use art, performance step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCheer, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": "cheer_deck",
+            "to_holomem_id": player1.center[0]["game_card_id"],
+            "cheer_id": top_cheer,
+        })
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "brighterfuture",
+            "target_id": target,
+            "power": 50,
+            "died": False,
+            "game_over": False,
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player1 })
+
+
+    def test_support_hSD01_015_collab_with_member_sora(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-015"""
+        player1.backstage.pop()
+        test_card = put_card_in_play(self, player1, "hSD01-015", player1.backstage)
+        test_card_id = test_card["game_card_id"]
+        actions = reset_mainstep(self)
+
+        self.assertEqual(len(player1.hand), 3)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card_id,
+        })
+        events = engine.grab_events()
+        # Events - collab, draw, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        self.assertEqual(len(player1.hand), 4)
+
+    def test_support_hSD01_015_collab_with_member_none(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-015"""
+        player1.center = []
+        put_card_in_play(self, player1, "hSD01-007", player1.center)
+        player1.backstage.pop()
+        test_card = put_card_in_play(self, player1, "hSD01-015", player1.backstage)
+        test_card_id = test_card["game_card_id"]
+        actions = reset_mainstep(self)
+
+        self.assertEqual(len(player1.hand), 3)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card_id,
+        })
+        events = engine.grab_events()
+        # Events - collab, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        self.assertEqual(len(player1.hand), 3)
+
+    def test_support_hSD01_015_collab_with_member_azki(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-015"""
+        player1.center = []
+        put_card_in_play(self, player1, "hSD01-008", player1.center)
+        player1.backstage.pop()
+        test_card = put_card_in_play(self, player1, "hSD01-015", player1.backstage)
+        test_card_id = test_card["game_card_id"]
+        actions = reset_mainstep(self)
+
+        top_cheer_id = player1.cheer_deck[0]["game_card_id"]
+        self.assertEqual(len(player1.hand), 3)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card_id,
+        })
+        events = engine.grab_events()
+        # Events - collab, move cheer to center,main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[2], EventType.EventType_MoveCheer, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": "cheer_deck",
+            "to_holomem_id": player1.center[0]["game_card_id"],
+            "cheer_id": top_cheer_id,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        self.assertEqual(len(player1.hand), 3)
+
 if __name__ == '__main__':
     unittest.main()

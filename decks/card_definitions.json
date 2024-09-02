@@ -800,22 +800,22 @@
 
         "card_id": "hY01-001",
         "card_type": "cheer",
-        "color": "white"
+        "colors": ["white"]
     },
     {
         "card_id": "hY02-001",
         "card_type": "cheer",
-        "color": "green"
+        "colors": ["green"]
     },
     {
         "card_id": "hY03-001",
         "card_type": "cheer",
-        "color": "red"
+        "colors": ["red"]
     },
     {
         "card_id": "hY04-001",
         "card_type": "cheer",
-        "color": "blue",
+        "colors": ["blue"],
 
         "NOTE": "CHEER CARDS END"
     }

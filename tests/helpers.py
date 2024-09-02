@@ -253,7 +253,10 @@ def spawn_cheer_on_card(self, player : PlayerState, card_id, cheer_color, desire
     cheer_card["owner_id"] = player.player_id
     cheer_card["game_card_id"] = player.player_id + "_" + desired_game_card_id
 
-    found_card, _, _ = player.find_card(card_id)
-    found_card["attached_cards"].append(cheer_card)
+    if card_id == "archive":
+        player.archive.insert(0, cheer_card)
+    else:
+        found_card, _, _ = player.find_card(card_id)
+        found_card["attached_cards"].append(cheer_card)
 
     return cheer_card
