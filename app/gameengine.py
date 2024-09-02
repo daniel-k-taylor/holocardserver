@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 from app.card_database import CardDatabase
 import random
+from copy import deepcopy
 
 UNKNOWN_CARD_ID = "HIDDEN"
 UNLIMITED_SIZE = 9999
@@ -89,6 +90,11 @@ class EventType:
     EventType_RollDie = "roll_die"
     EventType_ShuffleDeck = "shuffle_deck"
     EventType_TurnStart = "turn_start"
+
+class GameOverReason:
+    GameOverReason_NoHolomemsLeft = "no_holomems_left"
+    GameOverReason_DeckEmptyDraw = "deck_empty_draw"
+    GameOverReason_NoLifeLeft = "no_life_left"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -221,7 +227,7 @@ class PlayerState:
         for card_id, count in self.deck_list.items():
             card = card_db.get_card_by_id(card_id)
             for _ in range(count):
-                generated_card = card.copy()
+                generated_card = deepcopy(card)
                 generated_card["owner_id"] = self.player_id
                 generated_card["game_card_id"] = self.player_id + "_" + str(card_number)
                 generated_card["played_this_turn"] = False
@@ -242,7 +248,7 @@ class PlayerState:
         for card_id, count in player_info["cheer_deck"].items():
             card = card_db.get_card_by_id(card_id)
             for _ in range(count):
-                generated_card = card.copy()
+                generated_card = deepcopy(card)
                 generated_card["owner_id"] = self.player_id
                 generated_card["game_card_id"] = self.player_id + "_" + str(card_number)
                 card_number += 1
@@ -517,7 +523,7 @@ class PlayerState:
         self.engine.broadcast_event(collab_event)
 
         # Handle collab effects.
-        collab_effects = collab_card["collab_effects"]
+        collab_effects = deepcopy(collab_card["collab_effects"])
         add_ids_to_effects(collab_effects, self.player_id, collab_card_id)
         self.engine.begin_resolving_effects(collab_effects, continuation)
 
@@ -542,10 +548,9 @@ class PlayerState:
         self.engine.broadcast_event(oshi_skill_event)
 
         # Get skill effects.
-        skill_effects = oshi_skill["effects"]
+        skill_effects = deepcopy(oshi_skill["effects"])
         for effect in skill_effects:
             effect["player_id"] = self.player_id
-
         return skill_effects
 
     def find_and_remove_cheer(self, cheer_id):
@@ -703,7 +708,7 @@ def is_card_limited(card):
     return "limited" in card and card["limited"]
 
 def get_effects_at_timing(art_effects, timing):
-    return [effect for effect in art_effects if effect["timing"] == timing]
+    return deepcopy([effect for effect in art_effects if effect["timing"] == timing])
 
 class GameEngine:
     def __init__(self,
@@ -977,7 +982,7 @@ class GameEngine:
         active_player = self.get_player(self.active_player_id)
         if len(active_player.deck) == 0:
             # Game over, no cards to draw.
-            self.end_game(active_player.player_id)
+            self.end_game(loser_id=active_player.player_id, reason_id=GameOverReason.GameOverReason_DeckEmptyDraw)
             return
 
         active_player.draw(1)
@@ -1290,6 +1295,7 @@ class GameEngine:
         owner = self.get_player(self.performance_target_card["owner_id"])
 
         game_over = False
+        game_over_reason = ""
         life_to_distribute = []
         if died:
             # Move all attached and stacked cards and the card itself to the archive.
@@ -1299,8 +1305,13 @@ class GameEngine:
                 life_lost = self.performance_target_card["down_life_cost"]
 
             current_life = len(owner.life)
-            if len(owner.get_holomem_on_stage()) == 0 or life_lost >= current_life:
+            if life_lost >= current_life:
                 game_over = True
+                game_over_reason = GameOverReason.GameOverReason_NoLifeLeft
+            elif len(owner.get_holomem_on_stage()) == 0:
+                game_over = True
+                game_over_reason = GameOverReason.GameOverReason_NoHolomemsLeft
+
 
             if not game_over:
                 life_to_distribute = ids_from_cards(owner.life[:life_lost])
@@ -1318,7 +1329,7 @@ class GameEngine:
         self.broadcast_event(art_event)
 
         if game_over:
-            self.end_game(loser=owner.player_id)
+            self.end_game(loser_id=owner.player_id, reason_id=game_over_reason)
         elif life_to_distribute:
             # Tell the owner to distribute this life amongst their holomems.
             remaining_holomems = ids_from_cards(owner.get_holomem_on_stage())
@@ -1543,7 +1554,7 @@ class GameEngine:
             case EffectType.EffectType_RollDie:
                 # Put the actual roll in front on the queue, but
                 # check afterwards to see if we should add any more effects up front.
-                rolldie_internal_effect = effect.copy()
+                rolldie_internal_effect = deepcopy(effect)
                 rolldie_internal_effect["effect_type"] = EffectType.EffectType_RollDie_Internal
                 self.add_effects_to_front([rolldie_internal_effect])
 
@@ -1762,12 +1773,13 @@ class GameEngine:
     def add_effects_to_front(self, new_effects):
         self.effects_to_resolve = new_effects + self.effects_to_resolve
 
-    def end_game(self, loser_id):
+    def end_game(self, loser_id, reason_id):
         self.phase = GamePhase.GameOver
 
         gameover_event = {
             "event_type": EventType.EventType_GameOver,
-            "loser": loser_id,
+            "loser_id": loser_id,
+            "reason_id": reason_id,
         }
         self.broadcast_event(gameover_event)
 
