@@ -3,6 +3,7 @@ from app.card_database import CardDatabase
 import random
 
 UNKNOWN_CARD_ID = "HIDDEN"
+UNLIMITED_SIZE = 9999
 STARTING_HAND_SIZE = 7
 MAX_MEMBERS_ON_STAGE = 6
 
@@ -51,6 +52,7 @@ class TurnEffectType:
     TurnEffectType_CenterArtsBonus = "center_arts_bonus"
 
 class EventType:
+    EventType_AddTurnEffect = "add_turn_effect"
     EventType_Bloom = "bloom"
     EventType_BoostStat = "boost_stat"
     EventType_CheerStep = "cheer_step"
@@ -61,6 +63,7 @@ class EventType:
     EventType_Decision_MoveCheerChoice = "decision_move_cheer_choice"
     EventType_Decision_OrderCards = "decision_order_cards"
     EventType_Decision_PerformanceStep = "decision_performance_step"
+    EventType_Decision_SendCheer = "decision_send_cheer"
     EventType_Decision_SwapHolomemToCenter = "decision_choose_holomem_swap_to_center"
     EventType_Draw = "draw"
     EventType_EndTurn = "end_turn"
@@ -83,9 +86,9 @@ class EventType:
     EventType_ResetStepActivate = "reset_step_activate"
     EventType_ResetStepChooseNewCenter = "reset_step_choose_new_center"
     EventType_ResetStepCollab = "reset_step_collab"
+    EventType_RollDie = "roll_die"
     EventType_ShuffleDeck = "shuffle_deck"
     EventType_TurnStart = "turn_start"
-    EventType_Decision_SendCheer = "decision_send_cheer"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -168,7 +171,7 @@ class GameAction:
         "placements": Dict[str, str],
     }
 
-    EffectResolution_ChooseCardForEffect = "effect_resolution_choose_card_for_effect"
+    EffectResolution_ChooseCardsForEffect = "effect_resolution_choose_card_for_effect"
     EffectResolution_ChooseCardsForEffectFields = {
         "card_ids": List[str],
     }
@@ -309,7 +312,8 @@ class PlayerState:
                     continue
 
                 # The ability hasn't been used and the player can pay for it.
-                effects.append(oshi_skill["effects"])
+                add_ids_to_effects(oshi_skill["effects"], self.player_id, "oshi")
+                effects.extend(oshi_skill["effects"])
         return effects
 
     def get_cheer_ids_on_holomems(self):
@@ -317,8 +321,16 @@ class PlayerState:
         for card in self.get_holomem_on_stage():
             for attached_card in card["attached_cards"]:
                 if attached_card["card_type"] == "cheer":
-                    cheer_ids.append(attached_card["game_card"])
+                    cheer_ids.append(attached_card["game_card_id"])
         return cheer_ids
+
+    def is_cheer_on_holomem(self, cheer_id, target_id):
+        holomem_card, _, _ = self.find_card(target_id)
+        if holomem_card:
+            for attached_card in holomem_card["attached_cards"]:
+                if attached_card["game_card_id"] == cheer_id:
+                    return True
+        return False
 
     def add_to_deck(self, card, top: bool):
         if top:
@@ -392,6 +404,11 @@ class PlayerState:
                 self.deck.append(card)
             else:
                 self.deck.insert(0, card)
+        elif to_zone == "archive":
+            if add_to_bottom:
+                self.archive.append(card)
+            else:
+                self.archive.insert(0, card)
 
         if to_zone in ["center", "backstage", "holomem"] and from_zone_name == "hand":
             card["played_this_turn"] = True
@@ -1376,7 +1393,7 @@ class GameEngine:
                 amount_min = condition["amount_min"]
                 amount_max = condition["amount_max"]
                 if amount_max == -1:
-                    amount_max = 1000
+                    amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.hand) <= amount_max
             case Condition.Condition_CenterIsColor:
                 condition_colors = condition["condition_colors"]
@@ -1387,7 +1404,7 @@ class GameEngine:
                 amount_min = condition["amount_min"]
                 amount_max = condition["amount_max"]
                 if amount_max == -1:
-                    amount_max = 1000
+                    amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.get_cheer_ids_on_holomems()) <= amount_max
             case Condition.Condition_CollabWith:
                 required_member_name = condition["required_member_name"]
@@ -1412,6 +1429,12 @@ class GameEngine:
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
+                event = {
+                    "event_type": EventType.EventType_AddTurnEffect,
+                    "effect_player_id": effect_player_id,
+                    "turn_effect": effect["turn_effect"],
+                }
+                self.broadcast_event(event)
             case EffectType.EffectType_ChooseCards:
                 from_zone = effect["from"]
                 destination = effect["destination"]
@@ -1521,6 +1544,7 @@ class GameEngine:
                 # Put the actual roll in front on the queue, but
                 # check afterwards to see if we should add any more effects up front.
                 rolldie_internal_effect = effect.copy()
+                rolldie_internal_effect["effect_type"] = EffectType.EffectType_RollDie_Internal
                 self.add_effects_to_front([rolldie_internal_effect])
 
                 # When we roll a die, check if there are any choices to be made like oshi abilities.
@@ -1534,7 +1558,7 @@ class GameEngine:
                 }
                 min_choice = 0
                 max_choice = 6
-                is_oshi_effect = "oshi_skill" in effect
+                is_oshi_effect = "oshi_effect" in effect
                 decision_event = {
                     "event_type": EventType.EventType_ForceDieResult,
                     "choice_event": True,
@@ -1584,6 +1608,7 @@ class GameEngine:
                         break
                 if effects_to_resolve:
                     # Push these effects onto the front of the effect list.
+                    add_ids_to_effects(effects_to_resolve, effect_player_id, effect["source_card_id"])
                     self.add_effects_to_front(effects_to_resolve)
 
             case EffectType.EffectType_SendCheer:
@@ -1612,6 +1637,8 @@ class GameEngine:
                                     from_options = [card for card in relevant_archive_cards if any(color in card["colors"] for color in from_limitation_colors)]
                                 case _:
                                     raise NotImplementedError(f"Unimplemented from limitation: {from_limitation}")
+                        else:
+                            from_options = relevant_archive_cards
 
                     case "cheer_deck":
                         # Cheer deck is from top.
@@ -1626,7 +1653,7 @@ class GameEngine:
                             match to_limitation:
                                 case "color_in":
                                     to_options = [card for card in effect_player.get_holomem_on_stage() if any(color in card["colors"] for color in to_limitation_colors)]
-                                case "back":
+                                case "backstage":
                                     to_options = [card for card in effect_player.backstage]
                                 case "center":
                                     to_options = effect_player.center
@@ -1643,7 +1670,7 @@ class GameEngine:
                         # If there's less cheer than the min, do as many as you can.
                         amount_min = len(from_options)
                     if amount_max == -1:
-                        amount_max = 1000
+                        amount_max = UNLIMITED_SIZE
 
                     decision_event = {
                         "event_type": EventType.EventType_Decision_SendCheer,
@@ -1677,7 +1704,7 @@ class GameEngine:
                         "specific_options": ["pass", "ok"]
                     }
                     min_choice = 0
-                    max_choice = 2
+                    max_choice = 1
                     decision_event = {
                         "event_type": EventType.EventType_Choice_SendCollabBack,
                         "choice_event": True,
@@ -1839,7 +1866,7 @@ class GameEngine:
                 self.handle_performance_step_end_turn(player_id, action_data)
             case GameAction.EffectResolution_MoveCheerBetweenHolomems:
                 self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
-            case GameAction.EffectResolution_ChooseCardForEffect:
+            case GameAction.EffectResolution_ChooseCardsForEffect:
                 self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
             case GameAction.EffectResolution_MakeChoice:
                 self.handle_effect_resolution_make_choice(player_id, action_data)
@@ -2346,6 +2373,13 @@ class GameEngine:
                 self.send_event(self.make_error_event(player_id, "invalid_target", "Invalid target for cheer."))
                 return False
 
+        # If the cheer is already on that holomem, then it is invalid.
+        player = self.get_player(player_id)
+        for cheer_id, target_id in placements.items():
+            if player.is_cheer_on_holomem(cheer_id, target_id):
+                self.send_event(self.make_error_event(player_id, "invalid_target", "Cheer already on target."))
+                return False
+
         return True
 
     def handle_effect_resolution_move_cheer_between_holomems(self, player_id:str, action_data:dict):
@@ -2408,8 +2442,9 @@ class GameEngine:
         choice_index = action_data["choice_index"]
         resolution_func = self.current_decision["resolution_func"]
 
+        decision_info_copy = self.current_decision.copy()
         continuation = self.clear_decision()
-        resolution_func(player_id, choice_index, continuation)
+        resolution_func(decision_info_copy, player_id, choice_index, continuation)
 
     def validate_effect_resolution_order_cards(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_OrderCards, GameAction.EffectResolution_OrderCardsFields):
@@ -2498,7 +2533,7 @@ class GameEngine:
         if not self.current_decision:
             continuation()
 
-    def handle_choice_return_collab(self, player_id, choice_index, continuation):
+    def handle_choice_return_collab(self, decision_info_copy, player_id, choice_index, continuation):
         # 0 is pass, 1 is okay
         if choice_index == 1:
             player = self.get_player(player_id)
@@ -2506,14 +2541,14 @@ class GameEngine:
 
         continuation()
 
-    def handle_force_die_result(self, player_id, choice_index, continuation):
+    def handle_force_die_result(self, decision_info_copy, player_id, choice_index, continuation):
         # 0 is pass, 1-6 is a die result and uses the ability.
         if choice_index > 0:
             player = self.get_player(player_id)
             player.set_next_die_roll = choice_index
 
-            if self.current_decision["is_oshi_effect"]:
-                skill_id = self.current_decision["skill_id"]
+            if decision_info_copy["is_oshi_effect"]:
+                skill_id = decision_info_copy["oshi_skill_id"]
                 _ = player.trigger_oshi_skill(skill_id)
 
         continuation()

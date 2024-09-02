@@ -339,7 +339,7 @@
                                 "amount_max": 1,
                                 "from": "cheer_deck",
                                 "to": "holomem",
-                                "to_limitation": "back"
+                                "to_limitation": "backstage"
                             },
                             {
                                 "effect_type": "send_collab_back",
@@ -356,7 +356,7 @@
                                 "amount_max": 1,
                                 "from": "cheer_deck",
                                 "to": "holomem",
-                                "to_limitation": "back"
+                                "to_limitation": "backstage"
                             }
                         ]
                     }

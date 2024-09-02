@@ -65,6 +65,9 @@ def do_cheer_step_on_card(self : unittest.TestCase, card):
 def validate_last_event_not_error(self : unittest.TestCase, events):
     self.assertNotEqual(events[-1]["event_type"], EventType.EventType_GameError)
 
+def validate_last_event_is_error(self : unittest.TestCase, events):
+    self.assertEqual(events[-1]["event_type"], EventType.EventType_GameError)
+
 def reset_mainstep(self : unittest.TestCase):
     self.engine.clear_decision()
     self.engine.send_main_step_actions()
@@ -174,6 +177,14 @@ def do_bloom(self : unittest.TestCase, player : PlayerState, card_id, target_id)
     bloomed_card, _, _ = player.find_card(card_id)
     self.assertTrue(target_id in ids_from_cards(bloomed_card["stacked_cards"]))
 
+
+def do_collab_get_events(self : unittest.TestCase, player : PlayerState, card_id):
+    self.engine.handle_game_message(player.player_id, GameAction.MainStepCollab, {
+        "card_id": card_id
+    })
+    events = self.engine.grab_events()
+    return events
+
 def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_definition_id):
     # card_definition is like the 005 number.
     found_card = None
@@ -197,3 +208,6 @@ def end_turn(self : unittest.TestCase):
     validate_last_event_not_error(self, events)
     self.assertTrue(self.engine.active_player_id != active_player_id)
     return events
+
+def set_next_die_rolls(self : unittest.TestCase, rolls):
+    self.random_override.random_values = rolls

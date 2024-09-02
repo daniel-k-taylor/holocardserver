@@ -256,15 +256,16 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(player2.backstage[3]["card_id"], "hSD01-004")
         self.engine.handle_game_message(self.player2, GameAction.MainStepCollab, {"card_id": collab_card })
         events = self.engine.grab_events()
-        # Events: Collab and back to main step
-        self.assertEqual(len(events), 4)
+        # Events: Collab, turn effect added and back to main step
+        self.assertEqual(len(events), 6)
         self.validate_event(events[1], EventType.EventType_Collab, self.player2, {
             "collab_player_id": self.player2,
             "collab_card_id": collab_card,
             "holopower_generated": 1,
             })
-        self.validate_event(events[3], EventType.EventType_Decision_MainStep, self.player2, { "active_player": self.player2 })
-        actions = events[3]["available_actions"]
+        self.validate_event(events[3], EventType.EventType_AddTurnEffect, self.player2, { "effect_player_id": self.player2 })
+        self.validate_event(events[5], EventType.EventType_Decision_MainStep, self.player2, { "active_player": self.player2 })
+        actions = events[5]["available_actions"]
         # Same as before minus collab actions + oshi skill costs 1 and is available.
         self.assertEqual(len(actions), 4)
         self.validate_actions(actions, [GameAction.MainStepOshiSkill, GameAction.MainStepBatonPass, GameAction.MainStepBeginPerformance, GameAction.MainStepEndTurn])
@@ -454,7 +455,7 @@ class TestGameEngine(unittest.TestCase):
         current_holopower_cards = player1.holopower.copy()
         chosen_card = player1.holopower[2]
         # Choose card 2
-        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardForEffect, {
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": ids_from_cards([chosen_card])
         })
         events = self.engine.grab_events()
@@ -481,7 +482,7 @@ class TestGameEngine(unittest.TestCase):
         self.assertTrue(chosen_card["game_card_id"] in ids_from_cards(player1.hand))
         # Now choose a hand card to send back.
         chosen_card = player1.hand[0]["game_card_id"]
-        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardForEffect, {
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [chosen_card]
         })
         events = self.engine.grab_events()
