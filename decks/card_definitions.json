@@ -539,6 +539,7 @@
                     {
                         "timing": "before_art",
                         "effect_type": "roll_die",
+                        "source": "holomem_ability",
                         "die_effects": [
                             {
                                 "activate_on_values": [1,3,5],
@@ -744,6 +745,7 @@
         "effects": [
             {
                 "effect_type": "roll_die",
+                "source": "support_card",
                 "die_effects": [
                     {
                         "activate_on_values": [3,4,5,6],

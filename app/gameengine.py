@@ -1048,6 +1048,8 @@ class GameEngine:
 
                 if accepted_bloom_levels:
                     for card in active_player.hand:
+                        if "bloom_blocked" in card and card["bloom_blocked"]:
+                            continue
                         if card["card_type"] == "holomem_bloom" and card["bloom_level"] in accepted_bloom_levels:
                             # Check the names of the bloom card, at last one must match a name from the base card.
                             if any(name in card["holomem_names"] for name in mem_card["holomem_names"]):
@@ -1678,6 +1680,8 @@ class GameEngine:
                                     to_options = effect_player.center
                                 case _:
                                     raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
+                        else:
+                            to_options = effect_player.get_holomem_on_stage()
                     case "this_holomem":
                         to_options = [effect["source_card_id"]]
 
@@ -2522,38 +2526,39 @@ class GameEngine:
 
         # Deal with unchosen cards.
         remaining_card_ids = [card_id for card_id in all_card_options if card_id not in card_ids]
-        match remaining_cards_action:
-            case "nothing":
-                pass
-            case "shuffle":
-                if from_zone == "deck":
-                    # The cards weren't moved out, so just shuffle.
-                    player.shuffle_deck()
-                else:
-                    raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
-            case "order_on_bottom":
-                order_cards_event = {
-                    "event_type": EventType.EventType_Decision_OrderCards,
-                    "player_id": performing_player_id,
-                    "card_ids": remaining_card_ids,
-                    "from_zone": from_zone,
-                    "to_zone": from_zone,
-                    "bottom": True,
-                    "hidden_info_player": performing_player_id,
-                    "hidden_info_fields": ["card_ids"],
-                }
-                self.broadcast_event(order_cards_event)
-                self.set_decision({
-                    "decision_type": DecisionType.DecisionEffect_OrderCards,
-                    "decision_player": performing_player_id,
-                    "card_ids": remaining_card_ids,
-                    "from_zone": from_zone,
-                    "to_zone": from_zone,
-                    "bottom": True,
-                    "continuation": continuation,
-                })
-            case _:
-                raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
+        if remaining_card_ids:
+            match remaining_cards_action:
+                case "nothing":
+                    pass
+                case "shuffle":
+                    if from_zone == "deck":
+                        # The cards weren't moved out, so just shuffle.
+                        player.shuffle_deck()
+                    else:
+                        raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
+                case "order_on_bottom":
+                    order_cards_event = {
+                        "event_type": EventType.EventType_Decision_OrderCards,
+                        "player_id": performing_player_id,
+                        "card_ids": remaining_card_ids,
+                        "from_zone": from_zone,
+                        "to_zone": from_zone,
+                        "bottom": True,
+                        "hidden_info_player": performing_player_id,
+                        "hidden_info_fields": ["card_ids"],
+                    }
+                    self.broadcast_event(order_cards_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_OrderCards,
+                        "decision_player": performing_player_id,
+                        "card_ids": remaining_card_ids,
+                        "from_zone": from_zone,
+                        "to_zone": from_zone,
+                        "bottom": True,
+                        "continuation": continuation,
+                    })
+                case _:
+                    raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
 
         if not self.current_decision:
             continuation()

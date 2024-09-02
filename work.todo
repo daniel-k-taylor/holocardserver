@@ -2,14 +2,16 @@ Todo:
 
 
 To Test:
-    ☐ Support Cards
-        ☐ 20
-        ☐ 21
-
     ☐ AI Harness
 
-    ☐ Effects
-        - any remaining effects that need tests
+    ☐ 006 - baton and lifedown cost 2
+        ☐ tricolor sorazsympathy
+        ☐ "condition": "holomem_on_stage", requirement
+    ☐ 011 - weakness boost
+    ☐ 012 - color in limitation
+    ☐ 013 - send cheer this mem
+    ☐ 015 - collab_with, "to_limitation": "center" on send_cheer
+
 Revisit:
     - What happens when the cheer deck runs out.
         ☐ For now, just no more cheer
