@@ -3,6 +3,7 @@ import os, json
 from pathlib import Path
 from app.card_database import CardDatabase
 from app.gameengine import GameEngine, UNKNOWN_CARD_ID, GameAction, ids_from_cards, GamePhase, EventType, PlayerState
+from copy import deepcopy
 
 card_db = CardDatabase()
 
@@ -60,6 +61,7 @@ def do_cheer_step_on_card(self : unittest.TestCase, card):
     engine.handle_game_message(active_player.player_id, GameAction.PlaceCheer, {"placements": cheer_placement })
     self.assertEqual(card["attached_cards"][-1]["game_card_id"], cheer_to_place)
     events = engine.grab_events()
+    validate_last_event_not_error(self, events)
     return events
 
 def validate_last_event_not_error(self : unittest.TestCase, events):
@@ -74,6 +76,17 @@ def reset_mainstep(self : unittest.TestCase):
     events = self.engine.grab_events()
     # Always return the one with the actions listed in it.
     self.assertEqual(events[-1]["event_type"], EventType.EventType_Decision_MainStep)
+    if events[-1]["available_actions"]:
+        return events[-1]["available_actions"]
+    else:
+        return events[-2]["available_actions"]
+
+def reset_performancestep(self : unittest.TestCase):
+    self.engine.clear_decision()
+    self.engine.send_performance_step_actions()
+    events = self.engine.grab_events()
+    # Always return the one with the actions listed in it.
+    self.assertEqual(events[-1]["event_type"], EventType.EventType_Decision_PerformanceStep)
     if events[-1]["available_actions"]:
         return events[-1]["available_actions"]
     else:
@@ -185,7 +198,7 @@ def do_collab_get_events(self : unittest.TestCase, player : PlayerState, card_id
     events = self.engine.grab_events()
     return events
 
-def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_definition_id):
+def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_definition_id, reset_main=True):
     # card_definition is like the 005 number.
     found_card = None
     for card in player.deck:
@@ -198,7 +211,8 @@ def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_defini
 
     player.deck.remove(found_card)
     player.hand.append(found_card)
-    reset_mainstep(self)
+    if reset_main:
+        reset_mainstep(self)
     return found_card
 
 def end_turn(self : unittest.TestCase):
@@ -211,3 +225,35 @@ def end_turn(self : unittest.TestCase):
 
 def set_next_die_rolls(self : unittest.TestCase, rolls):
     self.random_override.random_values = rolls
+
+def put_card_in_play(self, player : PlayerState, card_id, location):
+    card = add_card_to_hand(self, player, card_id, reset_main=False)
+    player.hand.remove(card)
+    location.append(card)
+    card["played_this_turn"] = False
+    reset_mainstep(self)
+    return card
+
+def spawn_cheer_on_card(self, player : PlayerState, card_id, cheer_color, desired_game_card_id):
+    card_db = self.engine.card_db
+    match cheer_color:
+        case "white":
+            spawn_id = "hY01-001"
+        case "green":
+            spawn_id = "hY02-001"
+        case "red":
+            spawn_id = "hY03-001"
+        case "blue":
+            spawn_id = "hY04-001"
+        case _:
+            self.fail("Invalid cheer color.")
+
+    card = card_db.get_card_by_id(spawn_id)
+    cheer_card = deepcopy(card)
+    cheer_card["owner_id"] = player.player_id
+    cheer_card["game_card_id"] = player.player_id + "_" + desired_game_card_id
+
+    found_card, _, _ = player.find_card(card_id)
+    found_card["attached_cards"].append(cheer_card)
+
+    return cheer_card
