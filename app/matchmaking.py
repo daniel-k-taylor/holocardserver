@@ -25,7 +25,7 @@ class MatchQueue:
         self.players.remove(player)
 
     def create_match(self):
-        room_id = uuid.uuid4()
+        room_id = str(uuid.uuid4())
         print("Creating match with ID:", room_id)
         return GameRoom(
             room_id=room_id,
@@ -37,6 +37,12 @@ class Matchmaking:
     def __init__(self):
         main_queue = MatchQueue("main_matchmaking", permanent_queue=True, game_type="versus")
         self.all_queues = [main_queue]
+
+    def get_player_queue(self, player: Player):
+        for queue in self.all_queues:
+            if player in queue.players:
+                return queue.queue_name
+        return None
 
     def add_player_to_queue(self, player: Player, queue_name: str, custom_game: bool, game_type: str):
         for queue in self.all_queues:

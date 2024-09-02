@@ -192,6 +192,10 @@ class GameAction:
         "card_ids": List[str],
     }
 
+    Resign = "resign"
+    ResignFields = {
+    }
+
 class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
         self.engine = engine
@@ -767,6 +771,9 @@ class GameEngine:
 
     def switch_active_player(self):
         self.active_player_id = self.other_player(self.active_player_id).player_id
+
+    def is_game_over(self):
+        return self.phase == GamePhase.GameOver
 
     def begin_game(self):
         # Set the seed.
@@ -1795,14 +1802,15 @@ class GameEngine:
         self.effects_to_resolve = new_effects + self.effects_to_resolve
 
     def end_game(self, loser_id, reason_id):
-        self.phase = GamePhase.GameOver
+        if not self.is_game_over():
+            self.phase = GamePhase.GameOver
 
-        gameover_event = {
-            "event_type": EventType.EventType_GameOver,
-            "loser_id": loser_id,
-            "reason_id": reason_id,
-        }
-        self.broadcast_event(gameover_event)
+            gameover_event = {
+                "event_type": EventType.EventType_GameOver,
+                "loser_id": loser_id,
+                "reason_id": reason_id,
+            }
+            self.broadcast_event(gameover_event)
 
     def send_boost_event(self, card_id, stat:str, amount:int):
         boost_event = {
@@ -1905,6 +1913,8 @@ class GameEngine:
                 self.handle_effect_resolution_make_choice(player_id, action_data)
             case GameAction.EffectResolution_OrderCards:
                 self.handle_effect_resolution_order_cards(player_id, action_data)
+            case GameAction.Resign:
+                self.handle_player_resign(player_id)
             case _:
                 self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
 
@@ -2590,3 +2600,6 @@ class GameEngine:
                 _ = player.trigger_oshi_skill(skill_id)
 
         continuation()
+
+    def handle_player_resign(self, player_id):
+        self.end_game(player_id, "resign")

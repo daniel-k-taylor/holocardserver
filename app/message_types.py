@@ -34,6 +34,14 @@ class JoinMatchmakingQueueMessage(Message):
     cheer_deck: Dict[str, int]
 
 @dataclass
+class LeaveMatchmakingQueueMessage(Message):
+    pass
+
+@dataclass
+class LeaveGameMessage(Message):
+    pass
+
+@dataclass
 class GameActionMessage(Message):
     action_type: str
     action_data: Dict[str, Any]
@@ -47,6 +55,10 @@ def parse_message(json_data: str) -> Message:
             return JoinServerMessage(**data)
         case "join_matchmaking_queue":
             return JoinMatchmakingQueueMessage(**data)
+        case "leave_matchmaking_queue":
+            return LeaveMatchmakingQueueMessage(**data)
+        case "leave_game":
+            return LeaveGameMessage(**data)
         case "game_action":
             return GameActionMessage(**data)
         case _:

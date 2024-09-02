@@ -3,7 +3,7 @@ from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from app.matchmaking import Matchmaking
 import app.message_types as message_types
-from app.playermanager import PlayerManager
+from app.playermanager import PlayerManager, Player
 from app.gameroom import GameRoom
 from app.card_database import CardDatabase
 
@@ -23,9 +23,7 @@ class ConnectionManager:
 
     async def broadcast(self, message : message_types.Message):
         dict_message = message.as_dict()
-        print("Broadcasting message:", dict_message)
         for connection in self.active_connections:
-            print("Broadcast...")
             await connection.send_json(dict_message)
 
 manager = ConnectionManager()
@@ -53,7 +51,7 @@ async def send_error_message(websocket: WebSocket, error_id, error_str : str):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    player_id = uuid.uuid4()
+    player_id = str(uuid.uuid4())
     player = player_manager.get_player(player_id)
     if player:
         player.websocket = websocket
@@ -76,35 +74,54 @@ async def websocket_endpoint(websocket: WebSocket):
                 await broadcast_server_info()
 
             elif isinstance(message, message_types.JoinMatchmakingQueueMessage):
-                is_valid = card_db.validate_deck(
-                    oshi_id=message.oshi_id,
-                    deck=message.deck,
-                    cheer_deck=message.cheer_deck
-                )
-
-                if is_valid:
-                    player.save_deck_info(
+                # Ensure player is in a joinable state.
+                if not can_player_join_queue(player):
+                    await send_error_message(websocket, "joinmatch_invalid_alreadyinmatch", "Already in a match.")
+                else:
+                    is_valid = card_db.validate_deck(
                         oshi_id=message.oshi_id,
                         deck=message.deck,
                         cheer_deck=message.cheer_deck
                     )
-                    match = matchmaking.add_player_to_queue(
-                        player=player,
-                        queue_name=message.queue_name,
-                        custom_game=message.custom_game,
-                        game_type=message.game_type,
-                    )
-                    if match:
-                        game_rooms.append(match)
-                        match.start(card_db)
 
+                    if is_valid:
+                        player.save_deck_info(
+                            oshi_id=message.oshi_id,
+                            deck=message.deck,
+                            cheer_deck=message.cheer_deck
+                        )
+                        match = matchmaking.add_player_to_queue(
+                            player=player,
+                            queue_name=message.queue_name,
+                            custom_game=message.custom_game,
+                            game_type=message.game_type,
+                        )
+                        if match:
+                            game_rooms.append(match)
+                            await match.start(card_db)
+
+                        await broadcast_server_info()
+                    else:
+                        await send_error_message(websocket, "joinmatch_invaliddeck", "Invalid deck list.")
+
+            elif isinstance(message, message_types.LeaveMatchmakingQueueMessage):
+                matchmaking.remove_player_from_queue(player)
+                await broadcast_server_info()
+
+            elif isinstance(message, message_types.LeaveGameMessage):
+                player_room : GameRoom = player.current_game_room
+                if player_room is not None:
+                    await player_room.handle_player_quit(player)
+                    check_cleanup_room(player_room)
                     await broadcast_server_info()
                 else:
-                    await send_error_message(websocket, "invalid_deck", "Invalid deck list.")
+                    await send_error_message(websocket, "not_in_room", f"ERROR: Not in a game room to leave.")
 
             elif isinstance(message, message_types.GameActionMessage):
-                if player.current_game_room and not player.current_game_room.is_game_over():
-                    player.current_game_room.handle_game_action(player.player_id, message.action_type, message.action_data)
+                player_room : GameRoom = player.current_game_room
+                if player_room and not player_room.is_ready_for_cleanup():
+                    await player_room.handle_game_message(player.player_id, message.action_type, message.action_data)
+                    check_cleanup_room(player_room)
                 else:
                     await send_error_message(websocket, "not_in_room", f"ERROR: Not in a game room to send a game message.")
             else:
@@ -112,15 +129,26 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         print("Client disconnected.")
+        player.connected = False
         matchmaking.remove_player_from_queue(player)
         for room in game_rooms:
             if player in room.players:
-                room.handle_player_disconnect(player)
-                if room.is_game_over():
-                    game_rooms.remove(room)
-                    break
+                await room.handle_player_disconnect(player)
+                check_cleanup_room(room)
+                break
 
         player_manager.remove_player(player_id)
         manager.disconnect(websocket)
         await broadcast_server_info()
 
+def check_cleanup_room(room: GameRoom):
+    if room.is_ready_for_cleanup():
+        game_rooms.remove(room)
+        for player in room.players:
+            player.current_game_room = None
+
+def can_player_join_queue(player: Player):
+    # If the player is in a queue or in a game room, then they can't join another queue.
+    if player.current_game_room or matchmaking.get_player_queue(player):
+        return False
+    return True
