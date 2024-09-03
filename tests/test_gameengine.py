@@ -173,8 +173,15 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(len(player1.hand), 6)
         self.assertEqual(len(player1.center), 1)
         self.assertEqual(len(player1.backstage), 1)
+        self.assertEqual(len(player1.life), 5)
+        self.assertEqual(len(player1.cheer_deck), 15)
         self.assertEqual(len(player2.center), 1)
         self.assertEqual(len(player2.backstage), 5)
+        self.validate_event(events[2], EventType.EventType_InitialPlacementReveal, self.player1, {})
+        placement_info = events[2]["placement_info"]
+        p1_info = placement_info[0]
+        self.assertEqual(p1_info["player_id"], self.player1)
+        self.assertEqual(p1_info["cheer_deck_count"], 15)
         self.validate_event(events[8], EventType.EventType_CheerStep, self.player1, { "active_player": self.player1, })
         cheer_event = events[8]
         self.assertEqual(len(cheer_event['options']), 2)
