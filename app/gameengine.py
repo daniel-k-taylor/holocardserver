@@ -797,6 +797,7 @@ class GameEngine:
                 "event_type": EventType.EventType_GameStartInfo,
                 "starting_player": self.starting_player_id,
                 "your_id": player_id,
+                "opponent_id": self.other_player(player_id).player_id,
                 "game_card_map": self.all_game_cards_map,
             })
 
@@ -1876,6 +1877,7 @@ class GameEngine:
         return True
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
+        print("Processing game message %s from player %s" % (action_type, player_id))
         match action_type:
             case GameAction.Mulligan:
                 self.handle_mulligan(player_id, action_data)

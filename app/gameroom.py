@@ -35,8 +35,8 @@ class GameRoom:
                         "event_data": event
                     })
 
-    async def handle_game_message(self, player: Player, action_type:str, action_data: dict):
-        self.engine.handle_game_message(player.player_id, action_type, action_data)
+    async def handle_game_message(self, player_id: str, action_type:str, action_data: dict):
+        self.engine.handle_game_message(player_id, action_type, action_data)
         events = self.engine.grab_events()
         await self.send_events(events)
         if self.engine.is_game_over():
@@ -46,10 +46,10 @@ class GameRoom:
         return self.cleanup_room
 
     async def handle_player_quit(self, player: Player):
-        await self.handle_game_message(player, GameAction.Resign, {})
+        await self.handle_game_message(player.player_id, GameAction.Resign, {})
 
     async def handle_player_disconnect(self, player : Player):
-        await self.handle_game_message(player, GameAction.Resign, {})
+        await self.handle_game_message(player.player_id, GameAction.Resign, {})
 
         # TODO: Reconnect logic.
         # all_players_disconnected = all([not player.connected for player in self.players])

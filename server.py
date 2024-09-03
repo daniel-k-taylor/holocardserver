@@ -24,7 +24,10 @@ class ConnectionManager:
     async def broadcast(self, message : message_types.Message):
         dict_message = message.as_dict()
         for connection in self.active_connections:
-            await connection.send_json(dict_message)
+            try:
+                await connection.send_json(dict_message)
+            except:
+                pass
 
 manager = ConnectionManager()
 
@@ -118,6 +121,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await send_error_message(websocket, "not_in_room", f"ERROR: Not in a game room to leave.")
 
             elif isinstance(message, message_types.GameActionMessage):
+                print(f"GAMEACTION:", message.action_type)
                 player_room : GameRoom = player.current_game_room
                 if player_room and not player_room.is_ready_for_cleanup():
                     await player_room.handle_game_message(player.player_id, message.action_type, message.action_data)
