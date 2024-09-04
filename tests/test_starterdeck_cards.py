@@ -236,7 +236,7 @@ class TestStarterDeckCards(unittest.TestCase):
         available_targets = events[2]["available_targets"]
         self.assertEqual(len(available_cheer), 2)
         self.assertEqual(available_targets[0], player1.backstage[0]["game_card_id"])
-        self.assertEqual(len(player1.backstage[0]["attached_cards"]), 0)
+        self.assertEqual(len(player1.backstage[0]["attached_cheer"]), 0)
         cheer_placement = {
             available_cheer[0]: available_targets[0],
             available_cheer[1]: available_targets[0]
@@ -246,9 +246,9 @@ class TestStarterDeckCards(unittest.TestCase):
         # Events - move card * 2, performance step
         self.assertEqual(len(events), 6)
         self.assertEqual(len(player1.life), 3)
-        self.assertTrue(life1["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cards"]])
-        self.assertTrue(life2["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cards"]])
-        self.assertEqual(len(player1.backstage[0]["attached_cards"]), 2)
+        self.assertTrue(life1["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cheer"]])
+        self.assertTrue(life2["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cheer"]])
+        self.assertEqual(len(player1.backstage[0]["attached_cheer"]), 2)
         validate_event(self, events[4], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player2 })
 
 
@@ -444,7 +444,7 @@ class TestStarterDeckCards(unittest.TestCase):
             "cheer_id": from_options[1],
         })
         validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
-        self.assertEqual(player1.center[0]["attached_cards"][-1]["game_card_id"], from_options[1])
+        self.assertEqual(player1.center[0]["attached_cheer"][-1]["game_card_id"], from_options[1])
 
 
     def test_support_hSD01_013_send_cheer_thismem(self):

@@ -148,10 +148,10 @@ class TestOshiSkills(unittest.TestCase):
             "cheer_id": available_cheer[0],
         })
         validate_event(self, events[3], EventType.EventType_Decision_MainStep, self.player2, {"active_player": self.player2})
-        self.assertEqual(len(player2.backstage[0]["attached_cards"]), 1)
-        self.assertEqual(player2.backstage[0]["attached_cards"][0]["game_card_id"], available_cheer[0])
-        self.assertEqual(len(player2.center[0]["attached_cards"]), 1)
-        self.assertEqual(player2.center[0]["attached_cards"][0]["game_card_id"], available_cheer[1])
+        self.assertEqual(len(player2.backstage[0]["attached_cheer"]), 1)
+        self.assertEqual(player2.backstage[0]["attached_cheer"][0]["game_card_id"], available_cheer[0])
+        self.assertEqual(len(player2.center[0]["attached_cheer"]), 1)
+        self.assertEqual(player2.center[0]["attached_cheer"][0]["game_card_id"], available_cheer[1])
 
     def test_sora_soyouretheenemy(self):
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -347,7 +347,7 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         # 7 move cards, back to main step
         self.assertEqual(len(events), 16)
-        self.assertEqual(len(azki_card["attached_cards"]), 7)
+        self.assertEqual(len(azki_card["attached_cheer"]), 7)
         validate_event(self, events[15], EventType.EventType_Decision_MainStep, self.player2, {"active_player": self.player1})
 
     def test_azki_mapinthelefthand_setto1_goback(self):
@@ -449,8 +449,8 @@ class TestOshiSkills(unittest.TestCase):
             "to_holomem_id": backstage_recipient["game_card_id"],
             "cheer_id": top_cheer["game_card_id"],
         })
-        self.assertEqual(len(backstage_recipient["attached_cards"]), 1)
-        self.assertEqual(backstage_recipient["attached_cards"][0]["game_card_id"], top_cheer["game_card_id"])
+        self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
+        self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])
         validate_event(self, events[2], EventType.EventType_Choice_SendCollabBack, self.player1, {
             "choice_event": True,
             "effect_player_id": self.player1,
@@ -572,8 +572,8 @@ class TestOshiSkills(unittest.TestCase):
             "to_holomem_id": backstage_recipient["game_card_id"],
             "cheer_id": top_cheer["game_card_id"],
         })
-        self.assertEqual(len(backstage_recipient["attached_cards"]), 1)
-        self.assertEqual(backstage_recipient["attached_cards"][0]["game_card_id"], top_cheer["game_card_id"])
+        self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
+        self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])
         validate_event(self, events[2], EventType.EventType_Choice_SendCollabBack, self.player1, {
             "choice_event": True,
             "effect_player_id": self.player1,
@@ -690,8 +690,8 @@ class TestOshiSkills(unittest.TestCase):
             "to_holomem_id": backstage_recipient["game_card_id"],
             "cheer_id": top_cheer["game_card_id"],
         })
-        self.assertEqual(len(backstage_recipient["attached_cards"]), 1)
-        self.assertEqual(backstage_recipient["attached_cards"][0]["game_card_id"], top_cheer["game_card_id"])
+        self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
+        self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])
         validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, {"active_player": self.player1})
         self.assertEqual(len(player1.collab), 1)
 

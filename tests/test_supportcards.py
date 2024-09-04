@@ -186,7 +186,7 @@ class TestSupportCards(unittest.TestCase):
         events = self.engine.grab_events()
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_OrderCards, self.player1, {
-            "player_id": self.player1,
+            "effect_player_id": self.player1,
             "card_ids": all_cards_seen,
             "from_zone": "deck",
             "to_zone": "deck",
@@ -263,7 +263,7 @@ class TestSupportCards(unittest.TestCase):
             "card_id": choice2,
         })
         validate_event(self, events[2], EventType.EventType_Decision_OrderCards, self.player1, {
-            "player_id": self.player1,
+            "effect_player_id": self.player1,
             "from_zone": "deck",
             "to_zone": "deck",
             "bottom": True,
@@ -310,7 +310,7 @@ class TestSupportCards(unittest.TestCase):
         self.assertTrue(GameAction.MainStepPlaySupport in [action["action_type"] for action in actions])
 
         # Play the card.
-        cheer_id = player1.center[0]["attached_cards"][0]["game_card_id"]
+        cheer_id = player1.center[0]["attached_cheer"][0]["game_card_id"]
         engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
             "card_id": play1,
             "cheer_to_archive_from_play": [cheer_id],
@@ -556,7 +556,7 @@ class TestSupportCards(unittest.TestCase):
             "card_id": available_to_choose[2],
         })
         validate_event(self, events[6], EventType.EventType_Decision_OrderCards, self.player1, {
-            "player_id": self.player1,
+            "effect_player_id": self.player1,
             "from_zone": "deck",
             "to_zone": "deck",
             "bottom": True,

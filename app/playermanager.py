@@ -25,6 +25,12 @@ class Player:
             "cheer_deck": self.cheer_deck
         }
 
+    async def send_game_event(self, event):
+        await self.websocket.send_json({
+            "message_type": "game_event",
+            "event_data": event
+        })
+
 class PlayerManager:
     def __init__(self):
         self.active_players = {}

@@ -80,6 +80,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Ensure player is in a joinable state.
                 if not can_player_join_queue(player):
                     await send_error_message(websocket, "joinmatch_invalid_alreadyinmatch", "Already in a match.")
+                elif not matchmaking.is_game_type_valid(message.game_type):
+                    await send_error_message(websocket, "joinmatch_invalid_gametype", "Invalid game type.")
                 else:
                     is_valid = card_db.validate_deck(
                         oshi_id=message.oshi_id,

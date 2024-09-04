@@ -2,6 +2,15 @@ from app.gameroom import GameRoom
 from app.playermanager import Player
 import uuid
 
+GameTypeInfo = {
+    "ai": {
+        "required_players": 1,
+    },
+    "versus": {
+        "required_players": 2,
+    },
+}
+
 REQUIRED_PLAYERS = 2
 
 class MatchQueue:
@@ -15,7 +24,7 @@ class MatchQueue:
         self.players.append(player)
 
         # If there are enough players, start a match
-        if len(self.players) >= REQUIRED_PLAYERS:
+        if len(self.players) >= GameTypeInfo[self.game_type]["required_players"]:
             room = self.create_match()
             self.players = []
             return room
@@ -36,7 +45,11 @@ class MatchQueue:
 class Matchmaking:
     def __init__(self):
         main_queue = MatchQueue("main_matchmaking", permanent_queue=True, game_type="versus")
-        self.all_queues = [main_queue]
+        ai_queue = MatchQueue("main_matchmaking", permanent_queue=True, game_type="ai")
+        self.all_queues = [main_queue, ai_queue]
+
+    def is_game_type_valid(self, game_type: str):
+        return game_type in GameTypeInfo
 
     def get_player_queue(self, player: Player):
         for queue in self.all_queues:

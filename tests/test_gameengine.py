@@ -64,7 +64,7 @@ class TestGameEngine(unittest.TestCase):
             cheer_to_place: card["game_card_id"]
         }
         self.engine.handle_game_message(active_player.player_id, GameAction.PlaceCheer, {"placements": cheer_placement })
-        self.assertEqual(card["attached_cards"][-1]["game_card_id"], cheer_to_place)
+        self.assertEqual(card["attached_cheer"][-1]["game_card_id"], cheer_to_place)
         events = self.engine.grab_events()
         return events
 
@@ -209,7 +209,7 @@ class TestGameEngine(unittest.TestCase):
             "card_id": cheer_to_place
         })
         self.validate_event(events[2], EventType.EventType_MainStepStart, self.player1, { "active_player": self.player1 })
-        self.assertEqual(player1.center[0]["attached_cards"][0]["game_card_id"], cheer_to_place)
+        self.assertEqual(player1.center[0]["attached_cheer"][0]["game_card_id"], cheer_to_place)
         self.validate_event(events[4], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
         actions = events[4]["available_actions"]
         # Expected actions
@@ -294,7 +294,7 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(player1.center[0]["hp"], 50)
         top_p1_life_before_attack = player1.life[0]["game_card_id"]
         p1_center_before_attack = player1.center[0]
-        cheer_on_center = player1.center[0]["attached_cards"][0]["game_card_id"]
+        cheer_on_center = player1.center[0]["attached_cheer"][0]["game_card_id"]
         self.engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
             "performer_id": player2.center[0]["game_card_id"],
             "art_id": "nunnun",
@@ -340,7 +340,7 @@ class TestGameEngine(unittest.TestCase):
         events = self.engine.grab_events()
         self.assertEqual(len(player1.life), 4)
         p1backstage = player1.backstage[0]
-        self.assertEqual(p1backstage["attached_cards"][0]["game_card_id"], top_p1_life_before_attack)
+        self.assertEqual(p1backstage["attached_cheer"][0]["game_card_id"], top_p1_life_before_attack)
         # Events - cheer moved and back to performance step.
         self.assertEqual(len(events), 4)
         self.validate_event(events[2], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player2 })
@@ -509,7 +509,7 @@ class TestGameEngine(unittest.TestCase):
         # Actions - place what we had before, the new place option, perform, oshi skill, end turn
         self.assertEqual(len(actions), 5)
         # That irys has 2 cheer, one from the life when the first irys died, and one from the cheer step.
-        self.assertEqual(len(player1.collab[0]["attached_cards"]), 2)
+        self.assertEqual(len(player1.collab[0]["attached_cheer"]), 2)
         # Begin performance
         self.engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = self.engine.grab_events()
@@ -585,10 +585,10 @@ class TestGameEngine(unittest.TestCase):
         # Backstage rester is 004 sora with 20 damage.
         # Each has 1 cheer attached.
         bloom_target1 = player2.center[0]
-        bloom_target_attached1 = ids_from_cards(bloom_target1["attached_cards"])
+        bloom_target_attached1 = ids_from_cards(bloom_target1["attached_cheer"])
         self.assertEqual(len(bloom_target_attached1), 1)
         bloom_target2 = player2.backstage[-1]
-        bloom_target_attached2 = ids_from_cards(bloom_target2["attached_cards"])
+        bloom_target_attached2 = ids_from_cards(bloom_target2["attached_cheer"])
         self.assertEqual(len(bloom_target_attached2), 1)
         bloom_card1 = player2.hand[1]
         bloom_card2 = player2.hand[2]
@@ -607,11 +607,11 @@ class TestGameEngine(unittest.TestCase):
             "target_card_id": bloom_target1["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        self.assertEqual(bloom_card1["attached_cards"][0]["game_card_id"], bloom_target_attached1[0])
-        self.assertEqual(len(bloom_card1["attached_cards"]), 1)
+        self.assertEqual(bloom_card1["attached_cheer"][0]["game_card_id"], bloom_target_attached1[0])
+        self.assertEqual(len(bloom_card1["attached_cheer"]), 1)
         self.assertEqual(len(bloom_card1["stacked_cards"]), 1)
         self.assertEqual(bloom_card1["stacked_cards"][0]["game_card_id"], bloom_target1["game_card_id"])
-        self.assertEqual(len(bloom_target1["attached_cards"]), 0)
+        self.assertEqual(len(bloom_target1["attached_cheer"]), 0)
 
         actions = events[3]["available_actions"]
         # Actions - place (no space), collab (4, 1 resting), bloom (down to 5 options) oshi, baton, perform, end turn
@@ -631,11 +631,11 @@ class TestGameEngine(unittest.TestCase):
             "target_card_id": bloom_target2["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        self.assertEqual(bloom_card2["attached_cards"][0]["game_card_id"], bloom_target_attached2[0])
-        self.assertEqual(len(bloom_card2["attached_cards"]), 1)
+        self.assertEqual(bloom_card2["attached_cheer"][0]["game_card_id"], bloom_target_attached2[0])
+        self.assertEqual(len(bloom_card2["attached_cheer"]), 1)
         self.assertEqual(len(bloom_card2["stacked_cards"]), 1)
         self.assertEqual(bloom_card2["stacked_cards"][0]["game_card_id"], bloom_target2["game_card_id"])
-        self.assertEqual(len(bloom_target2["attached_cards"]), 0)
+        self.assertEqual(len(bloom_target2["attached_cheer"]), 0)
         self.assertEqual(bloom_card2["damage"], 20)
         self.assertTrue(bloom_card2["resting"])
         actions = events[3]["available_actions"]

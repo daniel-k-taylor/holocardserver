@@ -59,7 +59,7 @@ def do_cheer_step_on_card(self : unittest.TestCase, card):
         cheer_to_place: card["game_card_id"]
     }
     engine.handle_game_message(active_player.player_id, GameAction.PlaceCheer, {"placements": cheer_placement })
-    self.assertEqual(card["attached_cards"][-1]["game_card_id"], cheer_to_place)
+    self.assertEqual(card["attached_cheer"][-1]["game_card_id"], cheer_to_place)
     events = engine.grab_events()
     validate_last_event_not_error(self, events)
     return events
@@ -257,6 +257,6 @@ def spawn_cheer_on_card(self, player : PlayerState, card_id, cheer_color, desire
         player.archive.insert(0, cheer_card)
     else:
         found_card, _, _ = player.find_card(card_id)
-        found_card["attached_cards"].append(cheer_card)
+        found_card["attached_cheer"].append(cheer_card)
 
     return cheer_card

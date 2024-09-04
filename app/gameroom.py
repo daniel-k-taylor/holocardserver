@@ -3,19 +3,29 @@ from typing import List
 from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction
 from app.card_database import CardDatabase
+from aiplayer import AIPlayer, DefaultAIDeck
 
 class GameRoom:
     def __init__(self, room_id : str, players : List[Player], game_type : str):
         self.room_id = room_id
         self.players = players
+        self.ai_player = None
         self.game_type = game_type
         self.cleanup_room = False
         for player in self.players:
             player.current_game_room = self
 
+    def is_ai_game(self):
+        return self.game_type == "ai"
+
     async def start(self, card_db: CardDatabase):
         print("GAME: Starting game!")
         player_info = [player.get_player_game_info() for player in self.players]
+        if self.is_ai_game():
+            self.ai_player = AIPlayer(player_id="ai_" + self.players[0].player_id)
+            self.ai_player.set_deck(self.ai_player.DefaultAIDeck)
+            player_info.append(self.ai_player.get_player_game_info())
+
         self.engine = GameEngine(
             card_db=card_db,
             player_infos=player_info,
@@ -30,15 +40,23 @@ class GameRoom:
         for event in events:
             for player in self.players:
                 if player.connected and player.player_id == event["event_player_id"]:
-                    await player.websocket.send_json({
-                        "message_type": "game_event",
-                        "event_data": event
-                    })
+                    await player.send_game_event(event)
 
     async def handle_game_message(self, player_id: str, action_type:str, action_data: dict):
-        self.engine.handle_game_message(player_id, action_type, action_data)
-        events = self.engine.grab_events()
-        await self.send_events(events)
+        done_processing = False
+        while not done_processing:
+            self.engine.handle_game_message(player_id, action_type, action_data)
+            events = self.engine.grab_events()
+            await self.send_events(events)
+            if self.is_ai_game():
+                done_processing, ai_action = self.ai_player.ai_process_events(events)
+                if not done_processing:
+                    player_id = self.ai_player.player_id
+                    action_type = ai_action["action_type"]
+                    action_data = ai_action["action_data"]
+            else:
+                done_processing = True
+
         if self.engine.is_game_over():
             self.cleanup_room = True
 
