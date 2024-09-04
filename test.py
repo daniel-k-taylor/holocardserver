@@ -40,7 +40,7 @@ async def send(ws):
                 request_data = {
                     "message_type": "join_matchmaking_queue",
                     "custom_game": False,
-                    "queue_name": "main_matchmaking",
+                    "queue_name": "main_matchmaking_normal",
                     "game_type": "versus",
                 }
                 message = json.dumps(request_data)

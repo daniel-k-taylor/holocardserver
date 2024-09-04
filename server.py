@@ -149,6 +149,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 def check_cleanup_room(room: GameRoom):
     if room.is_ready_for_cleanup():
+        print("Cleanup game room:", room.room_id)
         game_rooms.remove(room)
         for player in room.players:
             player.current_game_room = None

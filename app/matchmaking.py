@@ -44,8 +44,8 @@ class MatchQueue:
 
 class Matchmaking:
     def __init__(self):
-        main_queue = MatchQueue("main_matchmaking", permanent_queue=True, game_type="versus")
-        ai_queue = MatchQueue("main_matchmaking", permanent_queue=True, game_type="ai")
+        main_queue = MatchQueue("main_matchmaking_normal", permanent_queue=True, game_type="versus")
+        ai_queue = MatchQueue("main_matchmaking_ai", permanent_queue=True, game_type="ai")
         self.all_queues = [main_queue, ai_queue]
 
     def is_game_type_valid(self, game_type: str):
@@ -90,6 +90,7 @@ class Matchmaking:
             queue_info.append({
                 "queue_name": queue.queue_name,
                 "permanent_queue": queue.permanent_queue,
+                "game_type": queue.game_type,
                 "players_count": len(queue.players),
             })
         return queue_info

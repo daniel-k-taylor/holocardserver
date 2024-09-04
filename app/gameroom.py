@@ -3,7 +3,7 @@ from typing import List
 from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction
 from app.card_database import CardDatabase
-from aiplayer import AIPlayer, DefaultAIDeck
+from app.aiplayer import AIPlayer, DefaultAIDeck
 
 class GameRoom:
     def __init__(self, room_id : str, players : List[Player], game_type : str):
@@ -23,7 +23,7 @@ class GameRoom:
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
             self.ai_player = AIPlayer(player_id="ai_" + self.players[0].player_id)
-            self.ai_player.set_deck(self.ai_player.DefaultAIDeck)
+            self.ai_player.set_deck(DefaultAIDeck)
             player_info.append(self.ai_player.get_player_game_info())
 
         self.engine = GameEngine(
@@ -35,6 +35,18 @@ class GameRoom:
         self.engine.begin_game()
         events = self.engine.grab_events()
         await self.send_events(events)
+
+        if self.is_ai_game():
+            # In case the AI has to mulligan first!
+            ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
+            print("AI Action:", ai_performing_action, ai_action)
+            if ai_performing_action:
+                player_id = self.ai_player.player_id
+                action_type = ai_action["action_type"]
+                action_data = ai_action["action_data"]
+                self.engine.handle_game_message(player_id, action_type, action_data)
+                events = self.engine.grab_events()
+                await self.send_events(events)
 
     async def send_events(self, events):
         for event in events:
@@ -49,15 +61,19 @@ class GameRoom:
             events = self.engine.grab_events()
             await self.send_events(events)
             if self.is_ai_game():
-                done_processing, ai_action = self.ai_player.ai_process_events(events)
-                if not done_processing:
+                ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
+                print("AI Action:", ai_performing_action, ai_action)
+                if ai_performing_action:
                     player_id = self.ai_player.player_id
                     action_type = ai_action["action_type"]
                     action_data = ai_action["action_data"]
+                else:
+                    done_processing = True
             else:
                 done_processing = True
 
         if self.engine.is_game_over():
+            print("ROOM: %s Game over!" % self.room_id)
             self.cleanup_room = True
 
     def is_ready_for_cleanup(self):
