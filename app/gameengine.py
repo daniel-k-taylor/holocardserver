@@ -1853,6 +1853,7 @@ class GameEngine:
             gameover_event = {
                 "event_type": EventType.EventType_GameOver,
                 "loser_id": loser_id,
+                "winner_id": self.other_player(loser_id).player_id,
                 "reason_id": reason_id,
             }
             self.broadcast_event(gameover_event)
@@ -1871,6 +1872,7 @@ class GameEngine:
             revealed_card_ids = ids_from_cards(active_player.hand)
             mulligan_reveal_event = {
                 "event_type": EventType.EventType_MulliganReveal,
+                "active_player": active_player.player_id,
                 "revealed_card_ids": revealed_card_ids,
             }
             self.broadcast_event(mulligan_reveal_event)
