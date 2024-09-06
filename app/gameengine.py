@@ -153,6 +153,7 @@ class GameAction:
     MainStepBatonPass = "mainstep_baton_pass"
     MainStepBatonPassFields = {
         "card_id": str,
+        "cheer_ids": List[str],
     }
 
     MainStepBeginPerformance = "mainstep_begin_performance"
@@ -1153,10 +1154,11 @@ class GameEngine:
 
         # F. Pass the baton
         # If center holomem is not resting, can swap with a back who is not resting by archiving Cheer.
-        # Must be able to archive that much cheer.
+        # Must be able to archive that much cheer from the center.
         center_mem = active_player.center[0]
+        cheer_on_mem = center_mem["attached_cheer"]
         baton_cost = center_mem["baton_cost"]
-        if not active_player.baton_pass_this_turn and not is_card_resting(center_mem) and len(active_player.cheer_deck) >= baton_cost:
+        if not active_player.baton_pass_this_turn and not is_card_resting(center_mem) and len(cheer_on_mem) >= baton_cost:
             backstage_options = []
             for card in active_player.backstage:
                 if not is_card_resting(card):
@@ -1167,6 +1169,7 @@ class GameEngine:
                     "center_id": center_mem["game_card_id"],
                     "backstage_options": backstage_options,
                     "cost": baton_cost,
+                    "available_cheer": ids_from_cards(cheer_on_mem),
                 })
 
         # G. Begin Performance
@@ -2354,6 +2357,7 @@ class GameEngine:
             return False
 
         card_id = action_data["card_id"]
+        cheer_ids = action_data["cheer_ids"]
         # The card must be in the options in the available action.
         action_found = False
         for action in self.current_decision["available_actions"]:
@@ -2363,6 +2367,22 @@ class GameEngine:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
             return False
 
+        # Validate that there is enough cheer in the cheer ids and the cheer are all on the center.
+        player = self.get_player(player_id)
+        center_mem = player.center[0]
+        baton_cost = center_mem["baton_cost"]
+        if len(cheer_ids) < baton_cost:
+            self.send_event(self.make_error_event(player_id, "invalid_cheer", "Not enough cheer to pass the baton."))
+            return False
+        # Validate uniqueness of cheer.
+        if len(set(cheer_ids)) != len(cheer_ids):
+            self.send_event(self.make_error_event(player_id, "invalid_cheer", "Duplicate cheer to pass."))
+            return False
+        for cheer_id in cheer_ids:
+            if not player.is_cheer_on_holomem(cheer_id, player.center[0]["game_card_id"]):
+                self.send_event(self.make_error_event(player_id, "invalid_cheer", "Invalid cheer to pass."))
+                return False
+
         return True
 
     def handle_main_step_baton_pass(self, player_id:str, action_data:dict):
@@ -2371,10 +2391,9 @@ class GameEngine:
 
         player = self.get_player(player_id)
         new_center_id = action_data["card_id"]
-        center_mem = player.center[0]
-        baton_cost = center_mem["baton_cost"]
+        cheer_to_archive_ids = action_data["cheer_ids"]
+        player.archive_cheer(cheer_to_archive_ids)
         player.swap_center_with_back(new_center_id)
-        player.archive_cheer_from_deck(baton_cost)
         player.baton_pass_this_turn = True
 
         continuation = self.clear_decision()

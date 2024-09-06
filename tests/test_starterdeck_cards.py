@@ -33,10 +33,22 @@ class TestStarterDeckCards(unittest.TestCase):
         player1.center = []
         test_card = put_card_in_play(self, player1, "hSD01-006", player1.center)
         actions = reset_mainstep(self)
+        # You need cheer for baton pass.
+        self.assertTrue(GameAction.MainStepBatonPass not in [action["action_type"] for action in actions])
+        # Put cheer on them.
+        cheer1 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "white", "whitecheer1")
+        actions = reset_mainstep(self)
+        self.assertTrue(GameAction.MainStepBatonPass not in [action["action_type"] for action in actions])
+        # Needs 2 cheer.
+        cheer2 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "white", "whitecheer2")
+        actions = reset_mainstep(self)
         self.assertTrue(GameAction.MainStepBatonPass in [action["action_type"] for action in actions])
         baton_action = [action for action in actions if action["action_type"] == GameAction.MainStepBatonPass][0]
         self.assertEqual(baton_action["cost"], 2)
-        engine.handle_game_message(self.player1, GameAction.MainStepBatonPass, {"card_id": player1.backstage[0]["game_card_id"]})
+        engine.handle_game_message(self.player1, GameAction.MainStepBatonPass, {
+            "card_id": player1.backstage[0]["game_card_id"],
+            "cheer_ids": [cheer1["game_card_id"], cheer2["game_card_id"]]
+        })
         events = engine.grab_events()
         # Events - 2 moves, archive 2 cheer, main step
         self.assertEqual(len(events), 10)

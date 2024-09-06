@@ -6,7 +6,7 @@ from app.gameengine import GameEngine, UNKNOWN_CARD_ID, ids_from_cards
 from app.gameengine import EventType
 from app.gameengine import GameAction, GamePhase
 from app.card_database import CardDatabase
-from helpers import RandomOverride, initialize_game_to_third_turn
+from helpers import RandomOverride, initialize_game_to_third_turn, spawn_cheer_on_card
 
 card_db = CardDatabase()
 
@@ -402,32 +402,35 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(len(actions), 5) # Place 1 more, collab, baton, perform, end turn
         current_center = player1.center[0]["game_card_id"]
         current_backstage = player1.backstage[0]["game_card_id"]
-        top_cheer = player1.cheer_deck[0]["game_card_id"]
+        cheer_to_archive = player1.center[0]["attached_cheer"][0]["game_card_id"]
         # Do baton pass
-        self.engine.handle_game_message(self.player1, GameAction.MainStepBatonPass, { "card_id": current_backstage})
+        self.engine.handle_game_message(self.player1, GameAction.MainStepBatonPass, {
+            "card_id": current_backstage,
+            "cheer_ids": [cheer_to_archive],
+        })
         events = self.engine.grab_events()
         # Events - 2 move cards (center to back and back to center), archive a cheer, and main step decision
         self.assertEqual(len(events), 8)
-        self.assertEqual(player1.archive[0]["game_card_id"], top_cheer)
+        self.assertEqual(player1.archive[0]["game_card_id"], cheer_to_archive)
         self.assertEqual(player1.center[0]["game_card_id"], current_backstage)
         self.assertEqual(player1.backstage[0]["game_card_id"], current_center)
-        self.validate_event(events[0], EventType.EventType_MoveCard, self.player1, {
+        self.validate_event(events[0], EventType.EventType_MoveCheer, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": player1.backstage[-1]["game_card_id"],
+            "to_holomem_id": "archive",
+            "cheer_id": cheer_to_archive,
+        })
+        self.validate_event(events[2], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "center",
             "to_zone": "backstage",
             "card_id": current_center
         })
-        self.validate_event(events[2], EventType.EventType_MoveCard, self.player1, {
+        self.validate_event(events[4], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "backstage",
             "to_zone": "center",
             "card_id": current_backstage
-        })
-        self.validate_event(events[4], EventType.EventType_MoveCheer, self.player1, {
-            "owning_player_id": self.player1,
-            "from_holomem_id": "deck",
-            "to_holomem_id": "archive",
-            "cheer_id": top_cheer,
         })
         self.validate_event(events[6], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
         actions = events[6]["available_actions"]
@@ -508,8 +511,11 @@ class TestGameEngine(unittest.TestCase):
         actions = events[2]["available_actions"]
         # Actions - place what we had before, the new place option, perform, oshi skill, end turn
         self.assertEqual(len(actions), 5)
-        # That irys has 2 cheer, one from the life when the first irys died, and one from the cheer step.
-        self.assertEqual(len(player1.collab[0]["attached_cheer"]), 2)
+        # That irys has 1 cheer because she got it from life + cheer step, but then gave one away to baton pass.
+        self.assertEqual(len(player1.collab[0]["attached_cheer"]), 1)
+        #However, we want to test collab, so give her cheer back.
+        spawn_cheer_on_card(self, player1, player1.collab[0]["game_card_id"], "white", "whitecheer1")
+
         # Begin performance
         self.engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = self.engine.grab_events()
