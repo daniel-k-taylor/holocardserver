@@ -22,7 +22,7 @@ class GameRoom:
         print("GAME: Starting game!")
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
-            self.ai_player = AIPlayer(player_id="ai_" + self.players[0].player_id)
+            self.ai_player = AIPlayer(player_id="aiplayer" + self.players[0].player_id)
             self.ai_player.set_deck(DefaultAIDeck)
             player_info.append(self.ai_player.get_player_game_info())
 

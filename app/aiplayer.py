@@ -52,7 +52,6 @@ class AIPlayer:
             EventType.EventType_Collab: self._handle_event_ignore,
             EventType.EventType_Decision_ChooseCards: self._handle_choose_cards,
             EventType.EventType_Decision_MainStep: self._handle_main_step,
-            EventType.EventType_Decision_MoveCheerChoice: self._handle_move_cheer_between_holomems,
             EventType.EventType_Decision_OrderCards: self._handle_order_cards,
             EventType.EventType_Decision_PerformanceStep: self._handle_performance_step,
             EventType.EventType_Decision_SendCheer: self._handle_send_cheer,
@@ -151,7 +150,7 @@ class AIPlayer:
             # Skip events that aren't meant for me to act.
             return False, None, None
 
-        all_card_options = event["all_card_options"]
+        all_card_seen = event["all_card_seen"]
         cards_can_choose = event["cards_can_choose"]
         amount_min = event["amount_min"]
         amount_max = event["amount_max"]

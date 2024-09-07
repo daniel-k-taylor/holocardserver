@@ -316,14 +316,14 @@ class TestGameEngine(unittest.TestCase):
             "died": True, # Irys only had 50 hp
             "game_over": False,
         })
-        self.validate_event(events[5], EventType.EventType_Decision_MoveCheerChoice, self.player2, {
+        self.validate_event(events[5], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
-        available_cheer = events[5]["available_cheer"]
-        available_targets = events[5]["available_targets"]
+        available_cheer = events[5]["from_options"]
+        available_targets = events[5]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_cheer[0], top_p1_life_before_attack)
         self.assertEqual(len(available_targets), 1)

@@ -98,14 +98,14 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[2], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
-        available_cheer = events[2]["available_cheer"]
-        available_targets = events[2]["available_targets"]
+        available_cheer = events[2]["from_options"]
+        available_targets = events[2]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_targets[0], player2.backstage[0]["game_card_id"])
         self.assertEqual(len(player2.archive), 2)
@@ -172,14 +172,14 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
-        available_cheer = events[4]["available_cheer"]
-        available_targets = events[4]["available_targets"]
+        available_cheer = events[4]["from_options"]
+        available_targets = events[4]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_targets[0], player2.backstage[0]["game_card_id"])
         self.assertEqual(len(player2.archive), 2)
@@ -238,14 +238,14 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[2], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 2,
             "amount_max": 2,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
-        available_cheer = events[2]["available_cheer"]
-        available_targets = events[2]["available_targets"]
+        available_cheer = events[2]["from_options"]
+        available_targets = events[2]["to_options"]
         self.assertEqual(len(available_cheer), 2)
         self.assertEqual(available_targets[0], player1.backstage[0]["game_card_id"])
         self.assertEqual(len(player1.backstage[0]["attached_cheer"]), 0)
@@ -330,11 +330,11 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
 
     def test_support_hSD01_011_weakness_boost_active(self):
@@ -390,11 +390,11 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_MoveCheerChoice, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
 
 

@@ -177,7 +177,7 @@ class TestSupportCards(unittest.TestCase):
             "remaining_cards_action": "order_on_bottom",
         })
         available_to_choose = events[2]["cards_can_choose"]
-        all_cards_seen = events[2]["all_card_options"]
+        all_cards_seen = events[2]["all_card_seen"]
         self.assertEqual(len(available_to_choose), 0) # Nothing! Still need to decision?
         self.assertEqual(len(all_cards_seen), 5)
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
@@ -246,7 +246,7 @@ class TestSupportCards(unittest.TestCase):
             "remaining_cards_action": "order_on_bottom",
         })
         available_to_choose = events[2]["cards_can_choose"]
-        all_cards_seen = events[2]["all_card_options"]
+        all_cards_seen = events[2]["all_card_seen"]
         self.assertEqual(len(available_to_choose), 2)
         self.assertEqual(len(all_cards_seen), 5)
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
@@ -339,7 +339,7 @@ class TestSupportCards(unittest.TestCase):
             "remaining_cards_action": "shuffle",
         })
         available_to_choose = events[4]["cards_can_choose"]
-        all_cards_seen = events[4]["all_card_options"]
+        all_cards_seen = events[4]["all_card_seen"]
         # Count all bloom cards (not buzz) in the deck.
         count = 0
         for card in player1.deck:
@@ -526,7 +526,7 @@ class TestSupportCards(unittest.TestCase):
             "remaining_cards_action": "order_on_bottom",
         })
         available_to_choose = events[2]["cards_can_choose"]
-        all_cards_seen = events[2]["all_card_options"]
+        all_cards_seen = events[2]["all_card_seen"]
         self.assertEqual(len(available_to_choose), 3) # 3 sora/az and 1 irys
         self.assertEqual(len(all_cards_seen), 4)
 
@@ -618,7 +618,7 @@ class TestSupportCards(unittest.TestCase):
             "remaining_cards_action": "order_on_bottom",
         })
         available_to_choose = events[2]["cards_can_choose"]
-        all_cards_seen = events[2]["all_card_options"]
+        all_cards_seen = events[2]["all_card_seen"]
         self.assertEqual(len(available_to_choose), 4) # all 4 this time.
         self.assertEqual(len(all_cards_seen), 4)
 

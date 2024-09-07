@@ -110,13 +110,13 @@ class TestOshiSkills(unittest.TestCase):
             "oshi_player_id": self.player2,
             "skill_id": "replacement",
         })
-        validate_event(self, events[5], EventType.EventType_Decision_MoveCheerChoice, self.player2, {
+        validate_event(self, events[5], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
         })
-        available_cheer = events[5]["available_cheer"]
-        available_targets = events[5]["available_targets"]
+        available_cheer = events[5]["from_options"]
+        available_targets = events[5]["to_options"]
         self.assertEqual(len(available_cheer), 2) # 2 cheer for the 2 turns
         self.assertEqual(len(available_targets), 6) # It returns all holomems in play, even if they aren't a valid target.
 
@@ -258,11 +258,11 @@ class TestOshiSkills(unittest.TestCase):
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[5], EventType.EventType_Decision_MoveCheerChoice, self.player2, {
+        validate_event(self, events[5], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
-            "from_life_pool": True,
+            "from_zone": "life",
         })
 
 
