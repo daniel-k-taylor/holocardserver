@@ -39,7 +39,12 @@ class TestStarterDeckCards(unittest.TestCase):
             print("Game Run:", i + 1)
             self.run_ai_game()
 
-    def run_ai_game(self):
+    def test_ai_game_just_setup(self):
+        for i in range(TEST_RUNS):
+            print("Game Run:", i + 1)
+            self.run_ai_game(abort_after_placement=True)
+
+    def run_ai_game(self, abort_after_placement=False):
         self.players = [
             {
                 "player_id": "player1",
@@ -66,6 +71,9 @@ class TestStarterDeckCards(unittest.TestCase):
         engine.begin_game()
         while not engine.is_game_over():
             events = engine.grab_events()
+            if abort_after_placement and engine.phase == GamePhase.PlayerTurn:
+                break
+
             self.assertNotEqual(events[-1]["event_type"], EventType.EventType_GameError)
             self.assertTrue(len(events) > 0)
             last_events = events

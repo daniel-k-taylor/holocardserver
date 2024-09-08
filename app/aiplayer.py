@@ -373,7 +373,8 @@ class AIPlayer:
             cheer_to_send = from_options[i]
             for i in range(len(to_options)):
                 target = to_options[i]
-                if cheer_to_send not in cheer_on_each_mem[target]:
+                if target not in cheer_on_each_mem or \
+                cheer_to_send not in cheer_on_each_mem[target]:
                     placements[cheer_to_send] = target
                     break
 

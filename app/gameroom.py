@@ -44,9 +44,8 @@ class GameRoom:
                 player_id = self.ai_player.player_id
                 action_type = ai_action["action_type"]
                 action_data = ai_action["action_data"]
-                self.engine.handle_game_message(player_id, action_type, action_data)
-                events = self.engine.grab_events()
-                await self.send_events(events)
+
+                await self.handle_game_message(player_id, action_type, action_data)
 
     async def send_events(self, events):
         for event in events:

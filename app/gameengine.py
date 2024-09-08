@@ -205,6 +205,7 @@ class PlayerState:
         self.baton_pass_this_turn = False
         self.collabed_this_turn = False
         self.mulligan_completed = False
+        self.mulligan_hand_valid = False
         self.mulligan_count = 0
         self.initial_placement_completed = False
         self.life = []
@@ -294,9 +295,6 @@ class PlayerState:
         draw_amount = max(STARTING_HAND_SIZE - (self.mulligan_count - 1), 1)
         self.draw(draw_amount)
 
-    def complete_mulligan(self):
-        self.mulligan_completed = True
-
     def shuffle_hand_to_deck(self):
         while len(self.hand) > 0:
             self.move_card(self.hand[0]["game_card_id"], "deck", hidden_info=True)
@@ -338,6 +336,8 @@ class PlayerState:
         cheer = {}
         for card in self.get_holomem_on_stage():
             cheer[card["game_card_id"]] = [attached_card["game_card_id"] for attached_card in card["attached_cheer"]]
+            if len(cheer[card["game_card_id"]]) == 0:
+                cheer.pop(card["game_card_id"])
         return cheer
 
     def get_holomems_with_cheer(self):
@@ -827,20 +827,12 @@ class GameEngine:
         self.handle_mulligan_phase()
 
     def handle_mulligan_phase(self):
-        # Process any forced mulligans.
-        while True:
-            forced_mulligan = self.check_forced_mulligans()
-            if not forced_mulligan:
-                break
-
         # Are both players done mulliganing?
         # If so, move on to the next phase.
         if all(player_state.mulligan_completed for player_state in self.player_states):
+            self.process_forced_mulligans()
             self.begin_initial_placement()
         else:
-            # To get here, the player's hand must not be forced mulligan'd.
-            # If they already mulligan'd once, then they're done now.
-            # Otherwise, they need to decide.
             active_player = self.get_player(self.active_player_id)
             if active_player.mulligan_count == 0:
                 # Tell the active player we're waiting on them to mulligan.
@@ -851,9 +843,7 @@ class GameEngine:
                 }
                 self.broadcast_event(decision_event)
             else:
-                active_player.complete_mulligan()
-                self.switch_active_player()
-                self.handle_mulligan_phase()
+                assert(False, "Players only get 1 mulligan.")
 
     def send_event(self, event):
         self.latest_events.append(event)
@@ -1902,35 +1892,29 @@ class GameEngine:
         }
         self.broadcast_event(boost_event)
 
-    def perform_mulligan(self, active_player: PlayerState, forced):
+    def perform_mulligan(self, player: PlayerState, forced):
         if forced:
-            revealed_card_ids = ids_from_cards(active_player.hand)
+            revealed_card_ids = ids_from_cards(player.hand)
             mulligan_reveal_event = {
                 "event_type": EventType.EventType_MulliganReveal,
-                "active_player": active_player.player_id,
+                "active_player": player.player_id,
                 "revealed_card_ids": revealed_card_ids,
             }
             self.broadcast_event(mulligan_reveal_event)
 
         # Do the mulligan reshuffle/drawing.
-        active_player.mulligan()
+        player.mulligan()
 
-        # If the player has 1 card and a debut holomem, they are complete.
-        if len(active_player.hand) == 1 and active_player.hand[0]["card_type"] == "holomem_debut":
-            active_player.complete_mulligan()
-
-        self.switch_active_player()
-
-    def check_forced_mulligans(self):
+    def process_forced_mulligans(self):
         # If the player has no debut holomems, they must mulligan.
-        active_player = self.get_player(self.active_player_id)
-        if active_player.mulligan_completed:
-            self.switch_active_player()
-        else:
-            if not any(card["card_type"] == "holomem_debut" for card in active_player.hand):
-                self.perform_mulligan(active_player, forced=True)
-                return True
-        return False
+        for player in self.player_states:
+            while not player.mulligan_hand_valid:
+                # If the player has a debut holomem, they are done.
+                if any(card["card_type"] == "holomem_debut" for card in player.hand):
+                    player.mulligan_hand_valid = True
+                else:
+                    self.perform_mulligan(player, forced=True)
+
 
     def make_error_event(self, player_id:str, error_id:str, error_message:str):
         return {
@@ -2024,14 +2008,8 @@ class GameEngine:
         do_mulligan = action_data["do_mulligan"]
         if do_mulligan:
             self.perform_mulligan(player_state, forced=False)
-            # This switched players, check if this player is mulligan complete.
-            # If so, switch again so handle_mulligan_phase can do the right forced mulligan check.
-            if self.get_player(self.active_player_id).mulligan_completed:
-                self.switch_active_player()
-        else:
-            player_state.complete_mulligan()
-            self.switch_active_player()
-
+        player_state.mulligan_completed = True
+        self.switch_active_player()
         self.handle_mulligan_phase()
 
     def validate_initial_placement(self, player_id:str, action_data: dict):
