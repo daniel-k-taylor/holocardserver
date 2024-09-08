@@ -337,6 +337,70 @@ class TestStarterDeckCards(unittest.TestCase):
             "from_zone": "life",
         })
 
+    def test_support_hSD01_011_destinysong(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        # By default p1 is Azki, p2 is Sora.
+
+        """Test hSD01-011"""
+        set_next_die_rolls(self, [1])
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hSD01-011", player1.center)
+        test_card_id = test_card["game_card_id"]
+        spawn_cheer_on_card(self, player1, test_card_id, "green", "g1")
+        spawn_cheer_on_card(self, player1, test_card_id, "green", "g2")
+        spawn_cheer_on_card(self, player1, test_card_id, "green", "g3")
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        validate_last_event_not_error(self, events)
+
+        actions = reset_performancestep(self)
+        self.assertEqual(len(actions), 3)
+        self.assertEqual(actions[1]["art_id"], "destinysong")
+
+        # Perform the art
+        top_cheer = player1.cheer_deck[0]["game_card_id"]
+        target = player2.center[0]["game_card_id"]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "destinysong",
+            "target_id": target
+        })
+        events = engine.grab_events()
+        # Events - no weakness boost, roll die (1), power boost 100
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": test_card["game_card_id"],
+            "stat": "power",
+            "amount": 100,
+        })
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "destinysong",
+            "target_id": target,
+            "power": 200,
+            "died": True,
+            "game_over": False,
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player2,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "life",
+        })
+
     def test_support_hSD01_011_weakness_boost_active(self):
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
         player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])

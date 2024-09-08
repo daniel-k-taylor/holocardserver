@@ -452,6 +452,7 @@
                         }]
                     },
                     {
+                        "timing": "before_art",
                         "effect_type": "roll_die",
                         "source": "holomem_ability",
                         "die_effects": [
