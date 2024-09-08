@@ -340,6 +340,13 @@ class PlayerState:
             cheer[card["game_card_id"]] = [attached_card["game_card_id"] for attached_card in card["attached_cheer"]]
         return cheer
 
+    def get_holomems_with_cheer(self):
+        holomems = []
+        for card in self.get_holomem_on_stage():
+            if card["attached_cheer"]:
+                holomems.append(card["game_card_id"])
+        return holomems
+
     def is_cheer_on_holomem(self, cheer_id, target_id):
         holomem_card, _, _ = self.find_card(target_id)
         if holomem_card:
@@ -1340,29 +1347,29 @@ class GameEngine:
         # Deal damage.
         self.performance_target_card["damage"] += total_power
         died = self.performance_target_card["damage"] >= self.performance_target_card["hp"]
-        owner = self.get_player(self.performance_target_card["owner_id"])
+        target_owner = self.get_player(self.performance_target_card["owner_id"])
 
         game_over = False
         game_over_reason = ""
         life_to_distribute = []
         if died:
             # Move all attached and stacked cards and the card itself to the archive.
-            owner.archive_holomem_from_play(self.performance_target_card["game_card_id"])
+            target_owner.archive_holomem_from_play(self.performance_target_card["game_card_id"])
             life_lost = 1
             if "down_life_cost" in self.performance_target_card:
                 life_lost = self.performance_target_card["down_life_cost"]
 
-            current_life = len(owner.life)
+            current_life = len(target_owner.life)
             if life_lost >= current_life:
                 game_over = True
                 game_over_reason = GameOverReason.GameOverReason_NoLifeLeft
-            elif len(owner.get_holomem_on_stage()) == 0:
+            elif len(target_owner.get_holomem_on_stage()) == 0:
                 game_over = True
                 game_over_reason = GameOverReason.GameOverReason_NoHolomemsLeft
 
 
             if not game_over:
-                life_to_distribute = ids_from_cards(owner.life[:life_lost])
+                life_to_distribute = ids_from_cards(target_owner.life[:life_lost])
 
         # Send an event
         art_event = {
@@ -1371,6 +1378,7 @@ class GameEngine:
             "performer_id": self.performance_performer_card["game_card_id"],
             "art_id": self.performance_art["art_id"],
             "target_id": self.performance_target_card["game_card_id"],
+            "target_player": target_owner.player_id,
             "power": total_power,
             "died": died,
             "game_over": game_over,
@@ -1378,15 +1386,15 @@ class GameEngine:
         self.broadcast_event(art_event)
 
         if game_over:
-            self.end_game(loser_id=owner.player_id, reason_id=game_over_reason)
+            self.end_game(loser_id=target_owner.player_id, reason_id=game_over_reason)
         elif life_to_distribute:
             # Tell the owner to distribute this life amongst their holomems.
-            remaining_holomems = ids_from_cards(owner.get_holomem_on_stage())
-            cheer_on_each_mem = owner.get_cheer_on_each_holomem()
+            remaining_holomems = ids_from_cards(target_owner.get_holomem_on_stage())
+            cheer_on_each_mem = target_owner.get_cheer_on_each_holomem()
             decision_event = {
                 "event_type": EventType.EventType_Decision_SendCheer,
                 "desired_response": GameAction.EffectResolution_MoveCheerBetweenHolomems,
-                "effect_player_id": owner.player_id,
+                "effect_player_id": target_owner.player_id,
                 "amount_min": len(life_to_distribute),
                 "amount_max": len(life_to_distribute),
                 "from_zone": "life",
@@ -1398,7 +1406,7 @@ class GameEngine:
             self.broadcast_event(decision_event)
             self.set_decision({
                 "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
-                "decision_player": owner.player_id,
+                "decision_player": target_owner.player_id,
                 "amount_min": len(life_to_distribute),
                 "amount_max": len(life_to_distribute),
                 "available_cheer": life_to_distribute,
@@ -1511,6 +1519,12 @@ class GameEngine:
                 requirement_names = effect.get("requirement_names", [])
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
+                requirement_details = {
+                    "requirement": requirement,
+                    "requirement_bloom_levels": requirement_bloom_levels,
+                    "requirement_buzz_blocked": requirement_buzz_blocked,
+                    "requirement_names": requirement_names,
+                }
 
                 cards_to_choose_from = []
                 if from_zone == "hand":
@@ -1566,6 +1580,7 @@ class GameEngine:
                     "remaining_cards_action": remaining_cards_action,
                     "hidden_info_player": effect_player_id,
                     "hidden_info_fields": ["all_card_seen", "cards_can_choose"],
+                    "requirement_details": requirement_details,
                 }
                 self.broadcast_event(choose_event)
                 self.set_decision({
@@ -1590,28 +1605,33 @@ class GameEngine:
                 available_cheer = effect_player.get_cheer_ids_on_holomems()
                 available_targets = ids_from_cards(effect_player.get_holomem_on_stage())
                 cheer_on_each_mem = effect_player.get_cheer_on_each_holomem()
-                decision_event = {
-                    "event_type": EventType.EventType_Decision_SendCheer,
-                    "desired_response": GameAction.EffectResolution_MoveCheerBetweenHolomems,
-                    "effect_player_id": effect_player_id,
-                    "amount_min": amount,
-                    "amount_max": amount,
-                    "from_zone": "holomem",
-                    "to_zone": "holomem",
-                    "from_options": available_cheer,
-                    "to_options": available_targets,
-                    "cheer_on_each_mem": cheer_on_each_mem,
-                }
-                self.broadcast_event(decision_event)
-                self.set_decision({
-                    "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
-                    "decision_player": effect_player_id,
-                    "amount_min": amount,
-                    "amount_max": amount,
-                    "available_cheer": available_cheer,
-                    "available_targets": available_targets,
-                    "continuation": self.continue_resolving_effects,
-                })
+                if len(cheer_on_each_mem.keys()) == 1:
+                    # If only 1 member has cheer, this member shouldn't be in the targets
+                    # because they must be the source.
+                    available_targets.remove(list(cheer_on_each_mem.keys())[0])
+                if len(available_targets) > 0:
+                    decision_event = {
+                        "event_type": EventType.EventType_Decision_SendCheer,
+                        "desired_response": GameAction.EffectResolution_MoveCheerBetweenHolomems,
+                        "effect_player_id": effect_player_id,
+                        "amount_min": amount,
+                        "amount_max": amount,
+                        "from_zone": "holomem",
+                        "to_zone": "holomem",
+                        "from_options": available_cheer,
+                        "to_options": available_targets,
+                        "cheer_on_each_mem": cheer_on_each_mem,
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
+                        "decision_player": effect_player_id,
+                        "amount_min": amount,
+                        "amount_max": amount,
+                        "available_cheer": available_cheer,
+                        "available_targets": available_targets,
+                        "continuation": self.continue_resolving_effects,
+                    })
 
             case EffectType.EffectType_PowerBoost:
                 amount = effect["amount"]
