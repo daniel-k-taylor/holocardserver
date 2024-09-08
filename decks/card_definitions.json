@@ -5,6 +5,7 @@
         "card_id": "hSD01-001",
         "card_type": "oshi",
         "oshi_name": "tokino_sora",
+        "colors": ["white"],
         "rarity": "osr",
         "life": 5,
         "oshi_skills": [
@@ -55,6 +56,7 @@
         "card_id": "hSD01-002",
         "card_type": "oshi",
         "oshi_name": "azki",
+        "colors": ["green"],
         "rarity": "osr",
         "life": 5,
         "oshi_skills": [
@@ -89,6 +91,49 @@
                         "to": "holomem",
                         "to_limitation": "color_in",
                         "to_limitation_colors": ["green"]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-001",
+        "card_type": "oshi",
+        "oshi_name": "amane_kanata",
+        "colors": ["white"],
+        "rarity": "osr",
+        "life": 5,
+        "oshi_skills": [
+            {
+                "skill_id": "squeezesqueeze",
+                "timing": "action",
+                "cost_type": "holopower",
+                "cost": 3,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "effect_type": "set_center_hp",
+                        "opponent": true,
+                        "amount": 50
+                    }
+                ]
+            },
+            {
+                "skill_id": "illcrushyou",
+                "timing": "action",
+                "cost_type": "holopower",
+                "cost": 2,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "effect_type": "add_turn_effect_for_holomem",
+                        "turn_effect": {
+                            "timing": "before_art",
+                            "effect_type": "power_boost",
+                            "amount": 50,
+                            "conditional_boost_color": "white",
+                            "conditional_boost_power": 50
+                        }
                     }
                 ]
             }
@@ -802,6 +847,37 @@
 
         "NOTE": "STARTER DECK CARDS END"
     },
+
+
+
+    {
+        "NOTE": "BP1 CARDS START",
+
+        "card_id": "hBP01-009",
+        "card_type": "holomem_debut",
+        "holomem_names": ["amane_kanata"],
+        "no_deck_limit": true,
+        "rarity": "c",
+        "colors": ["white"],
+        "hp": 90,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen4",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "konkanata",
+                "target_condition": "center_only",
+                "costs": [
+                    { "color": "white", "amount": 1 }
+                ],
+                "power": 40
+            }
+        ]
+    },
+
 
     {
         "NOTE": "CHEER CARDS START",
