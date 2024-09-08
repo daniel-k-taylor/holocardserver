@@ -1352,6 +1352,7 @@ class GameEngine:
         game_over = False
         game_over_reason = ""
         life_to_distribute = []
+        life_lost = 0
         if died:
             # Move all attached and stacked cards and the card itself to the archive.
             target_owner.archive_holomem_from_play(self.performance_target_card["game_card_id"])
@@ -1381,6 +1382,7 @@ class GameEngine:
             "target_player": target_owner.player_id,
             "power": total_power,
             "died": died,
+            "life_lost": life_lost,
             "game_over": game_over,
         }
         self.broadcast_event(art_event)
