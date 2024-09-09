@@ -4,6 +4,8 @@ from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction
 from app.card_database import CardDatabase
 from app.aiplayer import AIPlayer, DefaultAIDeck
+import logging
+logger = logging.getLogger(__name__)
 
 class GameRoom:
     def __init__(self, room_id : str, players : List[Player], game_type : str):
@@ -19,7 +21,7 @@ class GameRoom:
         return self.game_type == "ai"
 
     async def start(self, card_db: CardDatabase):
-        print("GAME: Starting game!")
+        logger.info("GAME: Starting game!")
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
             self.ai_player = AIPlayer(player_id="aiplayer" + self.players[0].player_id)
@@ -39,7 +41,7 @@ class GameRoom:
         if self.is_ai_game():
             # In case the AI has to mulligan first!
             ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
-            print("AI Action:", ai_performing_action, ai_action)
+            logger.info("AI Action: %s %s" % (ai_performing_action, ai_action))
             if ai_performing_action:
                 player_id = self.ai_player.player_id
                 action_type = ai_action["action_type"]
@@ -61,7 +63,7 @@ class GameRoom:
             await self.send_events(events)
             if self.is_ai_game():
                 ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
-                print("AI Action:", ai_performing_action, ai_action)
+                logger.info("AI Action: %s %s" % (ai_performing_action, ai_action))
                 if ai_performing_action:
                     player_id = self.ai_player.player_id
                     action_type = ai_action["action_type"]
@@ -72,7 +74,7 @@ class GameRoom:
                 done_processing = True
 
         if self.engine.is_game_over():
-            print("ROOM: %s Game over!" % self.room_id)
+            logger.info("ROOM: %s Game over!" % self.room_id)
             self.cleanup_room = True
 
     def is_ready_for_cleanup(self):

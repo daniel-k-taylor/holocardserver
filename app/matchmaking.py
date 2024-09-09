@@ -1,6 +1,8 @@
 from app.gameroom import GameRoom
 from app.playermanager import Player
 import uuid
+import logging
+logger = logging.getLogger(__name__)
 
 GameTypeInfo = {
     "ai": {
@@ -35,7 +37,7 @@ class MatchQueue:
 
     def create_match(self):
         room_id = str(uuid.uuid4())
-        print("Creating match with ID:", room_id)
+        logger.info("Creating match with ID: %s" % room_id)
         return GameRoom(
             room_id=room_id,
             players=self.players,

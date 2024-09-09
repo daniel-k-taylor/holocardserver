@@ -2,6 +2,8 @@ from typing import List, Dict, Any
 from app.card_database import CardDatabase
 import random
 from copy import deepcopy
+import logging
+logger = logging.getLogger(__name__)
 
 UNKNOWN_CARD_ID = "HIDDEN"
 UNLIMITED_SIZE = 9999
@@ -1938,12 +1940,12 @@ class GameEngine:
             elif hasattr(field_type, '__origin__') and field_type.__origin__ == dict:
                 key_type, value_type = field_type.__args__
                 if not isinstance(action_data[field_name], dict) or not all(isinstance(k, key_type) and isinstance(v, value_type) for k, v in action_data[field_name].items()):
-                    print(f"Field {field_name} is not of type {field_type}")
+                    logger.info(f"Field {field_name} is not of type {field_type}")
                     return False
         return True
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
-        print("Processing game message %s from player %s" % (action_type, player_id))
+        logger.info("Processing game message %s from player %s" % (action_type, player_id))
         match action_type:
             case GameAction.Mulligan:
                 self.handle_mulligan(player_id, action_data)

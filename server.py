@@ -6,6 +6,11 @@ import app.message_types as message_types
 from app.playermanager import PlayerManager, Player
 from app.gameroom import GameRoom
 from app.card_database import CardDatabase
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.info("Server started")
 
 app = FastAPI()
 
@@ -68,11 +73,11 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 message = message_types.parse_message(data)
             except Exception as e:
-                print("Error in message parsing:", e, "\nMessage:", data)
+                logger.error("Error in message parsing: {e}\nMessage: {data}")
                 await send_error_message(websocket, "invalid_message", f"ERROR: Invalid JSON: {data}")
                 continue
 
-            print(f"MESSAGE:", message.message_type)
+            logger.info(f"MESSAGE: {message.message_type}")
             if isinstance(message, message_types.JoinServerMessage):
                 await broadcast_server_info()
 
@@ -123,7 +128,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await send_error_message(websocket, "not_in_room", f"ERROR: Not in a game room to leave.")
 
             elif isinstance(message, message_types.GameActionMessage):
-                print(f"GAMEACTION:", message.action_type)
+                logger.info(f"GAMEACTION: {message.action_type}")
                 player_room : GameRoom = player.current_game_room
                 if player_room and not player_room.is_ready_for_cleanup():
                     await player_room.handle_game_message(player.player_id, message.action_type, message.action_data)
@@ -134,7 +139,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await send_error_message(websocket, "invalid_game_message", f"ERROR: Invalid message: {data}")
 
     except WebSocketDisconnect:
-        print("Client disconnected.")
+        logger.info("Client disconnected.")
         player.connected = False
         matchmaking.remove_player_from_queue(player)
         for room in game_rooms:
@@ -149,7 +154,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 def check_cleanup_room(room: GameRoom):
     if room.is_ready_for_cleanup():
-        print("Cleanup game room:", room.room_id)
+        logger.info("Cleanup game room: %s" % room.room_id)
         game_rooms.remove(room)
         for player in room.players:
             player.current_game_room = None

@@ -1,6 +1,9 @@
 from typing import Dict
 from app.gameengine import EventType, GameAction
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 DefaultAIDeck = {
     "deck_id": "starter_azki",
@@ -108,7 +111,7 @@ class AIPlayer:
                 if event_type in self.event_handlers:
                     ai_performing_action, ai_action_type, ai_action_data = self.event_handlers[event_type](event)
                 else:
-                    print(f"AI: Unhandled event type: {event_type}")
+                    logger.error(f"AI: Unhandled event type: {event_type}")
 
         return ai_performing_action, {
             "action_type": ai_action_type,

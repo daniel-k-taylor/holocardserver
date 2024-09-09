@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 import json
 from typing import Dict, List, Any
+import logging
+logger = logging.getLogger(__name__)
 
 REQUIRED_DECK_COUNT = 50
 REQUIRED_CHEER_COUNT = 20
@@ -42,27 +44,27 @@ class CardDatabase:
         # Validate the oshi ID is an existing oshi.
         oshi_card = self.get_card_by_id(oshi_id)
         if not oshi_card or oshi_card["card_type"] != "oshi":
-            print("--Deck Invalid: Oshi")
+            logger.info("--Deck Invalid: Oshi")
             return False
 
         # Check the deck
         deck_count = 0
         for card_id, count in deck.items():
             if count > MAX_ANY_CARD_COUNT:
-                print("--Deck Invalid: Too many cards")
+                logger.info("--Deck Invalid: Too many cards")
                 return False
 
             deck_count += count
             deck_card = self.get_card_by_id(card_id)
             if not deck_card or deck_card["card_type"] not in ALLOWED_DECK_TYPES:
                 if deck_card["card_type"]:
-                    print("--Deck Invalid: %s not allowed" % deck_card["card_type"])
+                    logger.info("--Deck Invalid: %s not allowed" % deck_card["card_type"])
                 else:
-                    print("--Deck Invalid: Card Type None")
+                    logger.info("--Deck Invalid: Card Type None")
                 return False
 
         if deck_count != REQUIRED_DECK_COUNT:
-            print("--Deck Invalid: Not enough cards")
+            logger.info("--Deck Invalid: Not enough cards")
             return False
 
         # Check the cheer deck
@@ -71,11 +73,11 @@ class CardDatabase:
             cheer_deck_count += count
             cheer_deck_card = self.get_card_by_id(card_id)
             if not cheer_deck_card or cheer_deck_card["card_type"] != "cheer":
-                print("--Deck Invalid: Cheer deck wrong")
+                logger.info("--Deck Invalid: Cheer deck wrong")
                 return False
 
         if cheer_deck_count != REQUIRED_CHEER_COUNT:
-            print("--Deck Invalid: Cheer deck count wrong")
+            logger.info("--Deck Invalid: Cheer deck count wrong")
             return False
 
         return True
