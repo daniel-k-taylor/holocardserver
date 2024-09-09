@@ -1496,6 +1496,7 @@ class GameEngine:
                 event = {
                     "event_type": EventType.EventType_AddTurnEffect,
                     "effect_player_id": effect_player_id,
+                    "full_effect": effect,
                     "turn_effect": effect["turn_effect"],
                 }
                 self.broadcast_event(event)

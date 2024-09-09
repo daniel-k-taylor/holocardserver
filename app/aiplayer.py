@@ -333,11 +333,11 @@ class AIPlayer:
         art_id = None
         target_id = None
         if all_actions[GameAction.PerformanceStepUseArt]:
-            # Just do the first one.
+            # Do the last one, so we use the most powerful moves.
             chosen_action = GameAction.PerformanceStepUseArt
-            performer_id = all_actions[GameAction.PerformanceStepUseArt][0]["performer_id"]
-            art_id = all_actions[GameAction.PerformanceStepUseArt][0]["art_id"]
-            target_id = all_actions[GameAction.PerformanceStepUseArt][0]["valid_targets"][0]
+            performer_id = all_actions[GameAction.PerformanceStepUseArt][-1]["performer_id"]
+            art_id = all_actions[GameAction.PerformanceStepUseArt][-1]["art_id"]
+            target_id = all_actions[GameAction.PerformanceStepUseArt][-1]["valid_targets"][0]
         else:
             # Just end turn.
             chosen_action = GameAction.PerformanceStepEndTurn
