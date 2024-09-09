@@ -229,7 +229,7 @@ class AIPlayer:
                                 requirement_name: spent_cheer
                             }
                         case _:
-                            assert(False, "Unimplemented content type")
+                            raise NotImplementedError("Unimplemented play requirement")
 
         # Skip baton pass for now.
         #elif all_actions[GameAction.MainStepBatonPass]:
@@ -278,9 +278,7 @@ class AIPlayer:
                 return True, GameAction.MainStepEndTurn, {
                 }
             case _:
-                assert(False, "Unimplemented action")
-                return True, GameAction.MainStepEndTurn, {
-                }
+                raise NotImplementedError("Unimplemented action")
 
     def _handle_move_cheer_between_holomems(self, event):
         if self.player_id != event["effect_player_id"]:
@@ -353,9 +351,7 @@ class AIPlayer:
                 return True, GameAction.PerformanceStepEndTurn, {
                 }
             case _:
-                assert(False, "Unimplemented action")
-                return True, GameAction.PerformanceStepEndTurn, {
-                }
+                raise NotImplementedError("Unimplemented performance action")
 
     def _handle_send_cheer(self, event):
         if self.player_id != event["effect_player_id"]:

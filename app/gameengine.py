@@ -843,7 +843,7 @@ class GameEngine:
                 }
                 self.broadcast_event(decision_event)
             else:
-                assert(False, "Players only get 1 mulligan.")
+                raise Exception("Unexpected: Player has already mulliganed.")
 
     def send_event(self, event):
         self.latest_events.append(event)
