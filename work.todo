@@ -1,4 +1,19 @@
+
 Todo:
+    hbp 12
+    ☐ bloom_effects
+    ☐ choose cards "destination": "holomem",
+    ☐ "requirement": "support_mascot",
+    hbp13
+    ☐ "effect_type": "deal_damage" - special,
+    hbp14
+    ☐ damage_damage - normal
+    ☐ "on_kill_effects":  performance_target_has_damage_over_hp, performance_life_lost_increase
+    116
+    ☐ attach_to_holomem
+    ☐ "timing": "on_damage",
+        ☐ attached_to
+        ☐ effect_card_id_not_used_this_turn, record_effect_card_id_used_this_turn
 
 Revisit:
     - What happens when the cheer deck runs out.
@@ -9,6 +24,10 @@ Revisit:
 
 
 Client:
+    ☐ Art for all new cards
+    ☐ Copy the latest definitions json
+
+
     ☐ hBP01-001 - squeezesqueeze text, illcrushyou text, amane_kanata name
     ☐ EventType.EventType_ModifyHP
     ☐ Remove reliance on full_effect for turn effect
@@ -16,3 +35,9 @@ Client:
     ☐ hBP01-009 - konkanata art text, target_condition text, performer_is_color condition, performer_is_specific_id conditinon, text for "and"
 
     ☐ hbp01-010 - art imoffnow text, performer_has_any_tag condition
+
+    ☐ hbp1-012 - art pleasegivelotsofsupport text, "destination": "holomem","requirement": "support_mascot",
+    ☐ hbp1-13 - art angelstage text, deal_damage text
+    ☐ 14 - art jetblackwings, performance_target_has_damage_over_hp condition, performance_life_lost_increase effect, on_kill_effects
+
+    ☐ 116 - mascot, attach_to_holomem, everything in the "timing": "on_damage" for text
