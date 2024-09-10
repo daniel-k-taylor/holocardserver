@@ -173,15 +173,15 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(len(player1.hand), 6)
         self.assertEqual(len(player1.center), 1)
         self.assertEqual(len(player1.backstage), 1)
-        self.assertEqual(len(player1.life), 5)
-        self.assertEqual(len(player1.cheer_deck), 15)
+        self.assertEqual(len(player1.life), 6)
+        self.assertEqual(len(player1.cheer_deck), 14)
         self.assertEqual(len(player2.center), 1)
         self.assertEqual(len(player2.backstage), 5)
         self.validate_event(events[2], EventType.EventType_InitialPlacementReveal, self.player1, {})
         placement_info = events[2]["placement_info"]
         p1_info = placement_info[0]
         self.assertEqual(p1_info["player_id"], self.player1)
-        self.assertEqual(p1_info["cheer_deck_count"], 15)
+        self.assertEqual(p1_info["cheer_deck_count"], 14)
         self.validate_event(events[8], EventType.EventType_CheerStep, self.player1, { "active_player": self.player1, })
         cheer_event = events[8]
         self.assertEqual(len(cheer_event['options']), 2)
@@ -336,48 +336,45 @@ class TestGameEngine(unittest.TestCase):
         cheer_placement = {
             top_p1_life_before_attack: player1.backstage[0]["game_card_id"]
         }
+
+
+        self.assertEqual(len(player1.life), 6)
+        p1backstage = player1.backstage[0]
         self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        self.assertEqual(len(player1.life), 4)
-        p1backstage = player1.backstage[0]
-        self.assertEqual(p1backstage["attached_cheer"][0]["game_card_id"], top_p1_life_before_attack)
-        # Events - cheer moved and back to performance step.
-        self.assertEqual(len(events), 4)
-        self.validate_event(events[2], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player2 })
-        actions = events[2]["available_actions"]
-        self.assertEqual(len(actions), 1) # Just end turn.
-        self.engine.handle_game_message(self.player2, GameAction.PerformanceStepEndTurn, {})
-        events = self.engine.grab_events()
+        # Events - cheer moved and back to performance step, which ends turn
         # Events - end turn, start turn, reset step (activate, collab, replace holomem), draw, cheer
-        self.assertEqual(len(events), 14)
-        self.validate_event(events[0], EventType.EventType_EndTurn, self.player1, {
+        self.assertEqual(len(events), 16)
+        self.assertEqual(len(player1.life), 5)
+        self.assertEqual(p1backstage["attached_cheer"][0]["game_card_id"], top_p1_life_before_attack)
+        self.validate_event(events[2], EventType.EventType_EndTurn, self.player1, {
             "ending_player_id": self.player2,
             "next_player_id": self.player1,
         })
-        self.validate_event(events[2], EventType.EventType_TurnStart, self.player1, {
+        self.validate_event(events[4], EventType.EventType_TurnStart, self.player1, {
             "active_player": self.player1,
         })
-        self.validate_event(events[4], EventType.EventType_ResetStepActivate, self.player1, {
+        self.validate_event(events[6], EventType.EventType_ResetStepActivate, self.player1, {
             "active_player": self.player1,
         })
-        activated_card_ids = events[4]["activated_card_ids"]
+        activated_card_ids = events[6]["activated_card_ids"]
         self.assertEqual(len(activated_card_ids), 0) # Nobody was resting
-        self.validate_event(events[6], EventType.EventType_ResetStepCollab, self.player1, {
+        self.validate_event(events[8], EventType.EventType_ResetStepCollab, self.player1, {
             "active_player": self.player1,
         })
-        rested_card_ids = events[6]["rested_card_ids"]
+        rested_card_ids = events[8]["rested_card_ids"]
         self.assertEqual(len(rested_card_ids), 0) # Nobody was collabing
-        self.validate_event(events[8], EventType.EventType_MoveCard, self.player1, {
+        self.validate_event(events[10], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "backstage",
             "to_zone": "center",
             "card_id": p1backstage["game_card_id"],
         })
         self.assertEqual(player1.center[0]["game_card_id"], p1backstage["game_card_id"])
-        self.validate_event(events[10], EventType.EventType_Draw, self.player1, {
+        self.validate_event(events[12], EventType.EventType_Draw, self.player1, {
             "drawing_player_id": self.player1
         })
-        self.validate_event(events[12], EventType.EventType_CheerStep, self.player1, { "active_player": self.player1, })
+        self.validate_event(events[14], EventType.EventType_CheerStep, self.player1, { "active_player": self.player1, })
         events = self.cheer_step_on_card(player1.center[0])
         # Cheer placed and turn start and decision ask
         self.assertEqual(len(events), 6)
@@ -521,6 +518,7 @@ class TestGameEngine(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - performance step start and decision
         actions = events[2]["available_actions"]
+        p2collaber = player2.collab[0]
         self.assertEqual(len(actions), 2) # Perform with irys in collab slot or end turn
         self.engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
             "performer_id": player1.collab[0]["game_card_id"],
@@ -528,51 +526,42 @@ class TestGameEngine(unittest.TestCase):
             "target_id": player2.collab[0]["game_card_id"]
         })
         events = self.engine.grab_events()
-        # Events - performance result, performance decision step
-        self.assertEqual(len(events), 4)
+        # Events - performance result, end turn, turn start, reset step (activate, collab), draw, cheer
+        self.assertEqual(len(events), 14)
         self.validate_event(events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.collab[0]["game_card_id"],
             "art_id": "embodimentofhope",
-            "target_id": player2.collab[0]["game_card_id"],
+            "target_id": p2collaber["game_card_id"],
             "power": 20,
             "died": False, # Only does 20 of 50 hp
             "game_over": False,
         })
-        self.validate_event(events[2], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player1 })
-        self.assertEqual(player2.collab[0]["damage"], 20)
-        self.assertEqual(player2.collab[0]["hp"], 50)
-        # Actions - only end turn left
-        actions = events[2]["available_actions"]
-        self.assertEqual(len(actions), 1)
-        # End the turn.
-        self.engine.handle_game_message(self.player1, GameAction.PerformanceStepEndTurn, {})
-        events = self.engine.grab_events()
-        # Events - end turn, turn start, reset step (activate resters, collab resting), draw, cheer
-        self.assertEqual(len(events), 12)
-        self.validate_event(events[0], EventType.EventType_EndTurn, self.player1, {
+        self.validate_event(events[2], EventType.EventType_EndTurn, self.player1, {
             "ending_player_id": self.player1,
             "next_player_id": self.player2,
         })
-        self.validate_event(events[2], EventType.EventType_TurnStart, self.player1, {
+        self.assertEqual(p2collaber["damage"], 20)
+        self.assertEqual(p2collaber["hp"], 50)
+        self.validate_event(events[4], EventType.EventType_TurnStart, self.player1, {
             "active_player": self.player2,
         })
-        self.validate_event(events[4], EventType.EventType_ResetStepActivate, self.player1, {
+        self.validate_event(events[6], EventType.EventType_ResetStepActivate, self.player1, {
             "active_player": self.player2,
         })
-        activated_card_ids = events[4]["activated_card_ids"]
+        activated_card_ids = events[6]["activated_card_ids"]
         self.assertEqual(len(activated_card_ids), 0) # Nobody was resting
-        self.validate_event(events[6], EventType.EventType_ResetStepCollab, self.player1, {
+        self.validate_event(events[8], EventType.EventType_ResetStepCollab, self.player1, {
             "active_player": self.player2,
         })
-        rested_card_ids = events[6]["rested_card_ids"]
+        rested_card_ids = events[8]["rested_card_ids"]
         self.assertEqual(len(rested_card_ids), 1) # Collab is resting now
         self.assertEqual(len(player2.collab), 0)
         self.assertEqual(player2.backstage[-1]["resting"], True)
         self.assertEqual(player2.backstage[-1]["damage"], 20)
-        self.validate_event(events[8], EventType.EventType_Draw, self.player1, {
+        self.validate_event(events[10], EventType.EventType_Draw, self.player1, {
             "drawing_player_id": self.player2
         })
-        self.validate_event(events[10], EventType.EventType_CheerStep, self.player1, { "active_player": self.player2, })
+        self.validate_event(events[12], EventType.EventType_CheerStep, self.player1, { "active_player": self.player2, })
         events = self.cheer_step_on_card(player2.backstage[-1])
         # Events - cheer placed and main step start and decision
         self.assertEqual(len(events), 6)

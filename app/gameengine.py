@@ -25,10 +25,12 @@ class DecisionType:
     DecisionPerformanceStep = "decision_performance_step"
     DecisionEffect_MoveCheerBetweenHolomems = "decision_effect_move_cheer_between_holomems"
     DecisionEffect_ChooseCardsForEffect = "decision_choose_cards_for_effect"
+    DecisionEffect_ChooseHolomemForEffect = "decision_choose_holomem_for_effect"
     DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
+    EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
     EffectType_ChooseCards = "choose_cards"
     EffectType_Draw = "draw"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
@@ -38,6 +40,7 @@ class EffectType:
     EffectType_RollDie_Internal = "roll_die_INTERNAL"
     EffectType_SendCheer = "send_cheer"
     EffectType_SendCollabBack = "send_collab_back"
+    EffectType_SetCenterHP = "set_center_hp"
     EffectType_ShuffleHandToDeck = "shuffle_hand_to_deck"
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
 
@@ -48,6 +51,9 @@ class Condition:
     Condition_CollabWith = "collab_with"
     Condition_HolomemOnStage = "holomem_on_stage"
     Condition_PerformerIsCenter = "performer_is_center"
+    Condition_PerformerIsColor = "performer_is_color"
+    Condition_PerformerIsSpecificId = "performer_is_specific_id"
+    Condition_PerformerHasAnyTag = "performer_has_any_tag"
     Condition_TargetColor = "target_color"
 
 
@@ -62,6 +68,7 @@ class EventType:
     EventType_Choice_SendCollabBack = "choice_send_collab_back"
     EventType_Collab = "collab"
     EventType_Decision_ChooseCards = "decision_choose_cards"
+    EventType_Decision_ChooseHolomemForEffect = "decision_choose_holomem_for_effect"
     EventType_Decision_MainStep = "decision_main_step"
     EventType_Decision_OrderCards = "decision_order_cards"
     EventType_Decision_PerformanceStep = "decision_performance_step"
@@ -77,6 +84,7 @@ class EventType:
     EventType_InitialPlacementPlaced = "initial_placement_placed"
     EventType_InitialPlacementReveal = "initial_placement_reveal"
     EventType_MainStepStart = "main_step_start"
+    EventType_ModifyHP = "modify_hp"
     EventType_MoveCard = "move_card"
     EventType_MoveCheer = "move_cheer"
     EventType_MulliganDecision = "mulligan_decision"
@@ -656,14 +664,38 @@ class PlayerState:
         self.archive.insert(0, card)
 
     def swap_center_with_back(self, back_id):
+        if len(self.center) == 0:
+            return
+
         self.move_card(self.center[0]["game_card_id"], "backstage")
         self.move_card(back_id, "center")
 
     def add_turn_effect(self, turn_effect):
         self.turn_effects.append(turn_effect)
 
+    def set_holomem_hp(self, card_id, target_hp):
+        card, _, _ = self.find_card(card_id)
+        if card["damage"] < card["hp"] - target_hp:
+            previous_damage = card["damage"]
+            card["damage"] = card["hp"] - target_hp
+            modify_hp_event = {
+                "event_type": EventType.EventType_ModifyHP,
+                "player_id": self.player_id,
+                "card_id": card_id,
+                "damage_done": card["damage"] - previous_damage,
+                "new_damage": card["damage"],
+            }
+            self.engine.broadcast_event(modify_hp_event)
+
 def ids_from_cards(cards):
     return [card["game_card_id"] for card in cards]
+
+def replace_field_in_conditions(effect, field_id, replacement_value):
+    if "conditions" in effect:
+        conditions = effect["conditions"]
+        for condition in conditions:
+            if field_id in condition:
+                condition[field_id] = replacement_value
 
 def is_card_resting(card):
     return "resting" in card and card["resting"]
@@ -1241,20 +1273,23 @@ class GameEngine:
     def send_performance_step_actions(self):
         # Determine available actions.
         available_actions = self.get_available_performance_actions()
-
-        decision_event = {
-            "event_type": EventType.EventType_Decision_PerformanceStep,
-            "desired_response": GameAction.PerformanceStepEndTurn,
-            "active_player": self.active_player_id,
-            "available_actions": available_actions,
-        }
-        self.broadcast_event(decision_event)
-        self.set_decision({
-            "decision_type": DecisionType.DecisionPerformanceStep,
-            "decision_player": self.active_player_id,
-            "available_actions": available_actions,
-            "continuation": self.continue_performance_step,
-        })
+        if len(available_actions) > 1:
+            decision_event = {
+                "event_type": EventType.EventType_Decision_PerformanceStep,
+                "desired_response": GameAction.PerformanceStepEndTurn,
+                "active_player": self.active_player_id,
+                "available_actions": available_actions,
+            }
+            self.broadcast_event(decision_event)
+            self.set_decision({
+                "decision_type": DecisionType.DecisionPerformanceStep,
+                "decision_player": self.active_player_id,
+                "available_actions": available_actions,
+                "continuation": self.continue_performance_step,
+            })
+        else:
+            # Can only end the turn, do it for them.
+            self.end_player_turn()
 
     def get_available_performance_actions(self):
         active_player = self.get_player(self.active_player_id)
@@ -1279,15 +1314,22 @@ class GameEngine:
             for art in performer["arts"]:
                 if art_requirement_met(performer, art):
                     performer_position = "center" if active_player.is_center_holomem(performer["game_card_id"]) else "collab"
-                    available_actions.append({
-                        "action_type": GameAction.PerformanceStepUseArt,
-                        "performer_id": performer["game_card_id"],
-                        "performer_position": performer_position,
-                        "art_id": art["art_id"],
-                        "power": art["power"],
-                        "art_effects": art.get("art_effects", []),
-                        "valid_targets": ids_from_cards(opponent_performers),
-                    })
+                    valid_targets = ids_from_cards(opponent_performers)
+                    if "target_condition" in art:
+                        match art["target_condition"]:
+                            case "center_only":
+                                valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
+
+                    if len(valid_targets) > 0:
+                        available_actions.append({
+                            "action_type": GameAction.PerformanceStepUseArt,
+                            "performer_id": performer["game_card_id"],
+                            "performer_position": performer_position,
+                            "art_id": art["art_id"],
+                            "power": art["power"],
+                            "art_effects": art.get("art_effects", []),
+                            "valid_targets": valid_targets,
+                        })
 
         # End Performance
         available_actions.append({
@@ -1303,7 +1345,7 @@ class GameEngine:
             "active_player": self.active_player_id,
         }
         self.broadcast_event(start_event)
-        self.send_performance_step_actions()
+        self.continue_performance_step()
 
     def continue_performance_step(self):
         self.send_performance_step_actions()
@@ -1442,6 +1484,11 @@ class GameEngine:
         effect_player_id = effect["player_id"]
         effect_player = self.get_player(effect_player_id)
         if "conditions" not in effect or self.are_conditions_met(effect_player, effect["conditions"]):
+            # Add any "and" effects to the front of the queue.
+            if "and" in effect:
+                and_effects = effect["and"]
+                add_ids_to_effects(and_effects, effect_player_id, effect.get("source_card_id", None))
+                self.effects_to_resolve = and_effects + self.effects_to_resolve
             self.do_effect(effect_player, effect)
 
         if not self.current_decision:
@@ -1462,6 +1509,8 @@ class GameEngine:
                     amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.hand) <= amount_max
             case Condition.Condition_CenterIsColor:
+                if len(effect_player.center) == 0:
+                    return False
                 condition_colors = condition["condition_colors"]
                 center_colors = effect_player.center[0]["colors"]
                 if any(color in center_colors for color in condition_colors):
@@ -1481,7 +1530,24 @@ class GameEngine:
                 holomems = effect_player.get_holomem_on_stage()
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
             case Condition.Condition_PerformerIsCenter:
+                if len(self.performance_performing_player.center) == 0:
+                    return False
                 return self.performance_performing_player.center[0]["game_card_id"] == self.performance_performer_card["game_card_id"]
+            case Condition.Condition_PerformerIsColor:
+                condition_colors = condition["condition_colors"]
+                for color in self.performance_performer_card["colors"]:
+                    if color in condition_colors:
+                        return True
+                return False
+            case Condition.Condition_PerformerIsSpecificId:
+                required_id = condition["required_id"]
+                return self.performance_performer_card["game_card_id"] == required_id
+            case Condition.Condition_PerformerHasAnyTag:
+                valid_tags = condition["condition_tags"]
+                for tag in self.performance_performer_card["tags"]:
+                    if tag in valid_tags:
+                        return True
+                return False
             case Condition.Condition_TargetColor:
                 color_requirement = condition["color_requirement"]
                 return color_requirement in self.performance_target_card["colors"]
@@ -1502,6 +1568,39 @@ class GameEngine:
                     "turn_effect": effect["turn_effect"],
                 }
                 self.broadcast_event(event)
+            case EffectType.EffectType_AddTurnEffectForHolomem:
+                holomem_targets = ids_from_cards(effect_player.get_holomem_on_stage())
+                turn_effect_copy = deepcopy(effect["turn_effect"])
+                if len(holomem_targets) == 1:
+                    replace_field_in_conditions(turn_effect_copy, "required_id", holomem_targets[0])
+                    effect_player.add_turn_effect(effect["turn_effect"])
+                    event = {
+                        "event_type": EventType.EventType_AddTurnEffect,
+                        "effect_player_id": effect_player_id,
+                        "turn_effect": turn_effect_copy,
+                    }
+                    self.broadcast_event(event)
+                else:
+                    # Ask the player to choose one.
+                    decision_event = {
+                        "event_type": EventType.EventType_Decision_ChooseHolomemForEffect,
+                        "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                        "effect_player_id": effect_player_id,
+                        "cards_can_choose": holomem_targets,
+                        "effect": effect,
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                        "decision_player": effect_player_id,
+                        "all_card_seen": holomem_targets,
+                        "cards_can_choose": holomem_targets,
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "turn_effect": turn_effect_copy,
+                        "effect_resolution": self.handle_add_turn_effect_for_holomem,
+                        "continuation": self.continue_resolving_effects,
+                    })
             case EffectType.EffectType_ChooseCards:
                 from_zone = effect["from"]
                 destination = effect["destination"]
@@ -1833,7 +1932,14 @@ class GameEngine:
                     })
                 else:
                     effect_player.return_collab()
-
+            case EffectType.EffectType_SetCenterHP:
+                amount = effect["amount"]
+                is_opponent = "opponent" in effect and effect["opponent"]
+                affected_player = effect_player
+                if is_opponent:
+                    affected_player = self.other_player(effect_player_id)
+                if len(affected_player.center) > 0:
+                    affected_player.set_holomem_hp(affected_player.center[0]["game_card_id"], amount)
             case EffectType.EffectType_ShuffleHandToDeck:
                 effect_player.shuffle_hand_to_deck()
             case EffectType.EffectType_SwitchCenterWithBack:
@@ -2610,6 +2716,21 @@ class GameEngine:
         owner_id = get_owner_id_from_card_id(card_id)
         owner = self.get_player(owner_id)
         owner.swap_center_with_back(card_id)
+
+        continuation()
+
+    def handle_add_turn_effect_for_holomem(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
+        effect_player = self.get_player(performing_player_id)
+        holomem_target = card_ids[0]
+        turn_effect = decision_info_copy["turn_effect"]
+        replace_field_in_conditions(turn_effect, "required_id", holomem_target)
+        effect_player.add_turn_effect(turn_effect)
+        event = {
+            "event_type": EventType.EventType_AddTurnEffect,
+            "effect_player_id": performing_player_id,
+            "turn_effect": turn_effect,
+        }
+        self.broadcast_event(event)
 
         continuation()
 

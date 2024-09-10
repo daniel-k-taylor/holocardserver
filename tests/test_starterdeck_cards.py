@@ -59,22 +59,16 @@ class TestStarterDeckCards(unittest.TestCase):
         player1.backstage.remove(test_card)
         player1.center = [test_card]
 
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer1")
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "white", "whitecheer2")
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = engine.grab_events()
         validate_last_event_not_error(self, events)
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 1) # No cheer
-
-        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "white", "whitecheer1")
-        actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 1) # Not enough cheer
-
-        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer1")
-        actions = reset_performancestep(self)
         self.assertEqual(len(actions), 2)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
 
-        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer1")
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer3")
         actions = reset_performancestep(self)
         self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
@@ -114,9 +108,9 @@ class TestStarterDeckCards(unittest.TestCase):
         }
         self.engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        # Events - move card, performance step
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[2], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player1 })
+        # Events - move card, auto end turn, end turn, start turn, cheer
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
 
 
     def test_support_hSD01_006_required_member_met(self):
@@ -137,13 +131,14 @@ class TestStarterDeckCards(unittest.TestCase):
         player1.backstage = []
         azki_card = put_card_in_play(self, player1, "hSD01-008", player1.backstage)
 
-        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
-        events = engine.grab_events()
-        validate_last_event_not_error(self, events)
 
         spawn_cheer_on_card(self, player1, test_card["game_card_id"], "white", "whitecheer1")
         spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer1")
         spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer1")
+        engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        validate_last_event_not_error(self, events)
+
         actions = reset_performancestep(self)
         self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
@@ -188,9 +183,9 @@ class TestStarterDeckCards(unittest.TestCase):
         }
         self.engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        # Events - move card, performance step
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[2], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player1 })
+        # Events - move card, end turn, all the rest
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
 
     def test_support_hSD01_006_death_costs_2(self):
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -255,13 +250,13 @@ class TestStarterDeckCards(unittest.TestCase):
         }
         self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        # Events - move card * 2, performance step
-        self.assertEqual(len(events), 6)
-        self.assertEqual(len(player1.life), 3)
+        # Events - move card * 2, end turn + 6
+        self.assertEqual(len(events), 14)
+        self.assertEqual(len(player1.life), 4)
         self.assertTrue(life1["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cheer"]])
         self.assertTrue(life2["game_card_id"] in [card["game_card_id"] for card in player1.backstage[0]["attached_cheer"]])
         self.assertEqual(len(player1.backstage[0]["attached_cheer"]), 2)
-        validate_event(self, events[4], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player2 })
+        validate_event(self, events[4], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player2 })
 
 
     def test_support_hSD01_011_weakness_boost_none(self):
@@ -559,8 +554,8 @@ class TestStarterDeckCards(unittest.TestCase):
             "target_id": target
         })
         events = engine.grab_events()
-        # Events - roll die, send_cheer, use art, performance step
-        self.assertEqual(len(events), 8)
+        # Events - roll die, send_cheer, use art, end turn + 10
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
@@ -580,7 +575,7 @@ class TestStarterDeckCards(unittest.TestCase):
             "died": False,
             "game_over": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_PerformanceStep, self.player1, { "active_player": self.player1 })
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
 
 
     def test_support_hSD01_015_collab_with_member_sora(self):
