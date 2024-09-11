@@ -8,8 +8,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 class GameRoom:
-    def __init__(self, room_id : str, players : List[Player], game_type : str):
+    def __init__(self, room_id : str, room_name : str, players : List[Player], game_type : str):
         self.room_id = room_id
+        self.room_name = room_name
         self.players = players
         self.ai_player = None
         self.game_type = game_type
@@ -19,6 +20,9 @@ class GameRoom:
 
     def is_ai_game(self):
         return self.game_type == "ai"
+
+    def get_room_name(self):
+        return self.room_name
 
     async def start(self, card_db: CardDatabase):
         logger.info("GAME: Starting game!")

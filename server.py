@@ -42,11 +42,8 @@ matchmaking : Matchmaking = Matchmaking()
 card_db : CardDatabase = CardDatabase()
 
 async def broadcast_server_info():
-    message = message_types.ServerInfoMessage(
-        message_type="server_info",
-        queue_info=matchmaking.get_queue_info()
-    )
-    await manager.broadcast(message)
+    await player_manager.broadcast_server_info(matchmaking.get_queue_info())
+    #await manager.broadcast(message)
 
 async def send_error_message(websocket: WebSocket, error_id, error_str : str):
     message = message_types.ErrorMessage(
