@@ -25,13 +25,14 @@ class DecisionType:
     DecisionPerformanceStep = "decision_performance_step"
     DecisionEffect_MoveCheerBetweenHolomems = "decision_effect_move_cheer_between_holomems"
     DecisionEffect_ChooseCardsForEffect = "decision_choose_cards_for_effect"
-    DecisionEffect_ChooseHolomemForEffect = "decision_choose_holomem_for_effect"
     DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
+    EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_ChooseCards = "choose_cards"
+    EffectType_DealDamage = "deal_damage"
     EffectType_Draw = "draw"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_PowerBoost = "power_boost"
@@ -248,6 +249,7 @@ class PlayerState:
                 generated_card["played_this_turn"] = False
                 generated_card["bloomed_this_turn"] = False
                 generated_card["attached_cheer"] = []
+                generated_card["attached_support"] = []
                 generated_card["stacked_cards"] = []
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
@@ -505,7 +507,7 @@ class PlayerState:
         for card_id in collab_card_ids:
             self.move_card(card_id, "backstage")
 
-    def bloom(self, bloom_card_id, target_card_id):
+    def bloom(self, bloom_card_id, target_card_id, continuation):
         bloom_card, _, bloom_from_zone_name = self.find_and_remove_card(bloom_card_id)
         target_card, zone, _ = self.find_and_remove_card(target_card_id)
 
@@ -516,6 +518,8 @@ class PlayerState:
 
         bloom_card["attached_cheer"] += target_card["attached_cheer"]
         target_card["attached_cheer"] = []
+        bloom_card["attached_support"] += target_card["attached_support"]
+        target_card["attached_support"] = []
 
         bloom_card["bloomed_this_turn"] = True
         bloom_card["damage"] = target_card["damage"]
@@ -532,6 +536,14 @@ class PlayerState:
             "bloom_from_zone": bloom_from_zone_name,
         }
         self.engine.broadcast_event(bloom_event)
+
+        # Handle any bloom effects.
+        if "bloom_effects" in bloom_card:
+            effects = deepcopy(bloom_card["bloom_effects"])
+            add_ids_to_effects(effects, self.player_id, bloom_card_id)
+            self.engine.begin_resolving_effects(effects, continuation)
+        else:
+            continuation()
 
     def generate_holopower(self, amount):
         for _ in range(amount):
@@ -656,10 +668,11 @@ class PlayerState:
 
     def archive_holomem_from_play(self, card_id):
         card, _, _ = self.find_and_remove_card(card_id)
-        attached_cards = card["attached_cheer"]
+        attached_cheer = card["attached_cheer"]
+        attached_support = card["attached_support"]
         stacked_cards = card["stacked_cards"]
 
-        for extra_card in attached_cards + stacked_cards:
+        for extra_card in attached_cheer + attached_support + stacked_cards:
             self.archive.insert(0, extra_card)
         self.archive.insert(0, card)
 
@@ -756,10 +769,17 @@ def art_requirement_met(card, art):
     return True
 
 def attach_card(attaching_card, target_card):
-    target_card["attached_cheer"].append(attaching_card)
+    card_type = attaching_card["card_type"]
+    if card_type == "cheer":
+        target_card["attached_cheer"].append(attaching_card)
+    else:
+        target_card["attached_support"].append(attaching_card)
 
 def is_card_limited(card):
     return "limited" in card and card["limited"]
+
+def is_card_mascot(card):
+    return "sub_type" in card and card["sub_type"] == "mascot"
 
 def get_effects_at_timing(art_effects, timing):
     return deepcopy([effect for effect in art_effects if effect["timing"] == timing])
@@ -1601,6 +1621,10 @@ class GameEngine:
                         "effect_resolution": self.handle_add_turn_effect_for_holomem,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_AttachCardToHolomem:
+                card_to_attach = effect["card_id"]
+                target_holomem = effect["card_ids"][0]
+                effect_player.move_card(card_to_attach, "holomem", target_holomem)
             case EffectType.EffectType_ChooseCards:
                 from_zone = effect["from"]
                 destination = effect["destination"]
@@ -1650,6 +1674,9 @@ class GameEngine:
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_to_choose_from if is_card_limited(card)]
+                        case "mascot":
+                            # Only include cards that are mascots.
+                            cards_can_choose = [card for card in cards_to_choose_from if is_card_mascot(card)]
 
                     # Exclude any buzz if required.
                     if requirement_buzz_blocked:
@@ -1691,6 +1718,20 @@ class GameEngine:
                     "effect_resolution": self.handle_choose_cards_result,
                     "continuation": self.continue_resolving_effects,
                 })
+            case EffectType.EffectType_DealDamage:
+                special = effect.get("special", False)
+                target = effect["target"]
+                opponent = effect.get("opponent", False)
+                amount = effect["amount"]
+                prevent_life_loss = effect.get("prevent_life_loss", False)
+                target_player = effect_player
+                if opponent:
+                    target_player = self.other_player(effect_player_id)
+                target_card, _, _ = target_player.find_card(target)
+                # TODO: Continue here
+                # Call into player to deal damage
+                # Handle continuations such that perform art or this work.
+
             case EffectType.EffectType_Draw:
                 amount = effect["amount"]
                 effect_player.draw(amount)
@@ -2311,9 +2352,7 @@ class GameEngine:
         player = self.get_player(player_id)
         card_id = action_data["card_id"]
         target_id = action_data["target_id"]
-        player.bloom(card_id, target_id)
-
-        continuation()
+        player.bloom(card_id, target_id, continuation)
 
     def validate_main_step_collab(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepCollabFields):
@@ -2734,21 +2773,67 @@ class GameEngine:
 
         continuation()
 
+    def handle_run_single_effect(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
+        effect_player = self.get_player(performing_player_id)
+        effect = decision_info_copy["effect_to_run"]
+        effect["card_ids"] = card_ids
+        # Assumption here is no conditions and no decisions after.
+        self.do_effect(effect_player, effect)
+        continuation()
+
     def handle_choose_cards_result(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
         from_zone = decision_info_copy["from_zone"]
         to_zone = decision_info_copy["to_zone"]
         reveal_chosen = decision_info_copy["reveal_chosen"]
         remaining_cards_action = decision_info_copy["remaining_cards_action"]
         all_card_seen = decision_info_copy["all_card_seen"]
+        remaining_card_ids = [card_id for card_id in all_card_seen if card_id not in card_ids]
 
         player = self.get_player(performing_player_id)
 
         # Deal with chosen cards.
-        for card_id in card_ids:
-            player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+        if to_zone == "holomem":
+            # In this case, the user has to pick a target holomem.
+            # Assume this is only a single card because it would be weird to have
+            # to figure out limitations for multiple cards all at once.
+            chosen_card = card_ids[0]
+            holomem_targets = player.get_holomems_that_can_attach(chosen_card)
+            attach_effect = {
+                "effect_type": EffectType.EffectType_AttachCardToHolomem,
+                "effect_player_id": performing_player_id,
+                "card_id": chosen_card["game_card_id"],
+                "card_ids": [], # Filled in by the decision.
+            }
+            add_ids_to_effects([attach_effect], performing_player_id, chosen_card["game_card_id"])
+            decision_event = {
+                "event_type": EventType.EventType_Decision_ChooseHolomemForEffect,
+                "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                "effect_player_id": performing_player_id,
+                "cards_can_choose": holomem_targets,
+                "effect": attach_effect,
+            }
+            self.broadcast_event(decision_event)
+            self.set_decision({
+                "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                "decision_player": performing_player_id,
+                "all_card_seen": holomem_targets,
+                "cards_can_choose": holomem_targets,
+                "amount_min": 1,
+                "amount_max": 1,
+                "effect_to_run": attach_effect,
+                "effect_resolution": self.handle_run_single_effect,
+                "continuation": lambda :
+                    # Finisht eh cleanup of the remaining cards.
+                    self.choose_cards_cleanup_remaining(self, performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation),
+            })
+        else:
+            for card_id in card_ids:
+                player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+            self.choose_cards_cleanup_remaining(self, performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
 
+    def choose_cards_cleanup_remaining(self, performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation):
+        player = self.get_player(performing_player_id)
         # Deal with unchosen cards.
-        remaining_card_ids = [card_id for card_id in all_card_seen if card_id not in card_ids]
         if remaining_card_ids:
             match remaining_cards_action:
                 case "nothing":

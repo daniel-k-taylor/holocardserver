@@ -963,7 +963,7 @@
                                 "destination": "holomem",
                                 "amount_min": 1,
                                 "amount_max": 1,
-                                "requirement": "support_mascot",
+                                "requirement": "mascot",
                                 "reveal_chosen": true,
                                 "remaining_cards_action": "shuffle"
                             }
@@ -1004,7 +1004,8 @@
                 "special": true,
                 "target": "center",
                 "opponent": true,
-                "amount": 30
+                "amount": 30,
+                "prevent_life_loss": true
             }
         ],
         "collab_effects": []

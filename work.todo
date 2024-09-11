@@ -1,9 +1,9 @@
 
 Todo:
     hbp 12
-    ☐ bloom_effects
-    ☐ choose cards "destination": "holomem",
-    ☐ "requirement": "support_mascot",
+    ☐ bloom_effects @started(24-09-11 02:05)
+    ☐ choose cards "destination": "holomem", @started(24-09-11 02:05)
+    ☐ "requirement": "mascot", @started(24-09-11 02:05)
     hbp13
     ☐ "effect_type": "deal_damage" - special,
     hbp14
@@ -36,7 +36,7 @@ Client:
 
     ☐ hbp01-010 - art imoffnow text, performer_has_any_tag condition
 
-    ☐ hbp1-012 - art pleasegivelotsofsupport text, "destination": "holomem","requirement": "support_mascot",
+    ☐ hbp1-012 - art pleasegivelotsofsupport text, "destination": "holomem","requirement": "mascot",, EffectType_AttachCardToHolomem
     ☐ hbp1-13 - art angelstage text, deal_damage text
     ☐ 14 - art jetblackwings, performance_target_has_damage_over_hp condition, performance_life_lost_increase effect, on_kill_effects
 
