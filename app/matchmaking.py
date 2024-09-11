@@ -25,11 +25,11 @@ def get_queue_friendly_name(queue_name):
             return queue_name
 
 class MatchQueue:
-    def __init__(self, queue_name : str, game_type: str, permanent_queue : bool):
+    def __init__(self, queue_name : str, game_type: str, custom_game : bool):
         self.players = []
         self.queue_name = queue_name
         self.game_type = game_type
-        self.permanent_queue = permanent_queue
+        self.custom_game = custom_game
 
     def add_player(self, player: Player):
         self.players.append(player)
@@ -67,8 +67,8 @@ class MatchQueue:
 
 class Matchmaking:
     def __init__(self):
-        main_queue = MatchQueue("main_matchmaking_normal", permanent_queue=True, game_type="versus")
-        ai_queue = MatchQueue("main_matchmaking_ai", permanent_queue=True, game_type="ai")
+        main_queue = MatchQueue("main_matchmaking_normal", custom_game=False, game_type="versus")
+        ai_queue = MatchQueue("main_matchmaking_ai", custom_game=False, game_type="ai")
         self.all_queues = [main_queue, ai_queue]
 
     def is_game_type_valid(self, game_type: str):
@@ -85,14 +85,14 @@ class Matchmaking:
             if queue.queue_name == queue_name:
                 room = queue.add_player(player)
                 if room:
-                    if not queue.permanent_queue:
+                    if queue.custom_game:
                         self.all_queues.remove(queue)
                     return room
                 return None
 
         if custom_game:
             # The user is creating a new custom game.
-            new_queue = MatchQueue(queue_name, game_type=game_type, permanent_queue=False)
+            new_queue = MatchQueue(queue_name, game_type=game_type, custom_game=True)
             room = new_queue.add_player(player)
             if room:
                 return room
@@ -104,7 +104,7 @@ class Matchmaking:
         for queue in self.all_queues:
             if player in queue.players:
                 queue.remove_player(player)
-                if not queue.permanent_queue and len(queue.players) == 0:
+                if not queue.custom_game and len(queue.players) == 0:
                     self.all_queues.remove(queue)
 
     def get_queue_info(self):
@@ -112,8 +112,13 @@ class Matchmaking:
         for queue in self.all_queues:
             queue_info.append({
                 "queue_name": queue.queue_name,
-                "permanent_queue": queue.permanent_queue,
+                "custom_game": queue.custom_game,
                 "game_type": queue.game_type,
                 "players_count": len(queue.players),
             })
         return queue_info
+
+    def is_valid_queue_name(self, queue_name: str):
+        if not queue_name:
+            return False
+        return True
