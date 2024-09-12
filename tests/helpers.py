@@ -71,6 +71,7 @@ def validate_last_event_is_error(self : unittest.TestCase, events):
     self.assertEqual(events[-1]["event_type"], EventType.EventType_GameError)
 
 def reset_mainstep(self : unittest.TestCase):
+    self.assertEqual(self.engine.current_decision["decision_type"], EventType.EventType_Decision_MainStep)
     self.engine.clear_decision()
     self.engine.send_main_step_actions()
     events = self.engine.grab_events()
@@ -92,21 +93,26 @@ def reset_performancestep(self : unittest.TestCase):
     else:
         return events[-2]["available_actions"]
 
-def initialize_game_to_third_turn(self : unittest.TestCase):
+def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2deck = None):
     self.random_override = RandomOverride()
+
+    if not p1deck:
+        p1deck = azki_starter
+    if not p2deck:
+        p2deck = sora_starter
 
     self.players = [
         {
             "player_id": "player1",
-            "oshi_id": azki_starter["oshi_id"],
-            "deck": azki_starter["deck"],
-            "cheer_deck": azki_starter["cheer_deck"]
+            "oshi_id": p1deck["oshi_id"],
+            "deck": p1deck["deck"],
+            "cheer_deck": p1deck["cheer_deck"]
         },
         {
             "player_id": "player2",
-            "oshi_id": sora_starter["oshi_id"],
-            "deck": sora_starter["deck"],
-            "cheer_deck": sora_starter["cheer_deck"]
+            "oshi_id": p2deck["oshi_id"],
+            "deck": p2deck["deck"],
+            "cheer_deck": p2deck["cheer_deck"]
         }
     ]
     self.engine = GameEngine(card_db, "versus", self.players)
@@ -125,6 +131,7 @@ def initialize_game_to_third_turn(self : unittest.TestCase):
     hand_card_ids = []
     for card in self.engine.player_states[0].hand:
         hand_card_ids.append(card["card_id"])
+
     expected_ids = ["hSD01-003", "hSD01-003", "hSD01-003", "hSD01-003", "hSD01-004", "hSD01-004", "hSD01-004"]
     self.assertListEqual(hand_card_ids, expected_ids)
 
@@ -260,3 +267,35 @@ def spawn_cheer_on_card(self, player : PlayerState, card_id, cheer_color, desire
         found_card["attached_cheer"].append(cheer_card)
 
     return cheer_card
+
+def generate_deck_with(oshi_id, cards : dict[str, int] = [], cheer = []):
+    new_deck = deepcopy(sora_starter)
+    if oshi_id:
+        new_deck["oshi_id"] = oshi_id
+    if cheer:
+        new_deck["cheer_deck"] = cheer
+
+    if cards:
+        new_card_count = 0
+        for card_id, count in cards.items():
+            new_card_count += count
+        deck = new_deck["deck"]
+        # Remove cards from the end of the existing deck then add these to the end.
+        removed_count = 0
+        while removed_count < new_card_count:
+            # Get the last item in the dictionary.
+            card_id = list(deck.keys())[-1]
+            count_in_deck = deck[card_id]
+            remaining_to_remove = new_card_count - removed_count
+            if count_in_deck > remaining_to_remove:
+                deck[card_id] = count_in_deck - remaining_to_remove
+                removed_count += remaining_to_remove
+            else:
+                removed_count += count_in_deck
+                del deck[card_id]
+
+        # Now add these cards to the end.
+        for card_id, count in cards.items():
+            deck[card_id] = count
+
+    return new_deck

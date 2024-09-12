@@ -1,3 +1,4 @@
+
 Todo:
 
 Revisit:
@@ -5,19 +6,3 @@ Revisit:
         ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
-
-
-Adding cards:
-    ☐ hBP01-001 - squeezesqueeze text, illcrushyou text
-        ☐ "effect_type": "set_center_hp",
-        ☐ effect_type": "add_turn_effect_for_holomem",
-                        "turn_effect": {
-                            "timing": "before_art",
-                            "effect_type": "power_boost",
-                            "amount": 50,
-                            ☐ "conditional_boost_color": "white",
-                            ☐ "conditional_boost_power": 50
-                        }
-    ☐ "hBP01-009", amane_kanata name,
-        ☐ konkanata art - "target_condition": "center_only",
-        ☐ no_limit deckbuilding in carddb validation

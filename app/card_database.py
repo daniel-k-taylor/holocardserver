@@ -50,11 +50,6 @@ class CardDatabase:
         # Check the deck
         deck_count = 0
         for card_id, count in deck.items():
-            if count > MAX_ANY_CARD_COUNT:
-                logger.info("--Deck Invalid: Too many cards")
-                return False
-
-            deck_count += count
             deck_card = self.get_card_by_id(card_id)
             if not deck_card or deck_card["card_type"] not in ALLOWED_DECK_TYPES:
                 if deck_card["card_type"]:
@@ -62,6 +57,16 @@ class CardDatabase:
                 else:
                     logger.info("--Deck Invalid: Card Type None")
                 return False
+
+            # Can only have 4 of any card, unless special_deck_limit is set.
+            deck_limit = MAX_ANY_CARD_COUNT
+            if "special_deck_limit" in deck_card:
+                deck_limit = deck_card["special_deck_limit"]
+            if count > deck_limit:
+                logger.info("--Deck Invalid: Too many cards")
+                return False
+
+            deck_count += count
 
         if deck_count != REQUIRED_DECK_COUNT:
             logger.info("--Deck Invalid: Not enough cards")

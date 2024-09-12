@@ -1,5 +1,5 @@
 from dataclasses import dataclass, asdict
-from typing import Any, Dict
+from typing import Any, Dict, List
 import json
 
 @dataclass
@@ -13,6 +13,9 @@ class Message:
 @dataclass
 class ServerInfoMessage(Message):
     queue_info: Dict[str, Any]
+    players_info: List[Dict]
+    your_id : str
+    your_username : str
 
 @dataclass
 class ErrorMessage(Message):
