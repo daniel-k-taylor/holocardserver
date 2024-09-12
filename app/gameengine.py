@@ -219,7 +219,7 @@ class EffectResolutionState:
     def __init__(self, effects, continuation, cards_to_cleanup = []):
         self.effects_to_resolve = effects
         self.effect_resolution_continuation = continuation
-        self.cards_to_cleanup = []
+        self.cards_to_cleanup = cards_to_cleanup
 
 class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
@@ -1567,7 +1567,7 @@ class GameEngine:
         if not self.effect_resolution_state.effects_to_resolve:
             for cleanup_card in self.effect_resolution_state.cards_to_cleanup:
                 # The card may have been removed from play by some effect (like attaching).
-                if cleanup_card["game_card_id"] in self.floating_cards:
+                if cleanup_card in self.floating_cards:
                     self.floating_cards.remove(cleanup_card)
                     owner = self.get_player(cleanup_card["owner_id"])
                     owner.archive.insert(0, cleanup_card)
