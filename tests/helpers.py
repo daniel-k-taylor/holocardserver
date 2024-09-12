@@ -71,6 +71,7 @@ def validate_last_event_is_error(self : unittest.TestCase, events):
     self.assertEqual(events[-1]["event_type"], EventType.EventType_GameError)
 
 def reset_mainstep(self : unittest.TestCase):
+    self.assertEqual(self.engine.current_decision["decision_type"], EventType.EventType_Decision_MainStep)
     self.engine.clear_decision()
     self.engine.send_main_step_actions()
     events = self.engine.grab_events()

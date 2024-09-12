@@ -216,10 +216,10 @@ class GameAction:
     }
 
 class EffectResolutionState:
-    def __init__(self, effects, continuation, cleanup_card):
+    def __init__(self, effects, continuation, cards_to_cleanup = []):
         self.effects_to_resolve = effects
         self.effect_resolution_continuation = continuation
-        self.effect_resolution_cleanup_card = cleanup_card
+        self.cards_to_cleanup = []
 
 class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
@@ -447,6 +447,9 @@ class PlayerState:
                 if card["game_card_id"] == card_id:
                     zone_name = self.get_zone_name(zone)
                     return card, zone, zone_name
+        for card in self.engine.floating_cards:
+            if card["game_card_id"] == card_id:
+                return card, self.engine.floating_cards, "floating"
         return None, None, None
 
     def find_and_remove_card(self, card_id):
@@ -630,36 +633,37 @@ class PlayerState:
 
     def find_and_remove_attached(self, attached_id):
         previous_holder_id = None
+        found_card = None
         for card in self.get_holomem_on_stage():
             if attached_id in ids_from_cards(card["attached_cheer"]):
                 # Remove the cheer.
-                cheer_card = next(card for card in card["attached_cheer"] if card["game_card_id"] == attached_id)
+                found_card = next(card for card in card["attached_cheer"] if card["game_card_id"] == attached_id)
                 previous_holder_id = card["game_card_id"]
-                card["attached_cheer"].remove(cheer_card)
+                card["attached_cheer"].remove(found_card)
                 break
             if attached_id in ids_from_cards(card["attached_support"]):
                 # Remove the support.
-                support_card = next(card for card in card["attached_support"] if card["game_card_id"] == attached_id)
+                found_card = next(card for card in card["attached_support"] if card["game_card_id"] == attached_id)
                 previous_holder_id = card["game_card_id"]
-                card["attached_support"].remove(support_card)
+                card["attached_support"].remove(found_card)
                 break
         if not previous_holder_id:
             # Check the life deck.
             if attached_id in ids_from_cards(self.life):
-                cheer_card = next(card for card in self.life if card["game_card_id"] == attached_id)
-                self.life.remove(cheer_card)
+                found_card = next(card for card in self.life if card["game_card_id"] == attached_id)
+                self.life.remove(found_card)
                 previous_holder_id = "life"
             # And the archive.
             elif attached_id in ids_from_cards(self.archive):
-                cheer_card = next(card for card in self.archive if card["game_card_id"] == attached_id)
-                self.archive.remove(cheer_card)
+                found_card = next(card for card in self.archive if card["game_card_id"] == attached_id)
+                self.archive.remove(found_card)
                 previous_holder_id = "archive"
             # And the cheer deck.
             elif attached_id in ids_from_cards(self.cheer_deck):
-                cheer_card = next(card for card in self.cheer_deck if card["game_card_id"] == attached_id)
-                self.cheer_deck.remove(cheer_card)
+                found_card = next(card for card in self.cheer_deck if card["game_card_id"] == attached_id)
+                self.cheer_deck.remove(found_card)
                 previous_holder_id = "cheer_deck"
-        return cheer_card, previous_holder_id
+        return found_card, previous_holder_id
 
     def find_and_remove_support(self, support_id):
         previous_holder_id = None
@@ -835,6 +839,7 @@ class GameEngine:
         self.effect_resolution_state = None
         self.test_random_override = None
         self.turn_number = 0
+        self.floating_cards = []
 
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = None
@@ -1422,9 +1427,10 @@ class GameEngine:
         # Get any before effects and resolve them.
         art_effects = get_effects_at_timing(art.get("art_effects", []), "before_art")
         add_ids_to_effects(art_effects, player.player_id, performer_id)
+        card_effects = player.get_effects_at_timing("before_art", performer)
         player_turn_effects = get_effects_at_timing(player.turn_effects, "before_art")
         add_ids_to_effects(player_turn_effects, player.player_id, "")
-        all_effects = art_effects + player_turn_effects
+        all_effects = card_effects + art_effects + player_turn_effects
         self.begin_resolving_effects(all_effects, self.continue_perform_art)
 
     def continue_perform_art(self):
@@ -1448,6 +1454,7 @@ class GameEngine:
 
         # Deal damage.
         on_kill_effects = self.performance_art.get("on_kill_effects", [])
+        add_ids_to_effects(on_kill_effects, self.active_player_id, self.performance_performer_card["game_card_id"])
         self.deal_damage(target_owner, self.performance_target_card, total_power, is_special_damage, False, on_kill_effects, self.performance_continuation)
 
         if not self.current_decision and not self.is_game_over():
@@ -1458,8 +1465,7 @@ class GameEngine:
 
         on_damage_effects = target_player.get_effects_at_timing("on_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
-            self.continue_deal_damage(target_player, target_card, damage, special, prevent_life_loss, on_kill_effects, continuation),
-            None
+            self.continue_deal_damage(target_player, target_card, damage, special, prevent_life_loss, on_kill_effects, continuation)
         )
 
     def continue_deal_damage(self, target_player : PlayerState, target_card, damage, special, prevent_life_loss, on_kill_effects, continuation):
@@ -1543,7 +1549,7 @@ class GameEngine:
                 "continuation": continuation,
             })
 
-    def begin_resolving_effects(self, effects, continuation, cleanup_card_to_archive=None):
+    def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
         effect_continuation = continuation
         if self.effect_resolution_state:
             # There is already an effects resolution going down.
@@ -1554,24 +1560,26 @@ class GameEngine:
                 self.effect_resolution_state = outer_resolution_state
                 continuation()
             effect_continuation = new_continuation
-        self.effect_resolution_state = EffectResolutionState(effects, effect_continuation, cleanup_card_to_archive)
+        self.effect_resolution_state = EffectResolutionState(effects, effect_continuation, cards_to_cleanup)
         self.continue_resolving_effects()
 
     def continue_resolving_effects(self):
         if not self.effect_resolution_state.effects_to_resolve:
-            cleanup_card = self.effect_resolution_state.effect_resolution_cleanup_card
-            if cleanup_card:
-                owner = self.get_player(cleanup_card["owner_id"])
-                owner.archive.insert(0, cleanup_card)
-                cleanup_event = {
-                    "event_type": EventType.EventType_MoveCard,
-                    "moving_player_id": owner.player_id,
-                    "from_zone": "floating",
-                    "to_zone": "archive",
-                    "zone_card_id": "",
-                    "card_id": cleanup_card["game_card_id"],
-                }
-                self.broadcast_event(cleanup_event)
+            for cleanup_card in self.effect_resolution_state.cards_to_cleanup:
+                # The card may have been removed from play by some effect (like attaching).
+                if cleanup_card["game_card_id"] in self.floating_cards:
+                    self.floating_cards.remove(cleanup_card)
+                    owner = self.get_player(cleanup_card["owner_id"])
+                    owner.archive.insert(0, cleanup_card)
+                    cleanup_event = {
+                        "event_type": EventType.EventType_MoveCard,
+                        "moving_player_id": owner.player_id,
+                        "from_zone": "floating",
+                        "to_zone": "archive",
+                        "zone_card_id": "",
+                        "card_id": cleanup_card["game_card_id"],
+                    }
+                    self.broadcast_event(cleanup_event)
 
             continuation = self.effect_resolution_state.effect_resolution_continuation
             self.effect_resolution_state = None
@@ -1723,7 +1731,7 @@ class GameEngine:
                     # This effect can be called from elsewhere, so use special continuations
                     # if they were added on.
                     continuation = effect["continuation"]
-                holomem_targets = effect_player.get_holomem_on_stage()
+                holomem_targets = ids_from_cards(effect_player.get_holomem_on_stage())
                 attach_effect = {
                     "effect_type": EffectType.EffectType_AttachCardToHolomem_Internal,
                     "effect_player_id": effect_player.player_id,
@@ -1752,15 +1760,16 @@ class GameEngine:
                 })
             case EffectType.EffectType_AttachCardToHolomem_Internal:
                 card_to_attach_id = effect["card_id"]
+                card_to_attach = None
                 card_to_attach, _, _ = effect_player.find_card(card_to_attach_id)
                 target_holomem_id = effect["card_ids"][0]
                 target_holomem, _, _ = effect_player.find_card(target_holomem_id)
-                if card_to_attach["card_type"] == "support" and card_to_attach["subtype"] == "mascot":
+                if card_to_attach["card_type"] == "support" and card_to_attach["sub_type"] == "mascot":
                     # You can only have 1 attached mascot, so if they have an attached mascot,
                     # then move it to archive.
                     for attached_support in target_holomem["attached_support"]:
-                        if attached_support["subtype"] == "mascot":
-                            effect_player.archive_attached_cards(attached_support["game_card_id"])
+                        if attached_support["sub_type"] == "mascot":
+                            effect_player.archive_attached_cards([attached_support["game_card_id"]])
                             break
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
             case EffectType.EffectType_ChooseCards:
@@ -2652,7 +2661,8 @@ class GameEngine:
 
         card_effects = card["effects"]
         add_ids_to_effects(card_effects, player.player_id, card_id)
-        self.begin_resolving_effects(card_effects, continuation, cleanup_card_to_archive=card)
+        self.floating_cards.append(card)
+        self.begin_resolving_effects(card_effects, continuation, [card])
 
     def validate_main_step_baton_pass(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepBatonPassFields):
@@ -2936,7 +2946,7 @@ class GameEngine:
         player = self.get_player(performing_player_id)
 
         # Deal with chosen cards.
-        if to_zone == "holomem":
+        if to_zone == "holomem" and len(card_ids) > 0:
             # In this case, the user has to pick a target holomem.
             # Assume this is only a single card.
             attach_effect = {

@@ -1,19 +1,5 @@
 
 Todo:
-    hbp 12
-    ☐ bloom_effects @started(24-09-11 02:05)
-    ☐ choose cards "destination": "holomem", @started(24-09-11 02:05)
-    ☐ "requirement": "mascot", @started(24-09-11 02:05)
-    hbp13
-    ☐ "effect_type": "deal_damage" - special, @started(24-09-11 20:06)
-    hbp14
-    ☐ damage_damage - normal @started(24-09-11 20:09)
-    ☐ "on_kill_effects":  performance_target_has_damage_over_hp, performance_life_lost_increase @started(24-09-11 20:21)
-    116
-    ☐ attach_to_holomem @started(24-09-11 20:34)
-    ☐ "timing": "on_damage", @started(24-09-11 21:11)
-        ☐ attached_to @started(24-09-11 21:16)
-        ☐ effect_card_id_not_used_this_turn, record_effect_card_id_used_this_turn @started(24-09-11 21:22)
 
 Revisit:
     - What happens when the cheer deck runs out.
