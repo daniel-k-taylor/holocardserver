@@ -323,11 +323,11 @@ class TestSupportCards(unittest.TestCase):
             "card_id": play1,
             "limited": True,
         })
-        validate_event(self, events[2], EventType.EventType_MoveCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": player1.center[0]["game_card_id"],
             "to_holomem_id": "archive",
-            "cheer_id": cheer_id,
+            "attached_id": cheer_id,
         })
         validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
@@ -424,7 +424,8 @@ class TestSupportCards(unittest.TestCase):
 
         # That failed because there was no cheer in the archive.
         # Dump some cheer.
-        player1.archive_cheer_from_deck(6)
+        for _ in range(6):
+            player1.move_card(player1.cheer_deck[0]["game_card_id"], "archive")
         events = self.engine.grab_events()
 
         # Play the card.
@@ -463,11 +464,11 @@ class TestSupportCards(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - move cheer, discard, main step
         self.assertEqual(len(events), 6)
-        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "archive",
             "to_holomem_id": player1.backstage[0]["game_card_id"],
-            "cheer_id": chosen_cheer,
+            "attached_id": chosen_cheer,
         })
         validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,

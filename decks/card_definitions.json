@@ -1036,14 +1036,14 @@
                         "timing": "before_art",
                         "effect_type": "power_boost",
                         "amount": 50,
-                        "conditions": [{ "condition": "target_color", "color_requirement": "red" }],
-                        "on_kill_effects": [
-                            {
-                                "conditions": [{ "condition": "performance_target_has_damage_over_hp", "amount": 50 }],
-                                "effect_type": "performance_life_lost_increase",
-                                "amount": 1
-                            }
-                        ]
+                        "conditions": [{ "condition": "target_color", "color_requirement": "red" }]
+                    }
+                ],
+                "on_kill_effects": [
+                    {
+                        "conditions": [{ "condition": "performance_target_has_damage_over_hp", "amount": 50 }],
+                        "effect_type": "performance_life_lost_increase",
+                        "amount": 1
                     }
                 ]
             }
@@ -1069,8 +1069,7 @@
         "rarity": "c",
         "effects": [
             {
-                "effect_type": "attach_to_holomem",
-                "attach_type_limit": 1
+                "effect_type": "attach_card_to_holomem"
             }
         ],
         "attached_effects": [

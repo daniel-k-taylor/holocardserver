@@ -5,15 +5,15 @@ Todo:
     ☐ choose cards "destination": "holomem", @started(24-09-11 02:05)
     ☐ "requirement": "mascot", @started(24-09-11 02:05)
     hbp13
-    ☐ "effect_type": "deal_damage" - special,
+    ☐ "effect_type": "deal_damage" - special, @started(24-09-11 20:06)
     hbp14
-    ☐ damage_damage - normal
-    ☐ "on_kill_effects":  performance_target_has_damage_over_hp, performance_life_lost_increase
+    ☐ damage_damage - normal @started(24-09-11 20:09)
+    ☐ "on_kill_effects":  performance_target_has_damage_over_hp, performance_life_lost_increase @started(24-09-11 20:21)
     116
-    ☐ attach_to_holomem
-    ☐ "timing": "on_damage",
-        ☐ attached_to
-        ☐ effect_card_id_not_used_this_turn, record_effect_card_id_used_this_turn
+    ☐ attach_to_holomem @started(24-09-11 20:34)
+    ☐ "timing": "on_damage", @started(24-09-11 21:11)
+        ☐ attached_to @started(24-09-11 21:16)
+        ☐ effect_card_id_not_used_this_turn, record_effect_card_id_used_this_turn @started(24-09-11 21:22)
 
 Revisit:
     - What happens when the cheer deck runs out.
@@ -26,7 +26,8 @@ Revisit:
 Client:
     ☐ Art for all new cards
     ☐ Copy the latest definitions json
-
+    ☐ movecheer event is now moveattachedcard, attached_id, figure out if it is attached cheer or attached support based on card type
+    ☐ split performart and deal damage events
 
     ☐ hBP01-001 - squeezesqueeze text, illcrushyou text, amane_kanata name
     ☐ EventType.EventType_ModifyHP
@@ -41,3 +42,4 @@ Client:
     ☐ 14 - art jetblackwings, performance_target_has_damage_over_hp condition, performance_life_lost_increase effect, on_kill_effects
 
     ☐ 116 - mascot, attach_to_holomem, everything in the "timing": "on_damage" for text
+    ☐ EventType_DamageDealt

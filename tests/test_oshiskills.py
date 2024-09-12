@@ -141,11 +141,11 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - move cheer, back to main step
         self.assertEqual(len(events), 4)
-        validate_event(self, events[1], EventType.EventType_MoveCheer, self.player2, {
+        validate_event(self, events[1], EventType.EventType_MoveAttachedCard, self.player2, {
             "owning_player_id": self.player2,
             "from_holomem_id": player2.center[0]["game_card_id"],
             "to_holomem_id": player2.backstage[0]["game_card_id"],
-            "cheer_id": available_cheer[0],
+            "attached_id": available_cheer[0],
         })
         validate_event(self, events[3], EventType.EventType_Decision_MainStep, self.player2, {"active_player": self.player2})
         self.assertEqual(len(player2.backstage[0]["attached_cheer"]), 1)
@@ -242,8 +242,8 @@ class TestOshiSkills(unittest.TestCase):
         })
         events = self.engine.grab_events()
         validate_last_event_not_error(self, events)
-        # Events - power boost, perform art, dead
-        self.assertEqual(len(events), 6)
+        # Events - power boost, perform art, damage_dealt, distribute cheer
+        self.assertEqual(len(events), 8)
         self.assertEqual(art_target["damage"], 80)
         validate_event(self, events[1], EventType.EventType_BoostStat, self.player2, {
             "card_id": performer["game_card_id"],
@@ -251,14 +251,24 @@ class TestOshiSkills(unittest.TestCase):
             "amount": 50,
         })
         validate_event(self, events[3], EventType.EventType_PerformArt, self.player2, {
+            "active_player": self.player2,
             "performer_id": performer["game_card_id"],
             "art_id": "nunnun",
             "target_id": art_target["game_card_id"],
+            "target_player": self.player1,
             "power": 80,
+        })
+        validate_event(self, events[5], EventType.EventType_DamageDealt, self.player2, {
+            "target_player": self.player1,
+            "target_id": art_target["game_card_id"],
+            "damage": 80,
+            "special": False,
+            "life_lost": 1,
+            "life_loss_prevented": False,
             "died": True,
             "game_over": False,
         })
-        validate_event(self, events[5], EventType.EventType_Decision_SendCheer, self.player2, {
+        validate_event(self, events[7], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -443,11 +453,11 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - move cheer, 1 result effect, choose to go back.
         self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
             "to_holomem_id": backstage_recipient["game_card_id"],
-            "cheer_id": top_cheer["game_card_id"],
+            "attached_id": top_cheer["game_card_id"],
         })
         self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
         self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])
@@ -566,11 +576,11 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - move cheer, 1 result effect, choose to go back.
         self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
             "to_holomem_id": backstage_recipient["game_card_id"],
-            "cheer_id": top_cheer["game_card_id"],
+            "attached_id": top_cheer["game_card_id"],
         })
         self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
         self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])
@@ -684,11 +694,11 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         # Events - move cheer, back to main step
         self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_MoveCheer, self.player1, {
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
             "to_holomem_id": backstage_recipient["game_card_id"],
-            "cheer_id": top_cheer["game_card_id"],
+            "attached_id": top_cheer["game_card_id"],
         })
         self.assertEqual(len(backstage_recipient["attached_cheer"]), 1)
         self.assertEqual(backstage_recipient["attached_cheer"][0]["game_card_id"], top_cheer["game_card_id"])

@@ -301,8 +301,8 @@ class TestGameEngine(unittest.TestCase):
             "target_id": player1.center[0]["game_card_id"]
         })
         events = self.engine.grab_events()
-        # Events = stat boost from effect, performance, player 1's mem died, so distribute cheer decision.
-        self.assertEqual(len(events), 6)
+        # Events = stat boost from effect, performance, damage, player 1's mem died, so distribute cheer decision.
+        self.assertEqual(len(events), 8)
         self.validate_event(events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player2.center[0]["game_card_id"],
             "stat": "power",
@@ -313,17 +313,25 @@ class TestGameEngine(unittest.TestCase):
             "art_id": player2.center[0]["arts"][0]["art_id"],
             "target_id": p1_center_before_attack["game_card_id"],
             "power": 50, # 30 art + 20 from collab
+        })
+        self.validate_event(events[4], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p1_center_before_attack["game_card_id"],
+            "damage": 50, # 30 art + 20 from collab
             "died": True, # Irys only had 50 hp
             "game_over": False,
+            "target_player": self.player1,
+            "special": False,
+            "life_lost": 1,
+            "life_loss_prevented": False,
         })
-        self.validate_event(events[5], EventType.EventType_Decision_SendCheer, self.player2, {
+        self.validate_event(events[7], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
         })
-        available_cheer = events[5]["from_options"]
-        available_targets = events[5]["to_options"]
+        available_cheer = events[7]["from_options"]
+        available_targets = events[7]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_cheer[0], top_p1_life_before_attack)
         self.assertEqual(len(available_targets), 1)
@@ -411,11 +419,11 @@ class TestGameEngine(unittest.TestCase):
         self.assertEqual(player1.archive[0]["game_card_id"], cheer_to_archive)
         self.assertEqual(player1.center[0]["game_card_id"], current_backstage)
         self.assertEqual(player1.backstage[0]["game_card_id"], current_center)
-        self.validate_event(events[0], EventType.EventType_MoveCheer, self.player1, {
+        self.validate_event(events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": player1.backstage[-1]["game_card_id"],
             "to_holomem_id": "archive",
-            "cheer_id": cheer_to_archive,
+            "attached_id": cheer_to_archive,
         })
         self.validate_event(events[2], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
@@ -526,42 +534,50 @@ class TestGameEngine(unittest.TestCase):
             "target_id": player2.collab[0]["game_card_id"]
         })
         events = self.engine.grab_events()
-        # Events - performance result, end turn, turn start, reset step (activate, collab), draw, cheer
-        self.assertEqual(len(events), 14)
+        # Events - performance result, damage, end turn, turn start, reset step (activate, collab), draw, cheer
+        self.assertEqual(len(events), 16)
         self.validate_event(events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.collab[0]["game_card_id"],
             "art_id": "embodimentofhope",
             "target_id": p2collaber["game_card_id"],
             "power": 20,
+        })
+        self.validate_event(events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2collaber["game_card_id"],
+            "damage": 20,
             "died": False, # Only does 20 of 50 hp
             "game_over": False,
+            "target_player": self.player2,
+            "special": False,
+            "life_lost": 0,
+            "life_loss_prevented": False,
         })
-        self.validate_event(events[2], EventType.EventType_EndTurn, self.player1, {
+        self.validate_event(events[4], EventType.EventType_EndTurn, self.player1, {
             "ending_player_id": self.player1,
             "next_player_id": self.player2,
         })
         self.assertEqual(p2collaber["damage"], 20)
         self.assertEqual(p2collaber["hp"], 50)
-        self.validate_event(events[4], EventType.EventType_TurnStart, self.player1, {
+        self.validate_event(events[6], EventType.EventType_TurnStart, self.player1, {
             "active_player": self.player2,
         })
-        self.validate_event(events[6], EventType.EventType_ResetStepActivate, self.player1, {
+        self.validate_event(events[8], EventType.EventType_ResetStepActivate, self.player1, {
             "active_player": self.player2,
         })
-        activated_card_ids = events[6]["activated_card_ids"]
+        activated_card_ids = events[8]["activated_card_ids"]
         self.assertEqual(len(activated_card_ids), 0) # Nobody was resting
-        self.validate_event(events[8], EventType.EventType_ResetStepCollab, self.player1, {
+        self.validate_event(events[10], EventType.EventType_ResetStepCollab, self.player1, {
             "active_player": self.player2,
         })
-        rested_card_ids = events[8]["rested_card_ids"]
+        rested_card_ids = events[10]["rested_card_ids"]
         self.assertEqual(len(rested_card_ids), 1) # Collab is resting now
         self.assertEqual(len(player2.collab), 0)
         self.assertEqual(player2.backstage[-1]["resting"], True)
         self.assertEqual(player2.backstage[-1]["damage"], 20)
-        self.validate_event(events[10], EventType.EventType_Draw, self.player1, {
+        self.validate_event(events[12], EventType.EventType_Draw, self.player1, {
             "drawing_player_id": self.player2
         })
-        self.validate_event(events[12], EventType.EventType_CheerStep, self.player1, { "active_player": self.player2, })
+        self.validate_event(events[14], EventType.EventType_CheerStep, self.player1, { "active_player": self.player2, })
         events = self.cheer_step_on_card(player2.backstage[-1])
         # Events - cheer placed and main step start and decision
         self.assertEqual(len(events), 6)

@@ -100,7 +100,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - boost stat, perform art, performance step
+        # Events - boost stat, perform art, damage dealt, performance step
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
@@ -111,8 +111,16 @@ class Test_hbp01_holomems(unittest.TestCase):
             "art_id": "nunnun",
             "target_id": player2.center[0]["game_card_id"],
             "power": 40,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 40,
             "died": False,
             "game_over": False,
+            "target_player": self.player2,
+            "special": False,
+            "life_lost": 0,
+            "life_loss_prevented": False,
         })
         events = reset_performancestep(self)
 
@@ -168,7 +176,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - boost stat, perform art, performance step
+        # Events - boost stat, perform art, damage dealt, performance step
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
@@ -184,8 +192,16 @@ class Test_hbp01_holomems(unittest.TestCase):
             "art_id": "imoffnow",
             "target_id": player2.center[0]["game_card_id"],
             "power": 50,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 50,
             "died": False,
             "game_over": False,
+            "target_player": self.player2,
+            "special": False,
+            "life_lost": 0,
+            "life_loss_prevented": False,
         })
         events = reset_performancestep(self)
 
