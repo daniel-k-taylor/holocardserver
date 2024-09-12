@@ -47,7 +47,7 @@ class Test_hbp01_oshi(unittest.TestCase):
         # Events - 3 holopower move, oshi activation, set hp, main step
         self.assertEqual(len(events), 12)
         validate_event(self, events[8], EventType.EventType_ModifyHP, self.player1, {
-            "player_id": self.player2,
+            "target_player_id": self.player2,
             "card_id": target_center["game_card_id"],
             "damage_done": 170,
             "new_damage": 190,

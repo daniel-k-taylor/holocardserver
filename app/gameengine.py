@@ -734,7 +734,7 @@ class PlayerState:
             card["damage"] = card["hp"] - target_hp
             modify_hp_event = {
                 "event_type": EventType.EventType_ModifyHP,
-                "player_id": self.player_id,
+                "target_player_id": self.player_id,
                 "card_id": card_id,
                 "damage_done": card["damage"] - previous_damage,
                 "new_damage": card["damage"],
@@ -1686,7 +1686,6 @@ class GameEngine:
                 event = {
                     "event_type": EventType.EventType_AddTurnEffect,
                     "effect_player_id": effect_player_id,
-                    "full_effect": effect,
                     "turn_effect": effect["turn_effect"],
                 }
                 self.broadcast_event(event)

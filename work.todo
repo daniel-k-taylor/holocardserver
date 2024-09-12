@@ -6,26 +6,3 @@ Revisit:
         ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
-
-
-
-Client:
-    ☐ Art for all new cards
-    ☐ Copy the latest definitions json
-    ☐ movecheer event is now moveattachedcard, attached_id, figure out if it is attached cheer or attached support based on card type
-    ☐ split performart and deal damage events
-
-    ☐ hBP01-001 - squeezesqueeze text, illcrushyou text, amane_kanata name
-    ☐ EventType.EventType_ModifyHP
-    ☐ Remove reliance on full_effect for turn effect
-    ☐ EventType_Decision_ChooseHolomemForEffect > EffectResolution_ChooseCardsForEffect
-    ☐ hBP01-009 - konkanata art text, target_condition text, performer_is_color condition, performer_is_specific_id conditinon, text for "and"
-
-    ☐ hbp01-010 - art imoffnow text, performer_has_any_tag condition
-
-    ☐ hbp1-012 - art pleasegivelotsofsupport text, "destination": "holomem","requirement": "mascot",, EffectType_AttachCardToHolomem
-    ☐ hbp1-13 - art angelstage text, deal_damage text
-    ☐ 14 - art jetblackwings, performance_target_has_damage_over_hp condition, performance_life_lost_increase effect, on_kill_effects
-
-    ☐ 116 - mascot, attach_to_holomem, everything in the "timing": "on_damage" for text
-    ☐ EventType_DamageDealt
