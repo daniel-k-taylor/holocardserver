@@ -2140,7 +2140,7 @@ class GameEngine:
                 effect_player.shuffle_hand_to_deck()
             case EffectType.EffectType_SwitchCenterWithBack:
                 target_player = effect_player
-                swap_opponent_cards = effect["target_player"] == "opponent"
+                swap_opponent_cards = "opponent" in effect and effect["opponent"]
                 if swap_opponent_cards:
                     target_player = self.other_player(effect_player_id)
                 available_backstage_ids = ids_from_cards(target_player.backstage)
