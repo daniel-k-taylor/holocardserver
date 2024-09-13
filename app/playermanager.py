@@ -1,7 +1,27 @@
+import os
 from fastapi import WebSocket
 from typing import Dict
-from random_username.generate import generate_username
 from app.message_types import ServerInfoMessage
+import random
+
+def generate_username(num_results=1):
+    directory_path = os.path.dirname(__file__)
+    adjectives, nouns = [], []
+    with open(os.path.join(directory_path, 'data', 'adjectives.txt'), 'r') as file_adjective:
+        with open(os.path.join(directory_path, 'data', 'nouns.txt'), 'r') as file_noun:
+            for line in file_adjective:
+                adjectives.append(line.strip())
+            for line in file_noun:
+                nouns.append(line.strip())
+
+    usernames = []
+    for _ in range(num_results):
+        adjective = random.choice(adjectives)
+        noun = random.choice(nouns).capitalize()
+        num = str(random.randrange(10))
+        usernames.append(adjective + noun + num)
+
+    return usernames
 
 class Player:
     def __init__(self, player_id: str, websocket: WebSocket):
