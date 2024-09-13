@@ -38,6 +38,7 @@ class EffectType:
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
     EffectType_PowerBoost = "power_boost"
+    EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_RecordEffectCardIdUsedThisTurn = "record_effect_card_id_used_this_turn"
     EffectType_RollDie = "roll_die"
     EffectType_RollDie_ChooseResult = "choose_die_result"
@@ -50,8 +51,10 @@ class EffectType:
 
 class Condition:
     Condition_AttachedTo = "attached_to"
+    Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CardsInHand = "cards_in_hand"
     Condition_CenterIsColor = "center_is_color"
+    Condition_CenterHasAnyTag = "center_has_any_tag"
     Condition_CheerInPlay = "cheer_in_play"
     Condition_CollabWith = "collab_with"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
@@ -373,7 +376,7 @@ class PlayerState:
         cheer_ids = []
         for card in self.get_holomem_on_stage():
             for attached_card in card["attached_cheer"]:
-                if attached_card["card_type"] == "cheer":
+                if is_card_cheer(attached_card):
                     cheer_ids.append(attached_card["game_card_id"])
         return cheer_ids
 
@@ -466,6 +469,9 @@ class PlayerState:
             self.center.append(card)
         elif to_zone == "backstage":
             self.backstage.append(card)
+        elif to_zone == "cheer_deck":
+            self.cheer_deck.append(card)
+            self.engine.shuffle_list(self.cheer_deck)
         elif to_zone == "hand":
             self.hand.append(card)
         elif to_zone == "holomem":
@@ -765,7 +771,7 @@ def get_owner_id_from_card_id(card_id):
     return card_id.split("_")[0]
 
 def art_requirement_met(card, art):
-    attached_cheer_cards = [attached_card for attached_card in card["attached_cheer"] if attached_card["card_type"] == "cheer"]
+    attached_cheer_cards = [attached_card for attached_card in card["attached_cheer"] if is_card_cheer(attached_card)]
 
     white_cheer = 0
     green_cheer = 0
@@ -822,6 +828,12 @@ def is_card_limited(card):
 
 def is_card_mascot(card):
     return "sub_type" in card and card["sub_type"] == "mascot"
+
+def is_card_event(card):
+    return "sub_type" in card and card["sub_type"] == "event"
+
+def is_card_cheer(card):
+    return card["card_type"] == "cheer"
 
 def get_effects_at_timing(art_effects, timing):
     return deepcopy([effect for effect in art_effects if effect["timing"] == timing])
@@ -1620,6 +1632,10 @@ class GameEngine:
                         if required_member_name in holomem["holomem_names"]:
                             return True
                 return False
+            case Condition.Condition_BloomTargetIsDebut:
+                bloom_card, _, _ = effect_player.find_card(source_card_id)
+                target_card = bloom_card["stacked_cards"][-1]
+                return target_card["card_type"] == "holomem_debut"
             case Condition.Condition_CardsInHand:
                 amount_min = condition["amount_min"]
                 amount_max = condition["amount_max"]
@@ -1633,6 +1649,15 @@ class GameEngine:
                 center_colors = effect_player.center[0]["colors"]
                 if any(color in center_colors for color in condition_colors):
                     return True
+            case Condition.Condition_CenterHasAnyTag:
+                valid_tags = condition["condition_tags"]
+                if len(effect_player.center) == 0:
+                    return False
+                center_card = effect_player.center[0]
+                for tag in center_card["tags"]:
+                    if tag in valid_tags:
+                        return True
+                return False
             case Condition.Condition_CheerInPlay:
                 amount_min = condition["amount_min"]
                 amount_max = condition["amount_max"]
@@ -1784,6 +1809,7 @@ class GameEngine:
                 requirement_bloom_levels = effect.get("requirement_bloom_levels", [])
                 requirement_buzz_blocked = effect.get("requirement_buzz_blocked", False)
                 requirement_names = effect.get("requirement_names", [])
+                requirement_tags = effect.get("requirement_tags", [])
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 requirement_details = {
@@ -1791,6 +1817,7 @@ class GameEngine:
                     "requirement_bloom_levels": requirement_bloom_levels,
                     "requirement_buzz_blocked": requirement_buzz_blocked,
                     "requirement_names": requirement_names,
+                    "requirement_tags": requirement_tags,
                 }
 
                 cards_to_choose_from = []
@@ -1809,29 +1836,41 @@ class GameEngine:
                 look_at = min(look_at, len(cards_to_choose_from))
 
                 cards_to_choose_from = cards_to_choose_from[:look_at]
-                cards_can_choose = []
+                cards_can_choose = cards_to_choose_from
                 if requirement:
                     match requirement:
+                        case "holomem":
+                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut", "holomem_spot" ]]
                         case "holomem_bloom":
-                            cards_can_choose = [card for card in cards_to_choose_from if card["card_type"] == "holomem_bloom" \
+                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "holomem_bloom" \
                                 and card["bloom_level"] in requirement_bloom_levels
                             ]
+                        case "holomem_debut_or_bloom":
+                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut"]]
                         case "holomem_named":
                             # Only include cards that have a name in the requirement_names list.
-                            cards_can_choose = [card for card in cards_to_choose_from \
+                            cards_can_choose = [card for card in cards_can_choose \
                                 if "holomem_names" in card and any(name in card["holomem_names"] for name in requirement_names)]
                         case "limited":
                             # only include cards that are limited
-                            cards_can_choose = [card for card in cards_to_choose_from if is_card_limited(card)]
+                            cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
                         case "mascot":
                             # Only include cards that are mascots.
-                            cards_can_choose = [card for card in cards_to_choose_from if is_card_mascot(card)]
+                            cards_can_choose = [card for card in cards_can_choose if is_card_mascot(card)]
+                        case "event":
+                            # Only include cards that are events.
+                            cards_can_choose = [card for card in cards_can_choose if is_card_event(card)]
+                        case "cheer":
+                            # Only include cards that are cheer.
+                            cards_can_choose = [card for card in cards_can_choose if is_card_cheer(card)]
 
                     # Exclude any buzz if required.
                     if requirement_buzz_blocked:
                         cards_can_choose = [card for card in cards_can_choose if "buzz" not in card or not card["buzz"]]
-                else:
-                    cards_can_choose = cards_to_choose_from
+
+                    # Restrict to only tagged cards.
+                    if requirement_tags:
+                        cards_can_choose = [card for card in cards_can_choose if any(tag in card["tags"] for tag in requirement_tags)]
 
                 if len(cards_can_choose) < amount_min:
                     amount_min = len(cards_can_choose)
@@ -1926,6 +1965,12 @@ class GameEngine:
                 amount = effect["amount"]
                 self.performance_artstatboosts.power += amount
                 self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+            case EffectType.EffectType_PowerBoostPerBackstage:
+                per_amount = effect["amount"]
+                backstage_mems = len(effect_player.backstage)
+                total = per_amount * backstage_mems
+                self.performance_artstatboosts.power += total
+                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
             case EffectType.EffectType_RollDie:
@@ -2019,7 +2064,7 @@ class GameEngine:
                 match from_zone:
                     case "archive":
                         # Get archive cheer cards.
-                        relevant_archive_cards = [card for card in effect_player.archive if card["card_type"] == "cheer"]
+                        relevant_archive_cards = [card for card in effect_player.archive if is_card_cheer(card)]
                         if from_limitation:
                             match from_limitation:
                                 case "color_in":
@@ -2141,9 +2186,14 @@ class GameEngine:
             case EffectType.EffectType_SwitchCenterWithBack:
                 target_player = effect_player
                 swap_opponent_cards = "opponent" in effect and effect["opponent"]
+                skip_resting = effect.get("skip_resting", False)
                 if swap_opponent_cards:
                     target_player = self.other_player(effect_player_id)
-                available_backstage_ids = ids_from_cards(target_player.backstage)
+                available_backstage_ids = []
+                for card in target_player.backstage:
+                    if skip_resting and card["resting"]:
+                        continue
+                    available_backstage_ids.append(card["game_card_id"])
                 if len(available_backstage_ids) == 0:
                     # No effect.
                     pass

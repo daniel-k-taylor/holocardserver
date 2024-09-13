@@ -1,52 +1,65 @@
 
 Todo:
-    "skill_id": "guardianofcivilization",
-    "effect_type": "choose_optional_effect",
-    { "condition": "target_has_any_tag", "condition_tags": ["#Promise"] }
-    "optional_effects": [{
-    "effect_type": "reduce_damage",
+    ☐ "skill_id": "guardianofcivilization", @started(24-09-12 23:40)
+    ☐ "timing": "on_damage", oshi skill
+    ☐ { "condition": "not_used_once_per_turn_effect", "condition_effect_id": "guardianofcivilization" },
+    ☐ { "condition": "target_has_any_tag", "condition_tags": ["#Promise"] }
+    ☐ "optional_effects": [{
+    ☐ "effect_type": "reduce_damage",
+    ☐ { "effect_type": "spend_holopower", "amount": 2 },
+    ☐ { "effect_type": "record_used_once_per_turn_effect", "effect_id": "guardianofcivilization" }
+    ☐ { "effect_type": "pass" }
 
-    "skill_id": "amazingdrawing",
-    "requirement": "event",
+    ☐ "skill_id": "amazingdrawing", @started(24-09-12 23:39)
+    ☐ "requirement": "event", @started(24-09-12 23:39)
 
-    hbp16
-    "art_id": "relaxtime",
-    "conditions": [{ "condition": "center_has_any_tag", "condition_tags": ["#Promise"] }],
-    hbp19
-    "art_id": "thankyouforyourcontinuedsupport",
-    "conditions": [{ "condition": "bloom_target_is_debut" }],
-    "requirement_tags": ["#Promise"],
-    "requirement": "holomem_debut_or_bloom",
-    hbp20
-    "art_id": "everyonetogether",
-    "effect_type": "power_boost_per_backstage",
-    "requirement": "holomem",
-    hbp21
-    "art_id": "everyonekonsomme",
-    hbp22
-    "art_id": "letsmakeitthebestdayever
-    hbp23
-    itwontstop
-    "effect_type": "repeat_art"
-    hbp106
-    "event" subtype
-    "effect_type": "switch_center_with_back",
-        "skip_resting": true
-    hbp107
-    "destination": "cheer_deck", - shuffle
-    "requirement": "cheer",
-    hbp108
-    hbp109 - nothing
-    hbp110
-    send_cheer "from": "opponent_holomem",
-        "limitation": "center",
-        "to": "archive",
-    { "condition": "not_used_once_per_game_effect", "condition_effect_id": "clubemintonothingness" },
-    { "condition": "oshi_is", "required_member_name": "nanashi_mumei" }
-    "effect_type": "choice",
-    "effect_type": "record_used_once_per_game_effect",
-    "negative_condition_effects": [
+    ☐ hbp16 @started(24-09-12 23:44)
+    ☐ "art_id": "relaxtime", @started(24-09-12 23:42)
+    ☐ "conditions": [{ "condition": "center_has_any_tag", "condition_tags": ["#Promise"] }], @started(24-09-12 23:43)
 
+    ☐ hbp19 @started(24-09-13 00:10)
+    ☐ "art_id": "thankyouforyourcontinuedsupport", @started(24-09-12 23:56)
+    ☐ "conditions": [{ "condition": "bloom_target_is_debut" }], @started(24-09-13 00:04)
+    ☐ "requirement_tags": ["#Promise"], @started(24-09-13 00:08)
+    ☐ "requirement": "holomem_debut_or_bloom", @started(24-09-13 00:10)
+
+    ☐ hbp20 @started(24-09-13 00:15)
+    ☐ "art_id": "everyonetogether", @started(24-09-13 00:11)
+    ☐ "effect_type": "power_boost_per_backstage", @started(24-09-13 00:13)
+    ☐ "requirement": "holomem", @started(24-09-13 00:15)
+
+    ☐ hbp21 @started(24-09-13 00:15)
+    ☐ "art_id": "everyonekonsomme", @started(24-09-13 00:15)
+
+    ☐ hbp22 @started(24-09-13 00:16)
+    ☐ "art_id": "letsmakeitthebestdayever @started(24-09-13 00:16)
+
+    ☐ hbp23
+    ☐ itwontstop @started(24-09-13 00:16)
+    ☐ "effect_type": "repeat_art"
+
+    ☐ hbp106 @started(24-09-13 00:20)
+    ☐ "event" subtype @started(24-09-13 00:16)
+    ☐ "effect_type": "switch_center_with_back", @started(24-09-13 00:18)
+        ☐ "skip_resting": true @started(24-09-13 00:20)
+
+    ☐ hbp107 @started(24-09-13 00:26)
+    ☐ "destination": "cheer_deck", - shuffle @started(24-09-13 00:26)
+    ☐ "requirement": "cheer", @started(24-09-13 00:21)
+
+    ☐ hbp108 @started(24-09-13 00:27)
+
+    ☐ hbp109 - nothing @started(24-09-13 00:27) "usada_pekora", "moona_hoshinova"
+
+    ☐ hbp110
+    ☐ send_cheer "from": "opponent_holomem",
+        ☐ "limitation": "center",
+        ☐ "to": "archive",
+    ☐ { "condition": "not_used_once_per_game_effect", "condition_effect_id": "clubemintonothingness" },
+    ☐ { "condition": "oshi_is", "required_member_name": "nanashi_mumei" }
+    ☐ "effect_type": "choice",
+    ☐ "effect_type": "record_used_once_per_game_effect",
+    ☐ "negative_condition_effects": [
 
 
 Revisit:
