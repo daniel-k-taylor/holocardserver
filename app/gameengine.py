@@ -56,6 +56,7 @@ class Condition:
     Condition_CollabWith = "collab_with"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HolomemOnStage = "holomem_on_stage"
+    Condition_OpponentTurn = "opponent_turn"
     Condition_PerformanceTargetHasDamageOverHp = "performance_target_has_damage_over_hp"
     Condition_PerformerIsCenter = "performer_is_center"
     Condition_PerformerIsColor = "performer_is_color"
@@ -1648,6 +1649,8 @@ class GameEngine:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage()
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_OpponentTurn:
+                return self.active_player_id != effect_player.player_id
             case Condition.Condition_PerformanceTargetHasDamageOverHp:
                 amount = condition["amount"]
                 return self.performance_target_card["damage"] >= self.performance_target_card["hp"] + amount
