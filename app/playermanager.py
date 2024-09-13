@@ -16,7 +16,7 @@ def generate_username(num_results=1):
 
     usernames = []
     for _ in range(num_results):
-        adjective = random.choice(adjectives)
+        adjective = random.choice(adjectives).capitalize()
         noun = random.choice(nouns).capitalize()
         num = str(random.randrange(10))
         usernames.append(adjective + noun + num)
