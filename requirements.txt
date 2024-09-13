@@ -1,6 +1,5 @@
 fastapi
 gunicorn
-random-username
 redis
 uvicorn
 websockets
