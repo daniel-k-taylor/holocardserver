@@ -52,7 +52,9 @@ class CardDatabase:
         for card_id, count in deck.items():
             deck_card = self.get_card_by_id(card_id)
             if not deck_card or deck_card["card_type"] not in ALLOWED_DECK_TYPES:
-                if deck_card["card_type"]:
+                if not deck_card:
+                    logger.info("--Deck Invalid: Card not found")
+                elif deck_card["card_type"]:
                     logger.info("--Deck Invalid: %s not allowed" % deck_card["card_type"])
                 else:
                     logger.info("--Deck Invalid: Card Type None")
