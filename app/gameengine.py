@@ -36,6 +36,7 @@ class EffectType:
     EffectType_ChooseCards = "choose_cards"
     EffectType_DealDamage = "deal_damage"
     EffectType_Draw = "draw"
+    EffectType_OshiActivation = "oshi_activation"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_Pass = "pass"
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
@@ -382,35 +383,24 @@ class PlayerState:
     def has_used_once_per_game_effect(self, effect_id):
         return effect_id in self.effects_used_this_game
 
-    def get_effects_by_timing(self, timing, source):
+    def get_effects_at_timing(self, timing, card, timing_source_requirement = ""):
         effects = []
-        for oshi_skill in self.oshi_card["oshi_skills"]:
-            if oshi_skill["timing"] == timing and oshi_skill["timing_source"] == source:
-                if oshi_skill["limit"] == "once_per_turn" and self.has_used_once_per_turn_effect(oshi_skill["skill_id"]):
+        for oshi_effect in self.oshi_card.get("effects", []):
+            if oshi_effect["timing"] == timing:
+                if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
                     continue
-                if oshi_skill["limit"] == "once_per_game" and self.has_used_once_per_game_effect(oshi_skill["skill_id"]):
-                    continue
-                if oshi_skill["cost"] > len(self.holopower):
-                    continue
-
-                # The ability hasn't been used and the player can pay for it.
-                add_ids_to_effects(oshi_skill["effects"], self.player_id, "oshi")
-                effects.extend(oshi_skill["effects"])
-        return effects
-
-    def get_effects_at_timing(self, timing, card):
-        effects = []
-        for oshi_skill in self.oshi_card["oshi_skills"]:
-            if oshi_skill["timing"] == timing:
-                effects.extend(oshi_skill["effects"])
+                effects.append(oshi_effect)
         add_ids_to_effects(effects, self.player_id, "oshi")
 
-        for attached_card in card["attached_support"]:
-            attached_effects = attached_card.get("attached_effects", [])
-            for attached_effect in attached_effects:
-                if attached_effect["timing"] == timing:
-                    add_ids_to_effects([attached_effect], self.player_id, attached_card["game_card_id"])
-                    effects.append(attached_effect)
+        if card:
+            for attached_card in card["attached_support"]:
+                attached_effects = attached_card.get("attached_effects", [])
+                for attached_effect in attached_effects:
+                    if attached_effect["timing"] == timing:
+                        if "timing_source_requirement" in attached_effect and attached_effect["timing_source_requirement"] != timing_source_requirement:
+                            continue
+                        add_ids_to_effects([attached_effect], self.player_id, attached_card["game_card_id"])
+                        effects.append(attached_effect)
         return effects
 
 
@@ -659,29 +649,9 @@ class PlayerState:
             top_holopower_id = self.holopower[0]["game_card_id"]
             self.move_card(top_holopower_id, "archive")
 
-    def trigger_oshi_skill(self, skill_id):
-        oshi_skill = next(skill for skill in self.oshi_card["oshi_skills"] if skill["skill_id"] == skill_id)
-        skill_cost = oshi_skill["cost"]
-
-        # Update skill usage.
-        self.effects_used_this_game.append(skill_id)
-        self.effects_used_this_turn.append(skill_id)
-
-        # Remove the cost from holopower to archive.
-        self.spend_holopower(skill_cost)
-
-        oshi_skill_event = {
-            "event_type": EventType.EventType_OshiSkillActivation,
-            "oshi_player_id": self.player_id,
-            "skill_id": skill_id,
-        }
-        self.engine.broadcast_event(oshi_skill_event)
-
-        # Get skill effects.
-        skill_effects = deepcopy(oshi_skill["effects"])
-        for effect in skill_effects:
-            effect["player_id"] = self.player_id
-        return skill_effects
+    def get_oshi_action_effects(self, skill_id):
+        action = next(action for action in self.oshi_card["actions"] if action["skill_id"] == skill_id)
+        return deepcopy(action["effects"])
 
     def find_and_remove_attached(self, attached_id):
         previous_holder_id = None
@@ -884,7 +854,7 @@ def is_card_event(card):
 def is_card_cheer(card):
     return card["card_type"] == "cheer"
 
-def get_effects_at_timing(art_effects, timing):
+def filter_effects_at_timing(art_effects, timing):
     return deepcopy([effect for effect in art_effects if effect["timing"] == timing])
 
 class GameEngine:
@@ -1262,18 +1232,15 @@ class GameEngine:
                     })
 
         # D. Use Oshi skills.
-        for oshi_skill in active_player.oshi_card["oshi_skills"]:
-            skill_id = oshi_skill["skill_id"]
-            if oshi_skill["timing"] != "action":
+        for action in active_player.oshi_card["actions"]:
+            skill_id = action["skill_id"]
+            if action["limit"] == "once_per_turn" and active_player.has_used_once_per_turn_effect(skill_id):
                 continue
 
-            if oshi_skill["limit"] == "once_per_turn" and skill_id in active_player.effects_used_this_turn:
+            if action["limit"] == "once_per_game" and active_player.has_used_once_per_game_effect(skill_id):
                 continue
 
-            if oshi_skill["limit"] == "once_per_game" and skill_id in active_player.effects_used_this_game:
-                continue
-
-            skill_cost = oshi_skill["cost"]
+            skill_cost = action["cost"]
             if skill_cost > len(active_player.holopower):
                 continue
 
@@ -1497,10 +1464,10 @@ class GameEngine:
         self.performance_continuation = continuation
 
         # Get any before effects and resolve them.
-        art_effects = get_effects_at_timing(art.get("art_effects", []), "before_art")
+        art_effects = filter_effects_at_timing(art.get("art_effects", []), "before_art")
         add_ids_to_effects(art_effects, player.player_id, performer_id)
         card_effects = player.get_effects_at_timing("before_art", performer)
-        player_turn_effects = get_effects_at_timing(player.turn_effects, "before_art")
+        player_turn_effects = filter_effects_at_timing(player.turn_effects, "before_art")
         add_ids_to_effects(player_turn_effects, player.player_id, "")
         all_effects = card_effects + art_effects + player_turn_effects
         self.begin_resolving_effects(all_effects, self.continue_perform_art)
@@ -1670,12 +1637,6 @@ class GameEngine:
             effect_player_id = effect["player_id"]
             effect_player = self.get_player(effect_player_id)
             if "conditions" not in effect or self.are_conditions_met(effect_player, effect["source_card_id"], effect["conditions"]):
-                # Do any do pre effects right away (Assumption: no decisions/sub effects).
-                if "pre_effects" in effect:
-                    do_before_effects = effect["pre_effects"]
-                    add_ids_to_effects(do_before_effects, effect_player_id, effect.get("source_card_id", None))
-                    for do_before in do_before_effects:
-                        self.do_effect(effect_player, do_before)
                 # Add any "and" effects to the front of the queue.
                 if "and" in effect:
                     and_effects = effect["and"]
@@ -1804,8 +1765,15 @@ class GameEngine:
         return False
 
     def do_effect(self, effect_player : PlayerState, effect):
-        passed_on_continuation = False
         effect_player_id = effect_player.player_id
+        if "pre_effects" in effect:
+            # Do any do pre_effects right away (Assumption: no decisions/sub effects).
+            do_before_effects = effect["pre_effects"]
+            add_ids_to_effects(do_before_effects, effect_player_id, effect.get("source_card_id", None))
+            for do_before in do_before_effects:
+                self.do_effect(effect_player, do_before)
+
+        passed_on_continuation = False
         match effect["effect_type"]:
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
@@ -2053,6 +2021,14 @@ class GameEngine:
             case EffectType.EffectType_Draw:
                 amount = effect["amount"]
                 effect_player.draw(amount)
+            case EffectType.EffectType_OshiActivation:
+                skill_id = effect["skill_id"]
+                oshi_skill_event = {
+                    "event_type": EventType.EventType_OshiSkillActivation,
+                    "oshi_player_id": effect_player.player_id,
+                    "skill_id": skill_id,
+                }
+                self.broadcast_event(oshi_skill_event)
             case EffectType.EffectType_MoveCheerBetweenHolomems:
                 amount = effect["amount"]
                 available_cheer = effect_player.get_cheer_ids_on_holomems()
@@ -2120,17 +2096,15 @@ class GameEngine:
                 self.add_effects_to_front([rolldie_internal_effect])
 
                 # When we roll a die, check if there are any choices to be made like oshi abilities.
-                ability_effects = effect_player.get_effects_by_timing("before_die_roll", effect["source"])
+                ability_effects = effect_player.get_effects_at_timing("before_die_roll", "", effect["source"])
                 if ability_effects:
                     self.add_effects_to_front(ability_effects)
             case EffectType.EffectType_RollDie_ChooseResult:
-                # Ask the user if they want to send this collab back to the backstage.
                 choice_info = {
-                    "specific_options": ["pass", "1", "2", "3", "4", "5", "6"],
+                    "specific_options": ["1", "2", "3", "4", "5", "6"],
                 }
                 min_choice = 0
-                max_choice = 6
-                is_oshi_effect = "oshi_effect" in effect
+                max_choice = 5
                 decision_event = {
                     "event_type": EventType.EventType_ForceDieResult,
                     "desired_response": GameAction.EffectResolution_MakeChoice,
@@ -2139,9 +2113,6 @@ class GameEngine:
                     "choice_info": choice_info,
                     "min_choice": min_choice,
                     "max_choice": max_choice,
-                    "is_oshi_effect": is_oshi_effect,
-                    "oshi_skill_id": effect["skill_id"],
-                    "cost": effect["cost"],
                 }
                 self.broadcast_event(decision_event)
                 self.set_decision({
@@ -2150,9 +2121,6 @@ class GameEngine:
                     "choice_info": choice_info,
                     "min_choice": min_choice,
                     "max_choice": max_choice,
-                    "is_oshi_effect": is_oshi_effect,
-                    "oshi_skill_id": effect["skill_id"],
-                    "cost": effect["cost"],
                     "resolution_func": self.handle_force_die_result,
                     "continuation": self.continue_resolving_effects,
                 })
@@ -2798,9 +2766,9 @@ class GameEngine:
         player = self.get_player(player_id)
         skill_id = action_data["skill_id"]
 
-        skill_effects = player.trigger_oshi_skill(skill_id)
-        add_ids_to_effects(skill_effects, player_id, "oshi")
-        self.begin_resolving_effects(skill_effects, continuation)
+        action_effects = player.get_oshi_action_effects(skill_id)
+        add_ids_to_effects(action_effects, player_id, "oshi")
+        self.begin_resolving_effects(action_effects, continuation)
 
     def validate_main_step_play_support(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepPlaySupportFields):
@@ -3241,15 +3209,9 @@ class GameEngine:
         continuation()
 
     def handle_force_die_result(self, decision_info_copy, player_id, choice_index, continuation):
-        # 0 is pass, 1-6 is a die result and uses the ability.
-        if choice_index > 0:
-            player = self.get_player(player_id)
-            player.set_next_die_roll = choice_index
-
-            if decision_info_copy["is_oshi_effect"]:
-                skill_id = decision_info_copy["oshi_skill_id"]
-                _ = player.trigger_oshi_skill(skill_id)
-
+        # 0-5 is die result 1-6
+        player = self.get_player(player_id)
+        player.set_next_die_roll = choice_index + 1
         continuation()
 
     def handle_choice_effects(self, decision_info_copy, player_id, choice_index, continuation):
