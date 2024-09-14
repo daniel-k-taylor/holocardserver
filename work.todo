@@ -1,104 +1,103 @@
 
 Todo:
-    Convert oshi skills to:
-        actions
-        effects with timings, azki's die roll should be a timing_source_requirement
+    ☐ EventType_RestoreHP @started(24-09-14 12:58)
 
+    ☐ client - implement multi_to send_cheer, first pick holomem, then distribute, then pick next if didn't distribute all
 
-    "aki_rosenthal"
-    "skill_id": "survivalpower",
-    choose cards - "to_limitation": "color_in", to_limitation_colors": ["green"],
-    "requirement": "specific_card", "requirement_id": "",
+    ☐ "aki_rosenthal" @started(24-09-14 12:12)
+    ☐ "skill_id": "survivalpower", @started(24-09-14 12:13)
+    ☐ choose cards - "to_limitation": "color_in", to_limitation_colors": ["green"], @started(24-09-14 12:33)
+    ☐ "requirement": "specific_card", "requirement_id": "", @started(24-09-14 12:40)
 
-    "skill_id": "songoftheearth",
-    "effect_type": "restore_hp", "target": "center",
+    ☐ "skill_id": "songoftheearth", @started(24-09-14 12:13)
+    ☐ "effect_type": "restore_hp", "target": "center", @started(24-09-14 12:58)
 
-    pekora
-    "skill_id": "nousagis",
-    "timing": "on_down",
-    send cheer "from": "downed_holomem", "multi_to": true
-    "skill_id": "luckyrabbit",
-    "timing": "before_die_roll",  "effect_type": "force_die_result",
-
-
-    24
-    vestia_zeta
-    "art_id": "missionstart",
-
-    26
-    "art_id": "thewholestageismine",
-
-    27
-    "art_id": "accesscodeid",
-    "board_effects": ["timing": "on_damage",
-        "conditions": [{ "condition": "this_card_is_collab"}]
-        "effect_type": "reduce_damage","amount": "all"
-
-    30
-    "irys"
-    "art_id": "illsingmybestsowatchme",
-
-    31
-    "art_id": "powerofpromise",
-    "effect_type": "power_boost_per_holomem",
-    "has_tag": "#Promise",
-    "effect_type": "generate_holopower",
-
-    32
-    "art_id": "alona",
-
-    33
-    "art_id": "afterparty",
-    "target": "holomem",
-        "limitation": "color_in",
-        "limitation_colors": ["green"],
-
-    35
-    "art_id": "akirosefantasy",
-    "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }],
-    choose cards "requirement": "tool",
-
-    36
-    "art_id": "ganbarosefortoday",
-
-    37
-    "art_id": "secretkey",
-    "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }],
-    restore hp  "target": "self",
-
-    38
-    "art_id": "konpeko",
-
-    41
-    "art_id": "dontmissitpeko",
-    sendcheer - "to_limitation": "center_or_collab"
-
-    42
-    "art_id": "rabbitgirlonawhitesandybeach",
-    "art_id": "kitraaaa",
-    "multiplier": "last_die_value"
-
-    43
-    "art_id": "humanrabbitalityproject",
-    roll 3 dice effect
-
-
-    76
-    hoshimachi_suisei
-    "art_id": "diamondintherough",
-
-    114
-    "sub_type": "tool",
-    deal damage "target": "self",
-    { "condition": "attached_to", "required_member_name": "aki_rosenthal", "required_bloom_levels": [1,2] },
-    "timing": "on_restore_hp",
-
-
-    115
-    "hoshimachi_suisei"
-    "timing": "on_kill",
-    send_cheer - "to_limitation": "attached_owner"
-    deal damage "target": "backstage",
+    ☐ pekora @started(24-09-14 12:12)
+    ☐ "skill_id": "nousagis", @started(24-09-14 12:14)
+    ☐ "timing": "on_down", @started(24-09-14 13:16)
+    ☐ send cheer "from": "downed_holomem", "multi_to": true @started(24-09-14 13:26)
+    ☐ "skill_id": "luckyrabbit", @started(24-09-14 12:14)
+    ☐ "timing": "before_die_roll",  "effect_type": "force_die_result", @started(24-09-14 13:31)
+☐
+☐
+    ☐ 24 @started(24-09-14 12:23)
+    ☐ vestia_zeta @started(24-09-14 12:12)
+    ☐ "art_id": "missionstart", @started(24-09-14 12:14)
+☐
+    ☐ 26 @started(24-09-14 12:23)
+    ☐ "art_id": "thewholestageismine", @started(24-09-14 12:14)
+☐
+    ☐ 27 @started(24-09-14 15:10)
+    ☐ "art_id": "accesscodeid", @started(24-09-14 12:15)
+    ☐ "gift_effects": ["timing": "on_damage", @started(24-09-14 13:36)
+        ☐ "conditions": [{ "condition": "this_card_is_collab"}] @started(24-09-14 13:38)
+        ☐ "effect_type": "reduce_damage","amount": "all" @started(24-09-14 13:43)
+☐
+    ☐ 30 @started(24-09-14 12:23)
+    ☐ "irys" @started(24-09-14 12:12)
+    ☐ "art_id": "illsingmybestsowatchme", @started(24-09-14 12:15)
+☐
+    ☐ 31 @started(24-09-14 15:10)
+    ☐ "art_id": "powerofpromise", @started(24-09-14 12:15)
+    ☐ "effect_type": "power_boost_per_holomem", @started(24-09-14 13:45)
+    ☐ "has_tag": "#Promise", @started(24-09-14 13:45)
+    ☐ "effect_type": "generate_holopower", @started(24-09-14 13:47)
+☐
+    ☐ 32 @started(24-09-14 12:23)
+    ☐ "art_id": "alona", @started(24-09-14 12:17)
+☐
+    ☐ 33 @started(24-09-14 15:10)
+    ☐ "art_id": "afterparty", @started(24-09-14 12:17)
+    ☐ "target": "holomem", @started(24-09-14 13:48)
+        ☐ "limitation": "color_in", @started(24-09-14 13:48)
+        ☐ "limitation_colors": ["green"], @started(24-09-14 13:48)
+☐
+    ☐ 35 @started(24-09-14 15:10)
+    ☐ "art_id": "akirosefantasy", @started(24-09-14 12:17)
+    ☐ "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }], @started(24-09-14 13:52)
+    ☐ choose cards "requirement": "tool", @started(24-09-14 13:54)
+☐
+    ☐ 36 @started(24-09-14 12:23)
+    ☐ "art_id": "ganbarosefortoday", @started(24-09-14 12:17)
+☐
+    ☐ 37 @started(24-09-14 15:10)
+    ☐ "art_id": "secretkey", @started(24-09-14 12:18)
+    ☐ "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }], @started(24-09-14 13:55)
+    ☐ restore hp  "target": "self", @started(24-09-14 13:55)
+☐
+    ☐ 38 @started(24-09-14 12:23)
+    ☐ "art_id": "konpeko", @started(24-09-14 12:18)
+☐
+    ☐ 41 @started(24-09-14 15:10)
+    ☐ "art_id": "dontmissitpeko", @started(24-09-14 12:18)
+    ☐ sendcheer - "to_limitation": "center_or_collab" @started(24-09-14 13:57)
+☐
+    ☐ 42 @started(24-09-14 15:10)
+    ☐ "art_id": "rabbitgirlonawhitesandybeach", @started(24-09-14 12:19)
+    ☐ "art_id": "kitraaaa", @started(24-09-14 12:18)
+    ☐ "multiplier": "last_die_value" @started(24-09-14 14:03)
+☐
+    ☐ 43 @started(24-09-14 15:10)
+    ☐ "art_id": "humanrabbitalityproject", @started(24-09-14 12:18)
+    ☐ roll 3 dice effect @started(24-09-14 14:04)
+☐
+☐
+    ☐ 76 @started(24-09-14 12:21)
+    ☐ hoshimachi_suisei @started(24-09-14 12:13)
+    ☐ "art_id": "diamondintherough", @started(24-09-14 12:19)
+☐
+    ☐ 114 @started(24-09-14 15:10)
+    ☐ "sub_type": "tool", @started(24-09-14 14:15)
+    ☐ deal damage "target": "self", @started(24-09-14 14:29)
+    ☐ { "condition": "attached_to", "required_member_name": "aki_rosenthal", "required_bloom_levels": [1,2] }, @started(24-09-14 14:32)
+    ☐ "timing": "on_restore_hp", @started(24-09-14 14:40)
+☐
+☐
+    ☐ 115 @started(24-09-14 15:10)
+    ☐ "timing": "on_kill", @started(24-09-14 14:52)
+    ☐ send_cheer - "to_limitation": "attached_owner" @started(24-09-14 15:10)
+    ☐ deal damage "target": "backstage", @started(24-09-14 15:06)
+    ☐ downed_card_belongs_to_opponent @started(24-09-14 14:55)
 
 Revisit:
     - What happens when the cheer deck runs out.

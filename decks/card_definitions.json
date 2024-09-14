@@ -1000,7 +1000,6 @@
                         "from": "deck",
                         "look_at": -1,
                         "destination": "holomem",
-                        "limitation": "",
                         "to_limitation": "color_in",
                         "to_limitation_colors": ["green"],
                         "amount_min": 1,
@@ -1064,7 +1063,7 @@
                         "turn_effect": {
                             "timing": "before_die_roll",
                             "effect_type": "force_die_result",
-                            "result": 6
+                            "die_result": 6
                         }
                     }
                 ]
@@ -1671,7 +1670,7 @@
         ],
         "bloom_effects": [],
         "collab_effects": [],
-        "board_effects": [
+        "gift_effects": [
             {
                 "timing": "on_damage",
                 "conditions": [
@@ -2487,7 +2486,8 @@
             {
                 "timing": "on_kill",
                 "conditions": [
-                    { "condition": "attached_to", "required_member_name": "hoshimachi_suisei", "required_bloom_levels": [1,2] }
+                    { "condition": "attached_to", "required_member_name": "hoshimachi_suisei", "required_bloom_levels": [1,2] },
+                    { "condition": "downed_card_belongs_to_opponent"}
                 ],
                 "effect_type": "send_cheer",
                 "amount_min": 1,
