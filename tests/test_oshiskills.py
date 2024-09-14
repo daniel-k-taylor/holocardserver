@@ -43,7 +43,7 @@ class TestOshiSkills(unittest.TestCase):
         self.assertEqual(oshi_actions[0]["skill_id"], "micintherighthand")
 
         # Pretend we used it this game.
-        player1.oshi_skills_used_this_game.append("micintherighthand")
+        player1.effects_used_this_game.append("micintherighthand")
         actions = reset_mainstep(self)
         oshi_actions = [action for action in actions if action["action_type"] == GameAction.MainStepOshiSkill]
         self.assertEqual(len(oshi_actions), 0)
@@ -56,8 +56,8 @@ class TestOshiSkills(unittest.TestCase):
         self.assertEqual(oshi_actions[0]["skill_id"], "replacement")
         self.assertEqual(oshi_actions[1]["skill_id"], "soyouretheenemy")
         # Pretend p2 used replacement this turn.
-        player2.oshi_skills_used_this_game.append("replacement")
-        player2.oshi_skills_used_this_turn.append("replacement")
+        player2.effects_used_this_game.append("replacement")
+        player2.effects_used_this_turn.append("replacement")
         actions = reset_mainstep(self)
         oshi_actions = [action for action in actions if action["action_type"] == GameAction.MainStepOshiSkill]
         self.assertEqual(len(oshi_actions), 1)

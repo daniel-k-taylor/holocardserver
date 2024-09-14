@@ -93,6 +93,13 @@ def reset_performancestep(self : unittest.TestCase):
     else:
         return events[-2]["available_actions"]
 
+def begin_performance(self : unittest.TestCase):
+    self.engine.handle_game_message(self.engine.active_player_id, GameAction.MainStepBeginPerformance, {})
+    events = self.engine.grab_events()
+    validate_last_event_not_error(self, events)
+    actions = reset_performancestep(self)
+    return actions
+
 def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2deck = None):
     self.random_override = RandomOverride()
 

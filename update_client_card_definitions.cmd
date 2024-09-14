@@ -1,0 +1,1 @@
+copy /y D:\Projects\holocardserver\decks\card_definitions.json "D:\Projects\godot\holocardclient\data\card_definitions.json"
