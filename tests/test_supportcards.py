@@ -663,6 +663,5 @@ class TestSupportCards(unittest.TestCase):
         validate_event(self, events[10], EventType.EventType_Decision_MainStep, self.player1, {"active_player": self.player1})
         self.assertEqual(len(player1.hand), 8)
 
-
 if __name__ == '__main__':
     unittest.main()
