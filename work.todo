@@ -1,12 +1,112 @@
 
 Todo:
+    Convert oshi skills to:
+        actions
+        effects with timings, azki's die roll should be a timing_source_requirement
+
+
+    "aki_rosenthal"
+    "skill_id": "survivalpower",
+    choose cards - "to_limitation": "color_in", to_limitation_colors": ["green"],
+    "requirement": "specific_card", "requirement_id": "",
+
+    "skill_id": "songoftheearth",
+    "effect_type": "restore_hp", "target": "center",
+
+    pekora
+    "skill_id": "nousagis",
+    "timing": "on_down",
+    send cheer "from": "downed_holomem", "multi_to": true
+    "skill_id": "luckyrabbit",
+    "timing": "before_die_roll",  "effect_type": "force_die_result",
+
+
+    24
+    vestia_zeta
+    "art_id": "missionstart",
+
+    26
+    "art_id": "thewholestageismine",
+
+    27
+    "art_id": "accesscodeid",
+    "board_effects": ["timing": "on_damage",
+        "conditions": [{ "condition": "this_card_is_collab"}]
+        "effect_type": "reduce_damage","amount": "all"
+
+    30
+    "irys"
+    "art_id": "illsingmybestsowatchme",
+
+    31
+    "art_id": "powerofpromise",
+    "effect_type": "power_boost_per_holomem",
+    "has_tag": "#Promise",
+    "effect_type": "generate_holopower",
+
+    32
+    "art_id": "alona",
+
+    33
+    "art_id": "afterparty",
+    "target": "holomem",
+        "limitation": "color_in",
+        "limitation_colors": ["green"],
+
+    35
+    "art_id": "akirosefantasy",
+    "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }],
+    choose cards "requirement": "tool",
+
+    36
+    "art_id": "ganbarosefortoday",
+
+    37
+    "art_id": "secretkey",
+    "conditions": [{ "condition": "has_attachment_of_type", "condition_type": "tool" }],
+    restore hp  "target": "self",
+
+    38
+    "art_id": "konpeko",
+
+    41
+    "art_id": "dontmissitpeko",
+    sendcheer - "to_limitation": "center_or_collab"
+
+    42
+    "art_id": "rabbitgirlonawhitesandybeach",
+    "art_id": "kitraaaa",
+    "multiplier": "last_die_value"
+
+    43
+    "art_id": "humanrabbitalityproject",
+    roll 3 dice effect
+
+
+    76
+    hoshimachi_suisei
+    "art_id": "diamondintherough",
+
+    114
+    "sub_type": "tool",
+    deal damage "target": "self",
+    { "condition": "attached_to", "required_member_name": "aki_rosenthal", "required_bloom_levels": [1,2] },
+    "timing": "on_restore_hp",
+
+
+    115
+    "hoshimachi_suisei"
+    "timing": "on_kill",
+    send_cheer - "to_limitation": "attached_owner"
+    deal damage "target": "backstage",
 
 Revisit:
     - What happens when the cheer deck runs out.
         ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
+    ☐ Stone axe KO self
 
 Skipped cards:
     hbp:
-        11,15,17,18
+        11,15,17,18,25,28,29,34,39,40
