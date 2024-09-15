@@ -444,7 +444,7 @@ class TestGameEngine(unittest.TestCase):
         current_backstage = player1.backstage[0]["game_card_id"]
         self.assertEqual(len(player1.holopower), 0)
         # For added testing, let's add some more holopower.
-        player1.generate_holopower(3)
+        player1.generate_holopower(3, skip_event=True)
         self.assertEqual(len(player1.holopower), 3)
         # Do collab
         self.engine.handle_game_message(self.player1, GameAction.MainStepCollab, {"card_id": current_backstage })

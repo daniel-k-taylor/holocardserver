@@ -54,6 +54,7 @@ class AIPlayer:
             EventType.EventType_Choice_SendCollabBack: self._handle_choice,
             EventType.EventType_Collab: self._handle_event_ignore,
             EventType.EventType_DamageDealt: self._handle_event_ignore,
+            EventType.EventType_Decision_Choice: self._handle_choice,
             EventType.EventType_Decision_ChooseCards: self._handle_choose_cards,
             EventType.EventType_Decision_MainStep: self._handle_main_step,
             EventType.EventType_Decision_OrderCards: self._handle_order_cards,

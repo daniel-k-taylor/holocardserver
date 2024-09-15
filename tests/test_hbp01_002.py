@@ -10,7 +10,7 @@ from helpers import RandomOverride, initialize_game_to_third_turn, validate_even
 from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls
 from helpers import put_card_in_play, spawn_cheer_on_card, reset_performancestep, generate_deck_with, begin_performance
 
-class Test_hbp01_001(unittest.TestCase):
+class Test_hbp01_002(unittest.TestCase):
 
     engine : GameEngine
     player1 : str

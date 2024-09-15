@@ -334,7 +334,7 @@ class TestOshiSkills(unittest.TestCase):
         validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 0,
-            "amount_max": UNLIMITED_SIZE,
+            "amount_max": 10,
             "from_zone": "archive",
             "to_zone": "holomem",
         })
@@ -383,7 +383,7 @@ class TestOshiSkills(unittest.TestCase):
         top_cheer = player1.cheer_deck[0]
         reset_mainstep(self)
         events = do_collab_get_events(self, player1, azki_card["game_card_id"])
-        # Events - holopower gen, oshi skill question
+        # Events - holopower gen, oshi skill choie
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
@@ -391,23 +391,16 @@ class TestOshiSkills(unittest.TestCase):
             "holopower_generated": 1,
         })
         self.assertEqual(len(player1.holopower), 3)
-        validate_event(self, events[2], EventType.EventType_ForceDieResult, self.player1, {
-            "choice_event": True,
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
-            "min_choice": 0,
-            "max_choice": 6,
-            "is_oshi_effect": True,
-            "oshi_skill_id": "mapinthelefthand",
-            "cost": 3,
         })
-
-        # Force the result to 1
+        # Choice is to use ability or not, use it.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
-            "choice_index": 1
+            "choice_index": 0
         })
         events = self.engine.grab_events()
-        # Events - holopower moved * 3, oshi skill activation, die roll, collab effect 1 (decision_send_cheer)
-        self.assertEqual(len(events), 12)
+        # Events - holopower moved * 3, oshi skill activation, force result pick
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "holopower",
@@ -430,12 +423,27 @@ class TestOshiSkills(unittest.TestCase):
             "oshi_player_id": self.player1,
             "skill_id": "mapinthelefthand",
         })
-        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[8], EventType.EventType_ForceDieResult, self.player1, {
+            "choice_event": True,
+            "effect_player_id": self.player1,
+            "min_choice": 0,
+            "max_choice": 5,
+        })
+
+        # Force the result to 1
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0
+        })
+        events = self.engine.grab_events()
+        # Events - die roll, collab effect 1 (decision_send_cheer)
+        self.assertEqual(len(events), 4)
+
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": True,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -514,23 +522,15 @@ class TestOshiSkills(unittest.TestCase):
             "holopower_generated": 1,
         })
         self.assertEqual(len(player1.holopower), 3)
-        validate_event(self, events[2], EventType.EventType_ForceDieResult, self.player1, {
-            "choice_event": True,
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
-            "min_choice": 0,
-            "max_choice": 6,
-            "is_oshi_effect": True,
-            "oshi_skill_id": "mapinthelefthand",
-            "cost": 3,
         })
-
-        # Force the result to 1
+        # Choice is to use ability or not, use it.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
-            "choice_index": 1
+            "choice_index": 0
         })
         events = self.engine.grab_events()
-        # Events - holopower moved * 3, oshi skill activation, die roll, collab effect 1 (decision_send_cheer)
-        self.assertEqual(len(events), 12)
+        # Events - holopower moved * 3, oshi skill activation, force result pick
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "holopower",
@@ -553,12 +553,26 @@ class TestOshiSkills(unittest.TestCase):
             "oshi_player_id": self.player1,
             "skill_id": "mapinthelefthand",
         })
-        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[8], EventType.EventType_ForceDieResult, self.player1, {
+            "choice_event": True,
+            "effect_player_id": self.player1,
+            "min_choice": 0,
+            "max_choice": 5,
+        })
+
+        # Force the result to 1
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0
+        })
+        events = self.engine.grab_events()
+        # Events - die roll, collab effect 1 (decision_send_cheer)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": True,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -632,23 +646,16 @@ class TestOshiSkills(unittest.TestCase):
             "holopower_generated": 1,
         })
         self.assertEqual(len(player1.holopower), 3)
-        validate_event(self, events[2], EventType.EventType_ForceDieResult, self.player1, {
-            "choice_event": True,
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
-            "min_choice": 0,
-            "max_choice": 6,
-            "is_oshi_effect": True,
-            "oshi_skill_id": "mapinthelefthand",
-            "cost": 3,
         })
-
-        # Force the result to 4
+        # Choice is to use ability or not, use it.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
-            "choice_index": 4
+            "choice_index": 0
         })
         events = self.engine.grab_events()
-        # Events - holopower moved * 3, oshi skill activation, die roll, collab effect 1 (decision_send_cheer)
-        self.assertEqual(len(events), 12)
+        # Events - holopower moved * 3, oshi skill activation, force result pick
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "holopower",
@@ -671,12 +678,26 @@ class TestOshiSkills(unittest.TestCase):
             "oshi_player_id": self.player1,
             "skill_id": "mapinthelefthand",
         })
-        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[8], EventType.EventType_ForceDieResult, self.player1, {
+            "choice_event": True,
+            "effect_player_id": self.player1,
+            "min_choice": 0,
+            "max_choice": 5,
+        })
+
+        # Force the result to 4
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 3
+        })
+        events = self.engine.grab_events()
+        # Events - die roll, collab effect 1 (decision_send_cheer)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 4,
             "rigged": True,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -738,19 +759,12 @@ class TestOshiSkills(unittest.TestCase):
             "holopower_generated": 1,
         })
         self.assertEqual(len(player1.holopower), 3)
-        validate_event(self, events[2], EventType.EventType_ForceDieResult, self.player1, {
-            "choice_event": True,
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
-            "min_choice": 0,
-            "max_choice": 6,
-            "is_oshi_effect": True,
-            "oshi_skill_id": "mapinthelefthand",
-            "cost": 3,
         })
-
-        # Don't use the ability
+        # Choice is to use ability or not, pass.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
-            "choice_index": 0
+            "choice_index": 1
         })
         events = self.engine.grab_events()
         # Events - die roll, collab effect fails so back to main step

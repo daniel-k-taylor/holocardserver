@@ -1,12 +1,19 @@
 
 Todo:
 
+
 Revisit:
     - What happens when the cheer deck runs out.
         ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
+    ☐ Stone axe
+        - KO Self what happens?
+        - Do you get the draw even if you heal 0?
+
 
 Skipped cards:
     hbp:
-        11,15,17,18
+        11,15,17,18,25,28,29,34,39,40,78
+    do_on_suisei_oshi:
+        77
