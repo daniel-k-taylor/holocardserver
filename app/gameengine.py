@@ -378,19 +378,22 @@ class PlayerState:
         self.engine.broadcast_event(shuffle_event)
 
     def record_card_effect_used_this_turn(self, card_id):
-        self.card_effects_used_this_turn.append(card_id)
+        if card_id not in self.card_effects_used_this_turn:
+            self.card_effects_used_this_turn.append(card_id)
 
     def has_used_card_effect_this_turn(self, card_id):
         return card_id in self.card_effects_used_this_turn
 
     def record_effect_used_this_turn(self, effect_id):
-        self.effects_used_this_turn.append(effect_id)
+        if effect_id not in self.effects_used_this_turn:
+            self.effects_used_this_turn.append(effect_id)
 
     def has_used_once_per_turn_effect(self, effect_id):
         return effect_id in self.effects_used_this_turn
 
     def record_effect_used_this_game(self, effect_id):
-        self.effects_used_this_game.append(effect_id)
+        if effect_id not in self.effects_used_this_game:
+            self.effects_used_this_game.append(effect_id)
 
     def has_used_once_per_game_effect(self, effect_id):
         return effect_id in self.effects_used_this_game

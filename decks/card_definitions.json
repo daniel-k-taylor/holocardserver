@@ -1111,11 +1111,268 @@
             }
         ]
     },
-
-
-
-
-
+    {
+        "card_id": "hBP01-005",
+        "card_type": "oshi",
+        "oshi_name": "takanelui",
+        "colors": ["red"],
+        "rarity": "osr",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "hawkeye",
+                "cost": 2,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "effect_type": "oshi_activation",
+                        "skill_id": "hawkeye",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "hawkeye" }
+                        ]
+                    },
+                    {
+                        "effect_type": "block_opponent_movement"
+                    }
+                ]
+            }
+        ],
+        "effects": [
+            {
+                "full_english_text": "When you use a Red Holomem's Ability/Arts that Archives cards from your hand: you may Archive any number them from your Holopower instead.",
+                "oshi_effect": "true",
+                "skill_id": "executivesorder",
+                "cost": "X",
+                "limit": "once_per_turn",
+                "conditions": [
+                    { "condition": "not_used_once_per_turn_effect", "condition_effect_id": "executivesorder" },
+                    { "condition": "holopower_at_least", "amount": 1 },
+                    { "condition": "opponent_turn" }
+                ],
+                "timing": "before_archive",
+                "timing_source_requirement": "holomem_ability_color_red",
+                "effect_type": "generate_choice_template",
+                "can_pass": true,
+                "starts_at": 1,
+                "ends_at": "archiving_hand_X",
+                "usage_count_restriction": "holopower",
+                "template_choice": {
+                    "effect_type": "skip_next_hand_archive",
+                    "amount": "X",
+                    "pre_effects": [
+                        { "effect_type": "spend_holopower", "amount": "X" },
+                        { "effect_type": "record_used_once_per_turn_effect", "effect_id": "executivesorder" }
+                    ]
+                }
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-006",
+        "card_type": "oshi",
+        "oshi_name": "takanashikiara",
+        "colors": ["red"],
+        "rarity": "osr",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "phoenixtail",
+                "cost": 2,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "effect_type": "oshi_activation",
+                        "skill_id": "phoenixtail",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "phoenixtail" }
+                        ]
+                    },
+                    {
+                        "effect_type": "choose_cards",
+                        "from": "archive",
+                        "look_at": -1,
+                        "destination": "hand",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "requirement": "holomem",
+                        "reveal_chosen": true,
+                        "remaining_cards_action": "nothing"
+                    }
+                ]
+            }
+        ],
+        "effects": [
+            {
+                "full_english_text": "When your Red Holomem is downed on the opponent's turn: lose 1 less LIFE. You may take it and all stacked Holomem into your hand.",
+                "oshi_effect": "true",
+                "skill_id": "risefromtheashes",
+                "cost": 2,
+                "limit": "once_per_game",
+                "conditions": [
+                    { "condition": "not_used_once_per_game_effect", "condition_effect_id": "risefromtheashes" },
+                    { "condition": "holopower_at_least", "amount": 2 },
+                    { "condition": "opponent_turn" },
+                    { "condition": "downed_card_is_color", "condition_color": "red" }
+                ],
+                "timing": "on_down",
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "effect_type": "recover_downed_holomem_cards",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "risefromtheashes" },
+                            { "effect_type": "oshi_activation", "skill_id": "risefromtheashes" }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-007",
+        "card_type": "oshi",
+        "oshi_name": "hoshimachi_suisei",
+        "colors": ["blue"],
+        "rarity": "osr",
+        "life": 5,
+        "actions": [],
+        "effects": [
+            {
+                "full_english_text": "When this or a Blue Holomem deals damage to your opponent's Back Holomem: deal 50 damage to one of your opponent's Back Holomem",
+                "oshi_effect": "true",
+                "skill_id": "comet",
+                "cost": 2,
+                "limit": "once_per_turn",
+                "conditions": [
+                    { "condition": "not_used_once_per_turn_effect", "condition_effect_id": "comet" },
+                    { "condition": "holopower_at_least", "amount": 2 },
+                    { "condition": "damaged_holomem_is_backstage" },
+                    { "condition": "damage_ability_is_oshi_or_color", "condition_color": "blue" }
+                ],
+                "timing": "after_deal_damage",
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "effect_type": "deal_damage",
+                        "special": true,
+                        "amount": 50,
+                        "target": "backstage",
+                        "opponent": true,
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "comet" },
+                            { "effect_type": "oshi_activation", "skill_id": "comet" }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            },
+            {
+                "full_english_text": "When your Blue Holomem deals damage to your opponent's Center or Collab Holomem: deal equal special damage to one of your opponent's Back Holomem",
+                "oshi_effect": "true",
+                "skill_id": "shootingstar",
+                "cost": 2,
+                "limit": "once_per_game",
+                "conditions": [
+                    { "condition": "not_used_once_per_game_effect", "condition_effect_id": "shootingstar" },
+                    { "condition": "holopower_at_least", "amount": 2 },
+                    { "condition": "damaged_holomem_is_center_or_collab" },
+                    { "condition": "damage_ability_is_color", "condition_color": "blue" }
+                ],
+                "timing": "after_deal_damage",
+                "effect_type": "choice",
+                "choice_populate_amount_x": "equal_to_last_damage",
+                "choice": [
+                    {
+                        "effect_type": "deal_damage",
+                        "special": true,
+                        "amount": "X",
+                        "target": "backstage",
+                        "opponent": true,
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "shootingstar" },
+                            { "effect_type": "oshi_activation", "skill_id": "shootingstar" }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-008",
+        "card_type": "oshi",
+        "oshi_name": "kobo_kanaeru",
+        "colors": ["blue"],
+        "rarity": "osr",
+        "life": 6,
+        "actions": [
+            {
+                "skill_id": "prayingforrain",
+                "cost": 3,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "effect_type": "oshi_activation",
+                        "skill_id": "prayingforrain",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 3 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "prayingforrain" }
+                        ]
+                    },
+                    {
+                        "effect_type": "send_cheer",
+                        "amount_min": 1,
+                        "amount_max": 5,
+                        "from": "archive",
+                        "to": "holomem",
+                        "to_limitation": "tag_in",
+                        "to_limitation_tags": ["#ID"],
+                        "multi_to": true
+                    }
+                ]
+            }
+        ],
+        "effects": [
+            {
+                "full_english_text": "When you archive Cheer with a Blue Holomem Ability/Arts: deal 20 Special damage to any of your opponent's Holomem.",
+                "oshi_effect": "true",
+                "skill_id": "rainshamanism",
+                "cost": 1,
+                "limit": "once_per_turn",
+                "conditions": [
+                    { "condition": "not_used_once_per_turn_effect", "condition_effect_id": "rainshamanism" },
+                    { "condition": "holopower_at_least", "amount": 1 }
+                ],
+                "timing": "on_archive_cheer",
+                "timing_source_requirement": "holomem_ability_color_blue",
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "effect_type": "deal_damage",
+                        "special": true,
+                        "amount": 20,
+                        "target": "holomem",
+                        "opponent": true,
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 1 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "rainshamanism" },
+                            { "effect_type": "oshi_activation", "skill_id": "rainshamanism" }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
     {
         "card_id": "hBP01-009",
         "card_type": "holomem_debut",
@@ -2318,6 +2575,200 @@
 
 
     {
+        "card_id": "hBP01-100",
+        "card_type": "holomem_spot",
+        "bloom_blocked": true,
+        "holomem_names": ["mori_calliope"],
+        "rarity": "c",
+        "colors": ["none"],
+        "hp": 70,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "soulguide",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "archive",
+                "look_at": -1,
+                "destination": "cheer_deck",
+                "amount_min": 1,
+                "amount_max": 3,
+                "requirement": "cheer",
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-101",
+        "card_type": "holomem_spot",
+        "bloom_blocked": true,
+        "holomem_names": ["watson_amelia"],
+        "rarity": "c",
+        "colors": ["none"],
+        "hp": 80,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth"
+        ],
+        "arts": [
+            {
+                "art_id": "elementaryisntit",
+                "costs": [
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 20
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "archive",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 1,
+                "requirement": "item",
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-102",
+        "card_type": "support",
+        "sub_type": "item",
+        "support_names": ["idolmic"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [
+            {
+                "condition": "cards_in_hand",
+                "amount_min": 0,
+                "amount_max": 7
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem",
+                "requirement_tags": ["#Song"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-103",
+        "card_type": "support",
+        "sub_type": "item",
+        "support_names": ["gamingpc"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [
+            {
+                "condition": "holopower",
+                "amount_min": 1,
+                "amount_max": -1
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "archive_holopower",
+                "amount": 1
+            },
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "holomem_debut_or_bloom",
+                "requirement_bloom_levels": [1],
+                "requirement_buzz_blocked": true,
+                "requirement_match_oshi_color": true,
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-104",
+        "card_type": "support",
+        "sub_type": "item",
+        "support_names": ["standardpc"],
+        "rarity": "c",
+        "play_conditions": [
+            {
+                "condition": "stage_has_space"
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": -1,
+                "destination": "stage",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "holomem_debut",
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-105",
+        "card_type": "support",
+        "sub_type": "item",
+        "support_names": ["penlight"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [
+            {
+                "condition": "holopower",
+                "amount_min": 1,
+                "amount_max": -1
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "archive_holopower",
+                "amount": 1
+            },
+            {
+                "effect_type": "choose_cards",
+                "from": "cheer_deck",
+                "look_at": -1,
+                "destination": "holomem",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "color_matches_holomems",
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
         "card_id": "hBP01-106",
         "card_type": "support",
         "sub_type": "event",
@@ -2467,8 +2918,93 @@
             }
         ]
     },
-
-
+    {
+        "card_id": "hBP01-111",
+        "card_type": "support",
+        "sub_type": "event",
+        "support_names": ["hololiveid3rdgeneration"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [
+            {
+                "condition": "cards_in_hand",
+                "amount_min": 0,
+                "amount_max": 7
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem_named",
+                "requirement_tags": ["#IDGen3"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-112",
+        "card_type": "support",
+        "sub_type": "event",
+        "support_names": ["excitingpranktime"],
+        "rarity": "u",
+        "effects": [
+            {
+                "effect_type": "roll_die",
+                "source": "support_card",
+                "die_effects": [
+                    {
+                        "english_values": "4-6",
+                        "activate_on_values": [4,5,6],
+                        "effects": [
+                            {
+                                "effect_type": "deal_damage",
+                                "special": true,
+                                "amount": 20,
+                                "target": "backstage",
+                                "opponent": true,
+                                "prevent_life_loss": true
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-113",
+        "card_type": "support",
+        "sub_type": "event",
+        "support_names": ["promise"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [
+            {
+                "condition": "cards_in_hand",
+                "amount_min": 0,
+                "amount_max": 7
+            }
+        ],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem_named",
+                "requirement_tags": ["#Promise"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
     {
         "card_id": "hBP01-114",
         "card_type": "support",
