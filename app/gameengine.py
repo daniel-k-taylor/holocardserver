@@ -69,6 +69,7 @@ class Condition:
     Condition_CenterHasAnyTag = "center_has_any_tag"
     Condition_CheerInPlay = "cheer_in_play"
     Condition_CollabWith = "collab_with"
+    Condition_DamageSourceIsOpponent = "damage_source_is_opponent"
     Condition_DownedCardBelongsToOpponent = "downed_card_belongs_to_opponent"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HasAttachmentOfType = "has_attachment_of_type"
@@ -154,9 +155,11 @@ class ArtStatBoosts:
 class DamageModifications:
     def __init__(self):
         self.prevented_damage = 0
+        self.source_player = None
 
     def clear(self):
         self.prevented_damage = 0
+        self.source_player = None
 
 class GameAction:
     Mulligan = "mulligan"
@@ -1573,6 +1576,7 @@ class GameEngine:
         target_card["damage"] += damage
 
         self.damage_modifications = DamageModifications()
+        self.damage_modifications.source_player = dealing_player
         on_damage_effects = target_player.get_effects_at_timing("on_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
             self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
@@ -1800,6 +1804,8 @@ class GameEngine:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_DamageSourceIsOpponent:
+                return self.damage_modifications.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
                 source_card = self.find_card(source_card_id)
                 owner_player = self.get_player(source_card["owner_id"])

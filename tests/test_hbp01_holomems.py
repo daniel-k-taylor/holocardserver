@@ -1597,7 +1597,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "amount_min": 0,
             "amount_max": 1,
             "reveal_chosen": True,
-            "remaining_cards_action": "shuffle",
+            "remaining_cards_action": "nothing",
         })
         # Grab axe
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {

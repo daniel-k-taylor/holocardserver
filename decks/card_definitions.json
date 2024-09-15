@@ -1071,6 +1071,7 @@
         ],
         "effects": [
             {
+                "full_english_text": "(1/Turn): When your Holomem is downed on opponent's turn: Distribute all Green Cheer from that Holomem.",
                 "oshi_effect": "true",
                 "skill_id": "nousagis",
                 "cost": 2,
@@ -1672,10 +1673,12 @@
         "collab_effects": [],
         "gift_effects": [
             {
+                "full_english_text": "1/Turn (Collab only) When a Holomem takes damage from the opponent, you may roll a die. If odd, prevent the damage.",
                 "timing": "on_damage",
                 "conditions": [
                     { "condition": "effect_card_id_not_used_this_turn" },
-                    { "condition": "this_card_is_collab"}
+                    { "condition": "this_card_is_collab"},
+                    { "condition": "damage_source_is_opponent" }
                 ],
                 "effect_type": "choice",
                 "choice": [
@@ -1914,7 +1917,7 @@
                 "amount_max": 1,
                 "requirement": "tool",
                 "reveal_chosen": true,
-                "remaining_cards_action": "shuffle"
+                "remaining_cards_action": "nothing"
             }
         ],
         "collab_effects": []
