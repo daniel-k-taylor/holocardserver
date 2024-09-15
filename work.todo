@@ -1,18 +1,16 @@
-005
-takane_lui
-"skill_id": "hawkeye",
-"effect_type": "block_opponent_movement"
+☐ 005
+☐ "skill_id": "hawkeye", @started(24-09-15 13:41)
+☐ "effect_type": "block_opponent_movement" @started(24-09-15 13:55)
 
-"skill_id": "executivesorder",
-"timing": "before_archive",
-"cost": "archiving_X",
-"timing_source_requirement": "holomem_ability_color_red",
-"effect_type": "archive_holopower", "amount": "archiving_hand_X"
-"effect_type": "generate_choice_template",
-"effect_type": "skip_next_hand_archive",
+☐ "skill_id": "executivesorder", @started(24-09-15 13:41)
+☐ "timing": "before_archive",
+☐ "cost": "archiving_X",
+☐ "timing_source_requirement": "holomem_ability_color_red",
+☐ "effect_type": "archive_holopower", "amount": "archiving_hand_X"
+☐ "effect_type": "generate_choice_template",
+☐ "effect_type": "skip_next_hand_archive",
 
 006
-takanashi_kiara
 "skill_id": "phoenixtail",
 "skill_id": "risefromtheashes",
 { "condition": "downed_card_is_color", "condition_color": "red" }
@@ -30,7 +28,6 @@ takanashi_kiara
 "choice_populate_amount_x": "equal_to_last_damage",
 
 008
-"oshi_name": "kobo_kanaeru",
 "skill_id": "prayingforrain",
 "effect_type": "send_cheer", amount min/max different for multi_to, from archive, tag_in to limitation
 
@@ -39,23 +36,42 @@ rainshamanism
 "timing_source_requirement": "holomem_ability_color_blue",
 dealdamage "target": "holomem",
 
-100
-mori_calliope
-"art_id": "soulguide",
-101
-watson_amelia
-"requirement": "item",
-102
-subtype item
-103
-"play_conditions": ["condition": "holopower",
-"effect_type": "archive_holopower",
-"requirement_match_oshi_color": true,
-104
-"play_conditions": [ "condition": "stage_has_space"
-choosecards "destination": "stage",
-105
-"effect_type": "choose_cards", cheer_deck,  "requirement": "color_matches_holomems", shuffle it
+✔ 56 @done(24-09-15 12:51)
+✔ "art_id": "didiluiveyouwaiting", @done(24-09-15 12:51)
+☐ 57 @started(24-09-15 13:38)
+✔ lureofthejetblackwings @done(24-09-15 12:52)
+☐ dealdamage - "target": "collab", @started(24-09-15 12:57)
+✔ 58 @done(24-09-15 12:52)
+✔ konluilui @done(24-09-15 12:52)
+✔ otsuluilui @done(24-09-15 12:52)
+☐ 59
+✔ welcometotheparty @done(24-09-15 12:53)
+✔ luisparty @done(24-09-15 12:53)
+☐ "effect_type": "archive_from_hand",
+☐ { "condition": "can_archive_hand", "amount_min": 1 },
+✔ 60 @done(24-09-15 12:53)
+✔ "art_id": "followmeclosely", @done(24-09-15 12:53)
+☐ 61
+✔ "art_id": "hawkrave", @done(24-09-15 12:53)
+☐ "effect_type": "archive_from_hand_variable",
+☐ dealdamage - "multiplier": "last_archived_count",
+✔ "target": "center_or_collab", @started(24-09-15 12:57) @done(24-09-15 12:57) @lasted(51s)
+✔ 100 @done(24-09-15 12:54)
+✔ mori_calliope @done(24-09-15 12:54)
+✔ "art_id": "soulguide", @done(24-09-15 12:53)
+☐ 101 @started(24-09-15 13:38)
+✔ watson_amelia @done(24-09-15 12:54)
+☐ "requirement": "item", @started(24-09-15 12:59)
+☐ 102 @started(24-09-15 13:38)
+☐ subtype item @started(24-09-15 12:59)
+☐ 103 @started(24-09-15 13:40)
+☐ "play_conditions": ["condition": "current_holopower", @started(24-09-15 13:03)
+☐ "requirement_match_oshi_color": true, @started(24-09-15 13:07)
+☐ 104 @started(24-09-15 13:38)
+☐ "play_conditions": [ "condition": "stage_has_space" @started(24-09-15 13:08)
+☐ choosecards "destination": "stage", @started(24-09-15 13:38)
+☐ 105 @started(24-09-15 13:38)
+☐ "effect_type": "choose_cards", cheer_deck,  "requirement": "color_matches_holomems", shuffle it @started(24-09-15 13:17)
 ✔ 111 @done(24-09-15 01:47)
 ✔ 112 @done(24-09-15 01:46)
 ✔ 113 @done(24-09-15 01:46)

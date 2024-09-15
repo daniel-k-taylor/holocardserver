@@ -700,8 +700,7 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 2,
-                "amount_max": -1
+                "amount_min": 2
             }
         ],
         "effects": [
@@ -811,7 +810,6 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 0,
                 "amount_max": 7
             }
         ],
@@ -2068,7 +2066,7 @@
             "#JP",
             "#Gen1",
             "#HalfElf",
-            "Alcohol"
+            "#Alcohol"
         ],
         "arts": [
             {
@@ -2093,7 +2091,7 @@
             "#JP",
             "#Gen1",
             "#HalfElf",
-            "Alcohol"
+            "#Alcohol"
         ],
         "arts": [
             {
@@ -2142,7 +2140,7 @@
             "#JP",
             "#Gen1",
             "#HalfElf",
-            "Alcohol"
+            "#Alcohol"
         ],
         "arts": [
             {
@@ -2192,7 +2190,7 @@
             "#JP",
             "#Gen1",
             "#HalfElf",
-            "Alcohol"
+            "#Alcohol"
         ],
         "arts": [
             {
@@ -2226,7 +2224,7 @@
             "#JP",
             "#Gen1",
             "#HalfElf",
-            "Alcohol"
+            "#Alcohol"
         ],
         "arts": [
             {
@@ -2501,6 +2499,287 @@
 
 
     {
+        "card_id": "hBP01-056",
+        "card_type": "holomem_debut",
+        "holomem_names": ["takane_lui"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 100,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "didiluiveyouwaiting",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-057",
+        "card_type": "holomem_debut",
+        "holomem_names": ["takane_lui"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 60,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "lureofthejetblackwings",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": [
+                    {
+                        "effect_type": "deal_damage",
+                        "special": true,
+                        "amount": 10,
+                        "target": "collab",
+                        "opponent": true
+                    }
+                ]
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "deal_damage",
+                "special": true,
+                "amount": 10,
+                "target": "collab",
+                "opponent": true
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-058",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takane_lui"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 170,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "konluilui",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            },
+            {
+                "art_id": "otsuluilui",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 50,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-059",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takane_lui"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 130,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "welcometotheparty",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            },
+            {
+                "art_id": "luisparty",
+                "costs": [
+                    { "color": "red", "amount": 2 }
+                ],
+                "power": 50,
+                "art_effects": [
+                    {
+                        "effect_type": "choice",
+                        "conditions": [{ "condition": "can_archive_hand", "amount_min": 1 }],
+                        "choice": [
+                            {
+                                "effect_type": "archive_from_hand",
+                                "amount": 1,
+                                "and": [
+                                    {
+                                        "effect_type": "choose_cards",
+                                        "from": "deck",
+                                        "look_at": -1,
+                                        "destination": "hand",
+                                        "amount_min": 1,
+                                        "amount_max": 1,
+                                        "requirement": "holomem_bloom",
+                                        "requirement_bloom_levels": [1],
+                                        "requirement_buzz_blocked": true,
+                                        "reveal_chosen": true,
+                                        "remaining_cards_action": "shuffle"
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-060",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takane_lui"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 100,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "followmeclosely",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choice",
+                "conditions": [
+                    { "condition": "can_archive_hand", "amount_min": 1 },
+                    { "condition": "bloom_target_is_debut" }
+                ],
+                "choice": [
+                    {
+                        "effect_type": "archive_from_hand",
+                        "amount": 1,
+                        "and": [
+                            {
+                                "effect_type": "draw",
+                                "amount": 2
+                            }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-061",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "holomem_names": ["takane_lui"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 190,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Bird",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "hawkrave",
+                "costs": [
+                    { "color": "red", "amount": 2 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
+                    },
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "can_archive_hand", "amount": 1 }],
+                        "effect_type": "archive_from_hand_variable",
+                        "amount_min": 0,
+                        "amount_max": 5,
+                        "archive_effect": [
+                            {
+                                "effect_type": "deal_damage",
+                                "special": true,
+                                "amount": 20,
+                                "multiplier": "last_archived_count",
+                                "target": "center_or_collab",
+                                "opponent": true
+                            }
+                        ]
+
+                    }
+                ]
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "archive",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 2,
+                "requirement": "holomem",
+                "requirement_tags": ["#SecretSocietyholoX"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing"
+            }
+        ]
+    },
+
+
+
+    {
         "card_id": "hBP01-076",
         "card_type": "holomem_debut",
         "holomem_names": ["hoshimachi_suisei"],
@@ -2657,7 +2936,6 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 0,
                 "amount_max": 7
             }
         ],
@@ -2685,14 +2963,13 @@
         "limited": true,
         "play_conditions": [
             {
-                "condition": "holopower",
-                "amount_min": 1,
-                "amount_max": -1
+                "condition": "current_holopower",
+                "amount_min": 1
             }
         ],
         "effects": [
             {
-                "effect_type": "archive_holopower",
+                "effect_type": "spend_holopower",
                 "amount": 1
             },
             {
@@ -2774,6 +3051,11 @@
         "sub_type": "event",
         "support_names": ["illleaveittoyou"],
         "rarity": "u",
+        "play_conditions": [
+            {
+                "condition": "can_move_front_stage"
+            }
+        ],
         "effects": [
             {
                 "effect_type": "switch_center_with_back",
@@ -2825,7 +3107,6 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 0,
                 "amount_max": 7
             }
         ],
@@ -2928,7 +3209,6 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 0,
                 "amount_max": 7
             }
         ],
@@ -2986,7 +3266,6 @@
         "play_conditions": [
             {
                 "condition": "cards_in_hand",
-                "amount_min": 0,
                 "amount_max": 7
             }
         ],

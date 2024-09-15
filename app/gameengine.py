@@ -32,6 +32,7 @@ class EffectType:
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
+    EffectType_BlockOpponentMovement = "block_opponent_movement"
     EffectType_Choice = "choice"
     EffectType_ChooseCards = "choose_cards"
     EffectType_DealDamage = "deal_damage"
@@ -42,6 +43,7 @@ class EffectType:
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_Pass = "pass"
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
+    EffectType_PlaceHolomem = "place_holomem"
     EffectType_PowerBoost = "power_boost"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_PowerBoostPerHolomem = "power_boost_per_holomem"
@@ -64,11 +66,13 @@ class EffectType:
 class Condition:
     Condition_AttachedTo = "attached_to"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
+    Condition_CanMoveFrontStage = "can_move_front_stage"
     Condition_CardsInHand = "cards_in_hand"
     Condition_CenterIsColor = "center_is_color"
     Condition_CenterHasAnyTag = "center_has_any_tag"
     Condition_CheerInPlay = "cheer_in_play"
     Condition_CollabWith = "collab_with"
+    Condition_CurrentHolopower = "current_holopower"
     Condition_DamageSourceIsOpponent = "damage_source_is_opponent"
     Condition_DownedCardBelongsToOpponent = "downed_card_belongs_to_opponent"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
@@ -84,6 +88,7 @@ class Condition:
     Condition_PerformerIsColor = "performer_is_color"
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
+    Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
     Condition_ThisCardIsCollab = "this_card_is_collab"
@@ -288,6 +293,7 @@ class PlayerState:
         self.turn_effects = []
         self.set_next_die_roll = 0
         self.card_effects_used_this_turn = []
+        self.block_movement_for_turn = False
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -376,6 +382,25 @@ class PlayerState:
             "shuffling_player_id": self.player_id,
         }
         self.engine.broadcast_event(shuffle_event)
+
+    def shuffle_cheer_deck(self):
+        self.engine.shuffle_list(self.cheer_deck)
+
+    def matches_oshi_color(self, colors):
+        for color in colors:
+            if color in self.oshi_card["colors"]:
+                return True
+        return False
+
+    def matches_stage_holomems_color(self, colors):
+        for card in self.get_holomem_on_stage():
+            for color in colors:
+                if color in card["colors"]:
+                    return True
+        return False
+
+    def can_move_front_stage(self):
+        return not self.block_movement_for_turn
 
     def record_card_effect_used_this_turn(self, card_id):
         if card_id not in self.card_effects_used_this_turn:
@@ -584,15 +609,17 @@ class PlayerState:
                     activated_card_ids.append(card["game_card_id"])
         return activated_card_ids
 
-    def clear_tracked_turn_data(self):
+    def on_my_turn_end(self):
         self.first_turn = False
+        self.block_movement_for_turn = False
+
+    def clear_every_turn_effects(self):
         self.baton_pass_this_turn = False
         self.collabed_this_turn = False
+        self.turn_effects = []
+        self.used_limited_this_turn = False
         self.effects_used_this_turn = []
         self.card_effects_used_this_turn = []
-        self.used_limited_this_turn = False
-        self.turn_effects = []
-
         for card in self.get_holomem_on_stage():
             card["used_art_this_turn"] = False
             card["played_this_turn"] = False
@@ -602,10 +629,14 @@ class PlayerState:
         # For all cards in collab, move them back to backstage and rest them.
         rested_card_ids = []
         for card in self.collab:
-            self.backstage.append(card)
             card["resting"] = True
             rested_card_ids.append(card["game_card_id"])
-        self.collab = []
+
+        if self.can_move_front_stage():
+            for card in self.collab:
+                self.backstage.append(card)
+            self.collab = []
+
         return rested_card_ids
 
     def return_collab(self):
@@ -911,6 +942,9 @@ def is_card_event(card):
 def is_card_tool(card):
     return "sub_type" in card and card["sub_type"] == "tool"
 
+def is_card_item(card):
+    return "sub_type" in card and card["sub_type"] == "item"
+
 def is_card_cheer(card):
     return card["card_type"] == "cheer"
 
@@ -924,7 +958,7 @@ class GameEngine:
         player_infos : List[Dict[str, Any]],
     ):
         self.phase = GamePhase.Initializing
-        self.first_turn = True
+        self.game_first_turn = True
         self.card_db = card_db
         self.latest_events = []
         self.current_decision = None
@@ -1361,7 +1395,8 @@ class GameEngine:
         center_mem = active_player.center[0]
         cheer_on_mem = center_mem["attached_cheer"]
         baton_cost = center_mem["baton_cost"]
-        if not active_player.baton_pass_this_turn and not is_card_resting(center_mem) and len(cheer_on_mem) >= baton_cost:
+        if active_player.can_move_front_stage() and not active_player.baton_pass_this_turn and \
+            not is_card_resting(center_mem) and len(cheer_on_mem) >= baton_cost:
             backstage_options = []
             for card in active_player.backstage:
                 if not is_card_resting(card):
@@ -1423,10 +1458,13 @@ class GameEngine:
 
     def end_player_turn(self):
         active_player = self.get_player(self.active_player_id)
-        active_player.clear_tracked_turn_data()
+        active_player.on_my_turn_end()
+        other_player = self.other_player(self.active_player_id)
+        active_player.clear_every_turn_effects()
+        other_player.clear_every_turn_effects()
 
         # This is no longer the game's first turn.
-        self.first_turn = False
+        self.game_first_turn = False
 
         ending_player_id = self.active_player_id
         self.switch_active_player()
@@ -1775,9 +1813,11 @@ class GameEngine:
                 # Bloom target is always in the 0 slot.
                 target_card = bloom_card["stacked_cards"][0]
                 return target_card["card_type"] == "holomem_debut"
+            case Condition.Condition_CanMoveFrontStage:
+                return effect_player.can_move_front_stage()
             case Condition.Condition_CardsInHand:
-                amount_min = condition["amount_min"]
-                amount_max = condition["amount_max"]
+                amount_min = condition.get("amount_min", -1)
+                amount_max = condition.get("amount_max", -1)
                 if amount_max == -1:
                     amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.hand) <= amount_max
@@ -1807,6 +1847,12 @@ class GameEngine:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_CurrentHolopower:
+                amount_min = condition.get(amount_min, -1)
+                amount_max = condition.get(amount_max, -1)
+                if amount_max == -1:
+                    amount_max = UNLIMITED_SIZE
+                return amount_min <= len(effect_player.holopower) <= amount_max
             case Condition.Condition_DamageSourceIsOpponent:
                 return self.damage_modifications.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
@@ -1862,6 +1908,8 @@ class GameEngine:
                     if tag in valid_tags:
                         return True
                 return False
+            case Condition.Condition_StageHasSpace:
+                return len(effect_player.get_holomem_on_stage()) < MAX_MEMBERS_ON_STAGE
             case Condition.Condition_TargetColor:
                 color_requirement = condition["color_requirement"]
                 return color_requirement in self.performance_target_card["colors"]
@@ -1933,6 +1981,9 @@ class GameEngine:
                         "effect_resolution": self.handle_add_turn_effect_for_holomem,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_ArchiveHolopower:
+                amount = effect["amount"]
+                effect_player.archive_holopower(amount)
             case EffectType.EffectType_AttachCardToHolomem:
                 source_card_id = effect["source_card_id"]
                 continuation = self.continue_resolving_effects
@@ -1993,6 +2044,9 @@ class GameEngine:
                             effect_player.archive_attached_cards([attached_support["game_card_id"]])
                             break
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
+            case EffectType.EffectType_BlockOpponentMovement:
+                other_player = self.other_player(effect_player_id)
+                other_player.block_movement_for_turn = True
             case EffectType.EffectType_Choice:
                 choice = effect["choice"]
                 add_ids_to_effects(choice, effect_player_id, effect.get("source_card_id", None))
@@ -2028,6 +2082,7 @@ class GameEngine:
                 requirement_names = effect.get("requirement_names", [])
                 requirement_tags = effect.get("requirement_tags", [])
                 requirement_id = effect.get("requirement_id", "")
+                requirement_match_oshi_color = effect.get("requirement_match_oshi_color", False)
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 requirement_details = {
@@ -2037,17 +2092,21 @@ class GameEngine:
                     "requirement_names": requirement_names,
                     "requirement_tags": requirement_tags,
                     "requirement_id": requirement_id,
+                    "requirement_match_oshi_color": requirement_match_oshi_color,
                 }
 
                 cards_to_choose_from = []
-                if from_zone == "hand":
-                    cards_to_choose_from = effect_player.hand
-                elif from_zone == "holopower":
-                    cards_to_choose_from = effect_player.holopower
-                elif from_zone == "deck":
-                    cards_to_choose_from = effect_player.deck
-                elif from_zone == "archive":
-                    cards_to_choose_from = effect_player.archive
+                match from_zone:
+                    case "archive":
+                        cards_to_choose_from = effect_player.archive
+                    case "cheer_deck":
+                        cards_to_choose_from = effect_player.cheer_deck
+                    case "deck":
+                        cards_to_choose_from = effect_player.deck
+                    case "hand":
+                        cards_to_choose_from = effect_player.hand
+                    case "holopower":
+                        cards_to_choose_from = effect_player.holopower
 
                 # If look_at is -1, look at all cards.
                 if look_at == -1:
@@ -2060,6 +2119,9 @@ class GameEngine:
                 cards_can_choose = cards_to_choose_from
                 if requirement:
                     match requirement:
+                        case "color_matches_holomems":
+                            # Only include cards that match the colors of the holomems on stage.
+                            cards_can_choose = [card for card in cards_can_choose if effect_player.matches_stage_holomems_color(card["colors"])]
                         case "specific_card":
                             cards_can_choose = [card for card in cards_can_choose if card["card_id"] == requirement_id]
                         case "holomem":
@@ -2075,6 +2137,9 @@ class GameEngine:
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
+                        case "item":
+                            # Only include cards that are items.
+                            cards_can_choose = [card for card in cards_can_choose if is_card_item(card)]
                         case "mascot":
                             # Only include cards that are mascots.
                             cards_can_choose = [card for card in cards_can_choose if is_card_mascot(card)]
@@ -2099,6 +2164,10 @@ class GameEngine:
                     # Restrict to only tagged cards.
                     if requirement_tags:
                         cards_can_choose = [card for card in cards_can_choose if any(tag in card["tags"] for tag in requirement_tags)]
+
+                    # Restrict to oshi color.
+                    if requirement_match_oshi_color:
+                        cards_can_choose = [card for card in cards_can_choose if effect_player.matches_oshi_color(card["colors"])]
 
                 if len(cards_can_choose) < amount_min:
                     amount_min = len(cards_can_choose)
@@ -2159,8 +2228,11 @@ class GameEngine:
                     case "backstage":
                         target_cards = target_player.backstage
                     case "center":
-                        if len(target_player.center) > 0:
-                            target_cards = target_player.center
+                        target_cards = target_player.center
+                    case "collab":
+                        target_cards = target_player.collab
+                    case "center_or_collab":
+                        target_cards = target_player.center + target_player.collab
                     case "self":
                         target_cards = [source_holomem_card]
                     case _:
@@ -2249,6 +2321,10 @@ class GameEngine:
             case EffectType.EffectType_PerformanceLifeLostIncrease:
                 amount = effect["amount"]
                 self.performance_artstatboosts.bonus_life_loss += amount
+            case EffectType.EffectType_PlaceHolomem:
+                card_id = effect["card_id"]
+                to_zone = effect["location"]
+                effect_player.move_card(card_id, to_zone)
             case EffectType.EffectType_PowerBoost:
                 amount = effect["amount"]
                 multiplier = 1
@@ -2604,7 +2680,7 @@ class GameEngine:
                     if skip_resting and card["resting"]:
                         continue
                     available_backstage_ids.append(card["game_card_id"])
-                if len(available_backstage_ids) == 0:
+                if len(available_backstage_ids) == 0 or (not swap_opponent_cards and not target_player.can_move_front_stage()):
                     # No effect.
                     pass
                 elif len(available_backstage_ids) == 1:
@@ -3453,6 +3529,60 @@ class GameEngine:
                     self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation),
             }
             self.do_effect(player, attach_effect)
+        elif to_zone == "stage":
+            # Determine possible options (backstage, center, collab) depending on what's open.
+            choice = [
+            ]
+            if len(player.center) == 0:
+                choice.append({
+                    "effect_type": EffectType.EffectType_PlaceHolomem,
+                    "player_id": performing_player_id,
+                    "source_card_id": "",
+                    "location": "center",
+                    "card_id": card_ids[0],
+                })
+            if len(player.collab) == 0:
+                choice.append({
+                    "effect_type": EffectType.EffectType_PlaceHolomem,
+                    "player_id": performing_player_id,
+                    "source_card_id": "",
+                    "location": "collab",
+                    "card_id": card_ids[0],
+                })
+            choice.append({
+                "effect_type": EffectType.EffectType_PlaceHolomem,
+                "player_id": performing_player_id,
+                "source_card_id": "",
+                "location": "backstage",
+                "card_id": card_ids[0],
+            })
+
+            if len(choice) == 1:
+                # Must be backstage.
+                to_zone = "backstage"
+                for card_id in card_ids:
+                    player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+                self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
+            else:
+                decision_event = {
+                    "event_type": EventType.EventType_Decision_Choice,
+                    "desired_response": GameAction.EffectResolution_MakeChoice,
+                    "effect_player_id": player.player_id,
+                    "choice": choice,
+                    "min_choice": 0,
+                    "max_choice": len(choice) - 1,
+                }
+                self.broadcast_event(decision_event)
+                self.set_decision({
+                    "decision_type": DecisionType.DecisionChoice,
+                    "decision_player": player.player_id,
+                    "choice": choice,
+                    "min_choice": 0,
+                    "max_choice": len(choice) - 1,
+                    "resolution_func": self.handle_choice_effects,
+                    "continuation": lambda :
+                        self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
+                })
         else:
             for card_id in card_ids:
                 player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
@@ -3469,6 +3599,8 @@ class GameEngine:
                     if from_zone == "deck":
                         # The cards weren't moved out, so just shuffle.
                         player.shuffle_deck()
+                    elif from_zone == "cheer_deck":
+                        player.shuffle_cheer_deck()
                     else:
                         raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
                 case "order_on_bottom":
