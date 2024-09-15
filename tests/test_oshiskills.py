@@ -334,7 +334,7 @@ class TestOshiSkills(unittest.TestCase):
         validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 0,
-            "amount_max": UNLIMITED_SIZE,
+            "amount_max": 10,
             "from_zone": "archive",
             "to_zone": "holomem",
         })

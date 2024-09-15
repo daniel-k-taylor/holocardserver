@@ -64,6 +64,13 @@ def do_cheer_step_on_card(self : unittest.TestCase, card):
     validate_last_event_not_error(self, events)
     return events
 
+def pick_choice(self : unittest.TestCase, player_id, choice_index):
+    self.engine.handle_game_message(player_id, GameAction.EffectResolution_MakeChoice, {
+        "choice_index": choice_index
+    })
+    events = self.engine.grab_events()
+    return events
+
 def validate_last_event_not_error(self : unittest.TestCase, events):
     self.assertNotEqual(events[-1]["event_type"], EventType.EventType_GameError)
 
@@ -99,6 +106,14 @@ def begin_performance(self : unittest.TestCase):
     validate_last_event_not_error(self, events)
     actions = reset_performancestep(self)
     return actions
+
+def use_oshi_action(self : unittest.TestCase, skill_id):
+    self.engine.handle_game_message(self.engine.active_player_id, GameAction.MainStepOshiSkill, {
+        "skill_id": skill_id,
+    })
+    events = self.engine.grab_events()
+    validate_last_event_not_error(self, events)
+    return events
 
 def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2deck = None):
     self.random_override = RandomOverride()

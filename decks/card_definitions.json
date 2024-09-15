@@ -91,7 +91,7 @@
                     {
                         "effect_type": "send_cheer",
                         "amount_min": 0,
-                        "amount_max": -1,
+                        "amount_max": "all",
                         "from": "archive",
                         "to": "holomem",
                         "to_limitation": "color_in",
@@ -1089,8 +1089,8 @@
                         "skill_id": "nousagis",
                         "cost": 2,
                         "effect_type": "send_cheer",
-                        "amount_min": -1,
-                        "amount_max": -1,
+                        "amount_min": "all",
+                        "amount_max": "all",
                         "from": "downed_holomem",
                         "from_limitation": "color_in",
                         "from_limitation_colors": ["green"],
@@ -2119,6 +2119,7 @@
                 "art_effects": [
                     {
                         "full_english_text": "Roll a die. This art gains +10 Power times the result.",
+                        "timing": "before_art",
                         "effect_type": "roll_die",
                         "source": "holomem_ability",
                         "die_effects": [
@@ -2171,6 +2172,7 @@
                     },
                     {
                         "full_english_text": "Roll 3 dice. This art gains +10 Power times total result.",
+                        "timing": "before_art",
                         "effect_type": "roll_die",
                         "source": "holomem_ability",
                         "die_effects": [
@@ -2189,7 +2191,6 @@
                         "hide_and_text": true,
                         "and": [
                             {
-                                "full_english_text": "Roll a die. This art gains +10 Power times the result.",
                                 "effect_type": "roll_die",
                                 "source": "holomem_ability",
                                 "die_effects": [
@@ -2207,7 +2208,6 @@
                                 ]
                             },
                             {
-                                "full_english_text": "Roll a die. This art gains +10 Power times the result.",
                                 "effect_type": "roll_die",
                                 "source": "holomem_ability",
                                 "die_effects": [
@@ -2272,6 +2272,43 @@
                         "prevent_life_loss": true
                     }
                 ]
+            }
+        ]
+    },
+
+
+    {
+        "card_id": "hBP01-079",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["hoshimachi_suisei"],
+        "rarity": "u",
+        "colors": ["blue"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen0",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "suichanwaaaakyoumokawaii",
+                "costs": [
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 50,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "deal_damage",
+                "special": true,
+                "amount": 20,
+                "target": "backstage",
+                "opponent": true,
+                "prevent_life_loss": true
             }
         ]
     },
