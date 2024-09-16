@@ -90,6 +90,7 @@ class PlayerManager:
 
     async def broadcast_server_info(self, queue_info):
         players_info = self.get_players_info()
+        failed_players = []
         for player in self.active_players.values():
             message = ServerInfoMessage(
                 message_type="server_info",
@@ -99,4 +100,11 @@ class PlayerManager:
                 your_username=player.get_username()
             )
 
-            await player.websocket.send_json(message.as_dict())
+            try:
+                await player.websocket.send_json(message.as_dict())
+            except:
+                failed_players.append(player.player_id)
+
+        # Remove any players we can't contact anymore.
+        for player_id in failed_players:
+            self.remove_player(player_id)

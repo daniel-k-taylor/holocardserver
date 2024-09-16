@@ -1,0 +1,1 @@
+"D:\Projects\godot\holocardclient\export_scripts\upload_html.cmd"

@@ -190,7 +190,7 @@ def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2dec
     validate_last_event_not_error(self, events)
     # Now it's the third turn.
     self.assertEqual(self.engine.turn_number, 3)
-    self.assertEqual(self.engine.first_turn, False)
+    self.assertEqual(self.engine.game_first_turn, False)
     self.assertEqual(self.engine.phase, GamePhase.PlayerTurn)
 
 def do_bloom(self : unittest.TestCase, player : PlayerState, card_id, target_id):
@@ -240,6 +240,23 @@ def add_card_to_hand(self : unittest.TestCase, player : PlayerState, card_defini
 
     player.deck.remove(found_card)
     player.hand.append(found_card)
+    if reset_main:
+        reset_mainstep(self)
+    return found_card
+
+def add_card_to_archive(self : unittest.TestCase, player : PlayerState, card_definition_id, reset_main=True):
+    # card_definition is like the 005 number.
+    found_card = None
+    for card in player.deck:
+        if card["card_id"] == card_definition_id:
+            found_card = card
+            break
+
+    if not found_card:
+        self.fail("Card not found in deck.")
+
+    player.deck.remove(found_card)
+    player.archive.append(found_card)
     if reset_main:
         reset_mainstep(self)
     return found_card

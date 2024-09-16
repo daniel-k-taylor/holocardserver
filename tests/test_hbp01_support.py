@@ -8,7 +8,7 @@ from app.gameengine import GameAction, GamePhase
 from app.card_database import CardDatabase
 from helpers import RandomOverride, initialize_game_to_third_turn, validate_event, validate_actions, do_bloom, reset_mainstep, add_card_to_hand, do_cheer_step_on_card
 from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls
-from helpers import put_card_in_play, spawn_cheer_on_card, reset_performancestep, generate_deck_with, begin_performance, pick_choice, use_oshi_action
+from helpers import put_card_in_play, spawn_cheer_on_card, reset_performancestep, generate_deck_with, begin_performance, pick_choice, use_oshi_action, add_card_to_archive
 
 class Test_hbp01_Support(unittest.TestCase):
 
@@ -429,6 +429,252 @@ class Test_hbp01_Support(unittest.TestCase):
         # Still in performance step, because both collabs are present.
         self.assertEqual(len(player1.center), 0)
         self.assertEqual(len(player2.center), 0)
+
+
+    def test_hbp01_103_oshi_matches_color(self):
+        p1deck = generate_deck_with([], {"hBP01-103": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(1)
+        test_card = add_card_to_hand(self, player1, "hBP01-103", True)
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        # Events - spend holopower, play support, choose cards
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": True,
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "from_zone": "holopower",
+            "to_zone": "archive",
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "shuffle",
+        })
+        cards_can_choose = events[4]["cards_can_choose"]
+        for card_id in cards_can_choose:
+            card, _, _ = player1.find_card(card_id)
+            self.assertTrue(card["card_type"] in ["holomem_debut", "holomem_bloom"])
+            if card["card_type"] == "holomem_bloom":
+                self.assertEqual(card["bloom_level"], 1)
+            self.assertTrue("buzz" not in card or not card["buzz"])
+            self.assertTrue("white" in card["colors"])
+
+
+    def test_hbp01_104_placeonstage(self):
+        p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = []
+        player1.collab = player1.center
+        player1.center = []
+        test_card = add_card_to_hand(self, player1, "hBP01-104", True)
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        # Events - play support, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": False,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "stage",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "shuffle",
+        })
+        cards_can_choose = events[2]["cards_can_choose"]
+        for card_id in cards_can_choose:
+            card, _, _ = player1.find_card(card_id)
+            self.assertEqual(card["card_type"], "holomem_debut")
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+          "card_ids": [cards_can_choose[5]]
+        })
+        events = self.engine.grab_events()
+        # events - Choice where to put, center or backstage
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
+        choice = events[0]["choice"]
+        self.assertEqual(len(choice), 2)
+        events = pick_choice(self, player1.player_id, 0)
+        # Events - move card to center, shuffle,discard, main step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "center",
+            "card_id": cards_can_choose[5]
+        })
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "archive",
+            "card_id": test_card["game_card_id"],
+        })
+
+    def test_hbp01_104_placeonstage_autoback(self):
+        p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.collab = [player1.backstage[0]]
+        player1.backstage = player1.backstage[2:]
+        test_card = add_card_to_hand(self, player1, "hBP01-104", True)
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        # Events - play support, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": False,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "stage",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "shuffle",
+        })
+        cards_can_choose = events[2]["cards_can_choose"]
+        for card_id in cards_can_choose:
+            card, _, _ = player1.find_card(card_id)
+            self.assertEqual(card["card_type"], "holomem_debut")
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+          "card_ids": [cards_can_choose[5]]
+        })
+        events = self.engine.grab_events()
+        # events - No choice, move to backstage, shuffle,discard, main step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "backstage",
+            "card_id": cards_can_choose[5]
+        })
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "archive",
+            "card_id": test_card["game_card_id"],
+        })
+
+    def test_hbp01_105_cheer_matches_holomems(self):
+        p1deck = generate_deck_with([], {"hBP01-105": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = [] # Leave us with only white holomems
+        player1.generate_holopower(1)
+        test_card = add_card_to_hand(self, player1, "hBP01-105", True)
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        self.assertEqual(len(player1.center[0]["attached_cheer"]), 2)
+        events = self.engine.grab_events()
+        # Events - spend holopower, play support, choose cards
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": True,
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "from_zone": "holopower",
+            "to_zone": "archive",
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "cheer_deck",
+            "to_zone": "holomem",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "shuffle",
+        })
+        cards_can_choose = events[4]["cards_can_choose"]
+        for card_id in cards_can_choose:
+            card, _, _ = player1.find_card(card_id)
+            self.assertTrue("white" in card["colors"])
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+          "card_ids": [cards_can_choose[1]]
+        })
+        events = self.engine.grab_events()
+        # Events - choose holomem
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        holomems = events[0]["cards_can_choose"]
+        self.assertEqual(len(holomems), 1)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [holomems[0]]
+        })
+        events = self.engine.grab_events()
+        # Events - move cheer, discard support, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "cheer_deck",
+            "to_zone": "holomem",
+            "card_id": cards_can_choose[1]
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "archive",
+            "card_id": test_card["game_card_id"],
+        })
+
+        self.assertEqual(len(player1.center[0]["attached_cheer"]), 3)
 
     def test_hbp01_106_switch_skipresting(self):
         p1deck = generate_deck_with([], {"hBP01-106": 2 }, [])
