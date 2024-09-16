@@ -269,7 +269,7 @@ class GameAction:
 
 class EffectResolutionState:
     def __init__(self, effects, continuation, cards_to_cleanup = []):
-        self.effects_to_resolve = effects
+        self.effects_to_resolve = deepcopy(effects)
         self.effect_resolution_continuation = continuation
         self.cards_to_cleanup = cards_to_cleanup
 
@@ -650,6 +650,7 @@ class PlayerState:
     def reset_collab(self):
         # For all cards in collab, move them back to backstage and rest them.
         rested_card_ids = []
+        moved_backstage_card_ids = []
         for card in self.collab:
             card["resting"] = True
             rested_card_ids.append(card["game_card_id"])
@@ -657,9 +658,10 @@ class PlayerState:
         if self.can_move_front_stage():
             for card in self.collab:
                 self.backstage.append(card)
+                moved_backstage_card_ids.append(card["game_card_id"])
             self.collab = []
 
-        return rested_card_ids
+        return rested_card_ids, moved_backstage_card_ids
 
     def return_collab(self):
         # For all cards in collab, move them back to backstage and rest them.
@@ -1226,11 +1228,12 @@ class GameEngine:
             self.broadcast_event(activation_event)
 
             # 2. Move and rest collab.
-            rested_cards = active_player.reset_collab()
+            rested_cards, moved_backstage_cards = active_player.reset_collab()
             reset_collab_event = {
                 "event_type": EventType.EventType_ResetStepCollab,
                 "active_player": self.active_player_id,
                 "rested_card_ids": rested_cards,
+                "moved_backstage_ids": moved_backstage_cards,
             }
             self.broadcast_event(reset_collab_event)
 
@@ -1359,8 +1362,9 @@ class GameEngine:
         # C. Collab
         # Can't have collabed this turn.
         # Must have a card in deck to move to holopower.
+        # Collab spot must be empty!
         # Must have a non-resting backstage card.
-        if not active_player.collabed_this_turn and len(active_player.deck) > 0:
+        if not active_player.collabed_this_turn and len(active_player.deck) > 0 and len(active_player.collab) == 0:
             for card in active_player.backstage:
                 if not is_card_resting(card):
                     available_actions.append({
@@ -1415,23 +1419,24 @@ class GameEngine:
         # F. Pass the baton
         # If center holomem is not resting, can swap with a back who is not resting by archiving Cheer.
         # Must be able to archive that much cheer from the center.
-        center_mem = active_player.center[0]
-        cheer_on_mem = center_mem["attached_cheer"]
-        baton_cost = center_mem["baton_cost"]
-        if active_player.can_move_front_stage() and not active_player.baton_pass_this_turn and \
-            not is_card_resting(center_mem) and len(cheer_on_mem) >= baton_cost:
-            backstage_options = []
-            for card in active_player.backstage:
-                if not is_card_resting(card):
-                    backstage_options.append(card["game_card_id"])
-            if backstage_options:
-                available_actions.append({
-                    "action_type": GameAction.MainStepBatonPass,
-                    "center_id": center_mem["game_card_id"],
-                    "backstage_options": backstage_options,
-                    "cost": baton_cost,
-                    "available_cheer": ids_from_cards(cheer_on_mem),
-                })
+        if len(active_player.center) > 0:
+            center_mem = active_player.center[0]
+            cheer_on_mem = center_mem["attached_cheer"]
+            baton_cost = center_mem["baton_cost"]
+            if active_player.can_move_front_stage() and not active_player.baton_pass_this_turn and \
+                not is_card_resting(center_mem) and len(cheer_on_mem) >= baton_cost:
+                backstage_options = []
+                for card in active_player.backstage:
+                    if not is_card_resting(card):
+                        backstage_options.append(card["game_card_id"])
+                if backstage_options:
+                    available_actions.append({
+                        "action_type": GameAction.MainStepBatonPass,
+                        "center_id": center_mem["game_card_id"],
+                        "backstage_options": backstage_options,
+                        "cost": baton_cost,
+                        "available_cheer": ids_from_cards(cheer_on_mem),
+                    })
 
         # G. Begin Performance
         if not (self.starting_player_id == active_player.player_id and active_player.first_turn):
@@ -2178,6 +2183,8 @@ class GameEngine:
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut", "holomem_spot" ]]
                         case "holomem_bloom":
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "holomem_bloom"]
+                        case "holomem_debut":
+                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "holomem_debut"]
                         case "holomem_debut_or_bloom":
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut"]]
                         case "holomem_named":

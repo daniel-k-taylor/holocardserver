@@ -1,14 +1,4 @@
-Client:
-    ☐ Make sure choose cards from hand to archive works
 
-✔ 005 @done(24-09-15 18:49)
-✔ "skill_id": "hawkeye", @started(24-09-15 13:41) @done(24-09-15 18:36) @lasted(4h55m49s)
-✔ "effect_type": "block_opponent_movement" @started(24-09-15 13:55) @done(24-09-15 18:36) @lasted(4h41m50s)
-
-✔ "skill_id": "executivesorder", @started(24-09-15 13:41) @done(24-09-15 18:49) @lasted(5h8m50s)
-✔ "timing": "before_archive", @started(24-09-15 16:11) @done(24-09-15 18:49) @lasted(2h38m50s)
-✔ "timing_source_requirement": "holomem_red", @started(24-09-15 16:06) @done(24-09-15 18:49) @lasted(2h43m51s)
-✔ "effect_type": "generate_choice_template", @started(24-09-15 16:26) @done(24-09-15 18:49) @lasted(2h23m54s)
 
 006
 "skill_id": "phoenixtail",
@@ -36,45 +26,6 @@ rainshamanism
 "timing_source_requirement": "holomem_ability_color_blue",
 dealdamage "target": "holomem",
 
-✔ 56 @done(24-09-15 12:51)
-✔ "art_id": "didiluiveyouwaiting", @done(24-09-15 12:51)
-✔ 57 @started(24-09-15 13:38) @done(24-09-15 19:44) @lasted(6h6m27s)
-✔ lureofthejetblackwings @done(24-09-15 12:52)
-✔ dealdamage - "target": "collab", @started(24-09-15 12:57) @done(24-09-15 19:44) @lasted(6h47m27s)
-✔ TEST that this works even if you are attacking the collab and kill them with the bonus damage. @done(24-09-15 19:38)
-✔ 58 @done(24-09-15 12:52)
-✔ konluilui @done(24-09-15 12:52)
-✔ otsuluilui @done(24-09-15 12:52)
-✔ 59 @done(24-09-15 18:19)
-✔ welcometotheparty @done(24-09-15 12:53)
-✔ luisparty @done(24-09-15 12:53)
-✔ "effect_type": "archive_from_hand", @started(24-09-15 16:58) @done(24-09-15 18:19) @lasted(1h21m57s)
-✔ { "condition": "can_archive_hand", "amount_min": 1 }, @started(24-09-15 15:33) @done(24-09-15 18:19) @lasted(2h46m58s)
-✔ 60 @done(24-09-15 12:53)
-✔ "art_id": "followmeclosely", @done(24-09-15 12:53)
-✔ 61 @started(24-09-15 16:58) @done(24-09-15 19:38) @lasted(2h40m28s)
-✔ "art_id": "hawkrave", @done(24-09-15 12:53)
-✔ "effect_type": "archive_from_hand_variable", @started(24-09-15 16:58) @done(24-09-15 19:38) @lasted(2h40m25s)
-✔ dealdamage - "multiplier": "last_archived_count", @started(24-09-15 16:42) @done(24-09-15 19:38) @lasted(2h56m26s)
-✔ "target": "center_or_collab", @started(24-09-15 12:57) @done(24-09-15 12:57) @lasted(51s)
-✔ 100 @done(24-09-15 12:54)
-✔ mori_calliope @done(24-09-15 12:54)
-✔ "art_id": "soulguide", @done(24-09-15 12:53)
-☐ 101 @started(24-09-15 13:38)
-✔ watson_amelia @done(24-09-15 12:54)
-☐ "requirement": "item", @started(24-09-15 12:59)
-☐ 102 @started(24-09-15 13:38)
-☐ subtype item @started(24-09-15 12:59)
-☐ 103 @started(24-09-15 13:40)
-☐ "requirement_match_oshi_color": true, @started(24-09-15 13:07)
-☐ 104 @started(24-09-15 13:38)
-☐ "play_conditions": [ "condition": "stage_has_space" @started(24-09-15 13:08)
-☐ choosecards "destination": "stage", @started(24-09-15 13:38)
-☐ 105 @started(24-09-15 13:38)
-☐ "effect_type": "choose_cards", cheer_deck,  "requirement": "color_matches_holomems", shuffle it @started(24-09-15 13:17)
-✔ 111 @done(24-09-15 01:47)
-✔ 112 @done(24-09-15 01:46)
-✔ 113 @done(24-09-15 01:46)
 
 
 Todo:
@@ -88,7 +39,6 @@ Revisit:
     ☐ Stone axe (114)
         - KO Self what happens?
         - Do you get the draw even if you heal 0?
-    ☐ standard pc (104) - can you put it in the collab spot?
 
 Skipped cards:
     hbp:
