@@ -1,20 +1,12 @@
-
-☐ 006 @started(24-09-15 22:22)
-✔ "skill_id": "phoenixtail", @done(24-09-15 22:04)
-✔ "skill_id": "risefromtheashes", @done(24-09-15 22:04)
-☐ { "condition": "downed_card_is_color", "condition_color": "red" } @started(24-09-15 22:08)
-☐ "effect_type": "recover_downed_holomem_cards", @started(24-09-15 22:09)
-
-007
-"skill_id": "comet",
-"timing": "after_deal_damage", - make other timing "on_take_damage"
-{ "condition": "damaged_holomem_is_backstage" },
-{ "condition": "damage_ability_is_oshi_or_color", "condition_color": "blue" }
-
-"skill_id": "shootingstar",
-{ "condition": "damage_ability_is_color", "condition_color": "blue" }
-{ "condition": "damaged_holomem_is_center_or_collab" },
-"choice_populate_amount_x": "equal_to_last_damage",
+☐ 007 @started(24-09-16 02:04)
+✔ "skill_id": "comet", @done(24-09-16 01:21)
+☐ "timing": "after_deal_damage", - make other timing "on_take_damage" @started(24-09-16 02:00)
+☐ { "condition": "damaged_holomem_is_backstage" }, @started(24-09-16 01:40)
+☐ { "condition": "damage_ability_is_oshi_or_color", "condition_color": "blue" } @started(24-09-16 02:00)
+✔ "skill_id": "shootingstar", @done(24-09-16 01:21)
+☐ { "condition": "damage_ability_is_color", "condition_color": "blue" } @started(24-09-16 02:00)
+☐ { "condition": "damaged_holomem_is_center_or_collab" }, @started(24-09-16 01:41)
+☐ "choice_populate_amount_x": "equal_to_last_damage", @started(24-09-16 02:04)
 
 008
 "skill_id": "prayingforrain",

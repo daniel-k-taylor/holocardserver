@@ -79,6 +79,9 @@ class Condition:
     Condition_CheerInPlay = "cheer_in_play"
     Condition_CollabWith = "collab_with"
     Condition_CurrentHolopower = "current_holopower"
+    Condition_DamageAbilityIsColor = "damage_ability_is_color"
+    Condition_DamagedHolomemIsBackstage = "damaged_holomem_is_backstage"
+    Condition_DamagedHolomemIsCenterOrCollab = "damaged_holomem_is_center_or_collab"
     Condition_DamageSourceIsOpponent = "damage_source_is_opponent"
     Condition_DownedCardBelongsToOpponent = "downed_card_belongs_to_opponent"
     Condition_DownedCardIsColor = "downed_card_is_color"
@@ -172,6 +175,17 @@ class DamageModifications:
     def clear(self):
         self.prevented_damage = 0
         self.source_player = None
+
+class AfterDamageState:
+    def __init__(self):
+        self.source_player : PlayerState = None
+        self.source_card = None
+        self.target_player : PlayerState = None
+        self.target_card = None
+        self.damage_dealt = 0
+
+        self.nested_state = None
+
 
 class GameAction:
     Mulligan = "mulligan"
@@ -466,7 +480,7 @@ class PlayerState:
                 add_ids_to_effects(gift_effects, self.player_id, holomem["game_card_id"])
                 effects.extend(gift_effects)
 
-        if card:
+        if card and card["card_type"] not in ["support", "oshi"]:
             for attached_card in card["attached_support"]:
                 attached_effects = attached_card.get("attached_effects", [])
                 for attached_effect in attached_effects:
@@ -1027,6 +1041,7 @@ class GameEngine:
         self.last_die_value = 0
         self.archive_count_required = 0
         self.remove_downed_holomems_to_hand = False
+        self.after_damage_state : AfterDamageState = None
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -1686,7 +1701,7 @@ class GameEngine:
 
         self.damage_modifications = DamageModifications()
         self.damage_modifications.source_player = dealing_player
-        on_damage_effects = target_player.get_effects_at_timing("on_damage", target_card)
+        on_damage_effects = target_player.get_effects_at_timing("on_take_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
             self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
         )
@@ -1703,8 +1718,27 @@ class GameEngine:
             target_card["damage"] -= damage
             damage = max(0, damage - self.damage_modifications.prevented_damage)
             target_card["damage"] += damage
-        died = target_card["damage"] >= target_card["hp"]
         self.damage_modifications.clear()
+
+        after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
+        nested_state = None
+        if self.after_damage_state:
+            nested_state = self.after_damage_state
+        self.after_damage_state = AfterDamageState()
+        self.after_damage_state.nested_state = nested_state
+        self.after_damage_state.source_player = dealing_player
+        self.after_damage_state.source_card = dealing_card
+        self.after_damage_state.target_card = target_card
+        self.after_damage_state.target_player = target_player
+        self.after_damage_state.damage_dealt = damage
+
+        self.begin_resolving_effects(after_deal_damage_effects, lambda :
+            self.after_deal_damage_effects(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
+        )
+
+    def after_deal_damage_effects(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
+        self.after_damage_state = self.after_damage_state.nested_state
+        died = target_card["damage"] >= target_card["hp"]
 
         if died:
             # Process any on kill/down effects for the downed player before the damage/life lost.
@@ -1927,6 +1961,22 @@ class GameEngine:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+            case Condition.Condition_DamageAbilityIsColor:
+                condition_color = condition["condition_color"]
+                include_oshi_ability = condition.get("include_oshi_ability", False)
+                damage_source = self.after_damage_state.source_card
+                if damage_source["card_type"] == "support":
+                    # Find the owner card.
+                    holomems = self.after_damage_state.source_player.get_holomems_with_attachment(damage_source["game_card_id"])
+                    if holomems:
+                        damage_source = holomems[0]
+                elif damage_source["card_type"] == "oshi":
+                    return include_oshi_ability
+                return condition_color in damage_source["colors"]
+            case Condition.Condition_DamagedHolomemIsBackstage:
+                return self.after_damage_state.target_card in self.after_damage_state.target_player.backstage
+            case Condition.Condition_DamagedHolomemIsCenterOrCollab:
+                return self.after_damage_state.target_card in self.after_damage_state.target_player.center + self.after_damage_state.target_player.collab
             case Condition.Condition_DamageSourceIsOpponent:
                 return self.damage_modifications.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
@@ -2168,7 +2218,13 @@ class GameEngine:
                 other_player = self.other_player(effect_player_id)
                 other_player.block_movement_for_turn = True
             case EffectType.EffectType_Choice:
-                choice = effect["choice"]
+                choice = deepcopy(effect["choice"])
+                if "choice_populate_amount_x" in effect:
+                    match effect["choice_populate_amount_x"]:
+                        case "equal_to_last_damage":
+                            for option in choice:
+                                if "amount" in option and option["amount"] == "X":
+                                    option["amount"] = self.after_damage_state.damage_dealt
                 add_ids_to_effects(choice, effect_player_id, effect.get("source_card_id", None))
                 self.send_choice_to_player(effect_player_id, choice)
             case EffectType.EffectType_ChooseCards:
@@ -2319,7 +2375,9 @@ class GameEngine:
                 if opponent:
                     target_player = self.other_player(effect_player_id)
                 source_holomem_card, _, _ = source_player.find_card(effect["source_card_id"])
-                if not source_holomem_card:
+                if effect["source_card_id"] == "oshi":
+                    source_holomem_card = source_player.oshi_card
+                elif not source_holomem_card:
                     # Assume this is an attachment, find it on the holomem.
                     for holomem in source_player.get_holomem_on_stage():
                         for attachment in holomem["attached_support"]:
