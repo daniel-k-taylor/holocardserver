@@ -190,7 +190,7 @@ def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2dec
     validate_last_event_not_error(self, events)
     # Now it's the third turn.
     self.assertEqual(self.engine.turn_number, 3)
-    self.assertEqual(self.engine.first_turn, False)
+    self.assertEqual(self.engine.game_first_turn, False)
     self.assertEqual(self.engine.phase, GamePhase.PlayerTurn)
 
 def do_bloom(self : unittest.TestCase, player : PlayerState, card_id, target_id):

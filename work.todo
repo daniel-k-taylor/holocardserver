@@ -1,14 +1,14 @@
-☐ 005
-☐ "skill_id": "hawkeye", @started(24-09-15 13:41)
-☐ "effect_type": "block_opponent_movement" @started(24-09-15 13:55)
+Client:
+    ☐ Make sure choose cards from hand to archive works
 
-☐ "skill_id": "executivesorder", @started(24-09-15 13:41)
-☐ "timing": "before_archive",
-☐ "cost": "archiving_X",
-☐ "timing_source_requirement": "holomem_ability_color_red",
-☐ "effect_type": "archive_holopower", "amount": "archiving_hand_X"
-☐ "effect_type": "generate_choice_template",
-☐ "effect_type": "skip_next_hand_archive",
+✔ 005 @done(24-09-15 18:49)
+✔ "skill_id": "hawkeye", @started(24-09-15 13:41) @done(24-09-15 18:36) @lasted(4h55m49s)
+✔ "effect_type": "block_opponent_movement" @started(24-09-15 13:55) @done(24-09-15 18:36) @lasted(4h41m50s)
+
+✔ "skill_id": "executivesorder", @started(24-09-15 13:41) @done(24-09-15 18:49) @lasted(5h8m50s)
+✔ "timing": "before_archive", @started(24-09-15 16:11) @done(24-09-15 18:49) @lasted(2h38m50s)
+✔ "timing_source_requirement": "holomem_red", @started(24-09-15 16:06) @done(24-09-15 18:49) @lasted(2h43m51s)
+✔ "effect_type": "generate_choice_template", @started(24-09-15 16:26) @done(24-09-15 18:49) @lasted(2h23m54s)
 
 006
 "skill_id": "phoenixtail",
@@ -38,23 +38,24 @@ dealdamage "target": "holomem",
 
 ✔ 56 @done(24-09-15 12:51)
 ✔ "art_id": "didiluiveyouwaiting", @done(24-09-15 12:51)
-☐ 57 @started(24-09-15 13:38)
+✔ 57 @started(24-09-15 13:38) @done(24-09-15 19:44) @lasted(6h6m27s)
 ✔ lureofthejetblackwings @done(24-09-15 12:52)
-☐ dealdamage - "target": "collab", @started(24-09-15 12:57)
+✔ dealdamage - "target": "collab", @started(24-09-15 12:57) @done(24-09-15 19:44) @lasted(6h47m27s)
+✔ TEST that this works even if you are attacking the collab and kill them with the bonus damage. @done(24-09-15 19:38)
 ✔ 58 @done(24-09-15 12:52)
 ✔ konluilui @done(24-09-15 12:52)
 ✔ otsuluilui @done(24-09-15 12:52)
-☐ 59
+✔ 59 @done(24-09-15 18:19)
 ✔ welcometotheparty @done(24-09-15 12:53)
 ✔ luisparty @done(24-09-15 12:53)
-☐ "effect_type": "archive_from_hand",
-☐ { "condition": "can_archive_hand", "amount_min": 1 },
+✔ "effect_type": "archive_from_hand", @started(24-09-15 16:58) @done(24-09-15 18:19) @lasted(1h21m57s)
+✔ { "condition": "can_archive_hand", "amount_min": 1 }, @started(24-09-15 15:33) @done(24-09-15 18:19) @lasted(2h46m58s)
 ✔ 60 @done(24-09-15 12:53)
 ✔ "art_id": "followmeclosely", @done(24-09-15 12:53)
-☐ 61
+✔ 61 @started(24-09-15 16:58) @done(24-09-15 19:38) @lasted(2h40m28s)
 ✔ "art_id": "hawkrave", @done(24-09-15 12:53)
-☐ "effect_type": "archive_from_hand_variable",
-☐ dealdamage - "multiplier": "last_archived_count",
+✔ "effect_type": "archive_from_hand_variable", @started(24-09-15 16:58) @done(24-09-15 19:38) @lasted(2h40m25s)
+✔ dealdamage - "multiplier": "last_archived_count", @started(24-09-15 16:42) @done(24-09-15 19:38) @lasted(2h56m26s)
 ✔ "target": "center_or_collab", @started(24-09-15 12:57) @done(24-09-15 12:57) @lasted(51s)
 ✔ 100 @done(24-09-15 12:54)
 ✔ mori_calliope @done(24-09-15 12:54)
@@ -65,7 +66,6 @@ dealdamage "target": "holomem",
 ☐ 102 @started(24-09-15 13:38)
 ☐ subtype item @started(24-09-15 12:59)
 ☐ 103 @started(24-09-15 13:40)
-☐ "play_conditions": ["condition": "current_holopower", @started(24-09-15 13:03)
 ☐ "requirement_match_oshi_color": true, @started(24-09-15 13:07)
 ☐ 104 @started(24-09-15 13:38)
 ☐ "play_conditions": [ "condition": "stage_has_space" @started(24-09-15 13:08)

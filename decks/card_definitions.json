@@ -1116,6 +1116,7 @@
         "colors": ["red"],
         "rarity": "osr",
         "life": 5,
+        "special_hand_archive_skill_per_turn": "executivesorder",
         "actions": [
             {
                 "skill_id": "hawkeye",
@@ -1146,22 +1147,22 @@
                 "limit": "once_per_turn",
                 "conditions": [
                     { "condition": "not_used_once_per_turn_effect", "condition_effect_id": "executivesorder" },
-                    { "condition": "holopower_at_least", "amount": 1 },
-                    { "condition": "opponent_turn" }
+                    { "condition": "holopower_at_least", "amount": 1 }
                 ],
                 "timing": "before_archive",
-                "timing_source_requirement": "holomem_ability_color_red",
+                "timing_source_requirement": "holomem_red",
                 "effect_type": "generate_choice_template",
                 "can_pass": true,
                 "starts_at": 1,
-                "ends_at": "archiving_hand_X",
+                "ends_at": "archive_count_required",
                 "usage_count_restriction": "holopower",
                 "template_choice": {
-                    "effect_type": "skip_next_hand_archive",
+                    "effect_type": "reduce_required_archive_count",
                     "amount": "X",
                     "pre_effects": [
                         { "effect_type": "spend_holopower", "amount": "X" },
-                        { "effect_type": "record_used_once_per_turn_effect", "effect_id": "executivesorder" }
+                        { "effect_type": "record_used_once_per_turn_effect", "effect_id": "executivesorder" },
+                        { "effect_type": "oshi_activation", "skill_id": "executivesorder" }
                     ]
                 }
             }
@@ -2547,6 +2548,7 @@
                 "power": 20,
                 "art_effects": [
                     {
+                        "timing": "before_art",
                         "effect_type": "deal_damage",
                         "special": true,
                         "amount": 10,
@@ -2633,11 +2635,14 @@
                 "power": 50,
                 "art_effects": [
                     {
+                        "full_english_text": "You may Archive 1 card from hand to: reveal a 1st Bloom holomem (excluding Buzz holomem) from your deck and put it into your hand. Then shuffle.",
+                        "timing": "before_art",
                         "effect_type": "choice",
-                        "conditions": [{ "condition": "can_archive_hand", "amount_min": 1 }],
+                        "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
                         "choice": [
                             {
                                 "effect_type": "archive_from_hand",
+                                "ability_source": "holomem_red",
                                 "amount": 1,
                                 "and": [
                                     {
@@ -2691,12 +2696,13 @@
             {
                 "effect_type": "choice",
                 "conditions": [
-                    { "condition": "can_archive_hand", "amount_min": 1 },
+                    { "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" },
                     { "condition": "bloom_target_is_debut" }
                 ],
                 "choice": [
                     {
                         "effect_type": "archive_from_hand",
+                        "ability_source": "holomem_red",
                         "amount": 1,
                         "and": [
                             {
@@ -2741,22 +2747,30 @@
                         "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
                     },
                     {
+                        "full_english_text": "Archive 0-5 cards from your hand. Deal 20 special damage per to your opponent's Center or Collab.",
                         "timing": "before_art",
-                        "conditions": [{ "condition": "can_archive_hand", "amount": 1 }],
-                        "effect_type": "archive_from_hand_variable",
-                        "amount_min": 0,
-                        "amount_max": 5,
-                        "archive_effect": [
-                            {
-                                "effect_type": "deal_damage",
-                                "special": true,
-                                "amount": 20,
-                                "multiplier": "last_archived_count",
-                                "target": "center_or_collab",
-                                "opponent": true
-                            }
-                        ]
-
+                        "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
+                        "effect_type": "generate_choice_template",
+                        "can_pass": true,
+                        "starts_at": 1,
+                        "ends_at": 5,
+                        "usage_count_restriction": "available_archive_from_hand",
+                        "ability_source": "holomem_red",
+                        "multi_value": 20,
+                        "template_choice": {
+                            "effect_type": "archive_from_hand",
+                            "ability_source": "holomem_red",
+                            "amount": "X",
+                            "and": [
+                                {
+                                    "effect_type": "deal_damage",
+                                    "special": true,
+                                    "amount": "multiX",
+                                    "target": "center_or_collab",
+                                    "opponent": true
+                                }
+                            ]
+                        }
                     }
                 ]
             }
@@ -2963,8 +2977,8 @@
         "limited": true,
         "play_conditions": [
             {
-                "condition": "current_holopower",
-                "amount_min": 1
+                "condition": "holopower_at_least",
+                "amount": 1
             }
         ],
         "effects": [
@@ -3022,14 +3036,13 @@
         "limited": true,
         "play_conditions": [
             {
-                "condition": "holopower",
-                "amount_min": 1,
-                "amount_max": -1
+                "condition": "holopower_at_least",
+                "amount": 1
             }
         ],
         "effects": [
             {
-                "effect_type": "archive_holopower",
+                "effect_type": "spend_holopower",
                 "amount": 1
             },
             {

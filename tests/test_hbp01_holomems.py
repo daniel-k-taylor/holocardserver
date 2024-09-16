@@ -1944,6 +1944,73 @@ class Test_hbp01_holomems(unittest.TestCase):
             "to_zone": "holomem",
         })
 
+    def test_hBP01_057_lui_collab_snipe_nocollab(self):
+        p1deck = generate_deck_with([], {"hBP01-057": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = []
+        test_card = put_card_in_play(self, player1, "hBP01-057", player1.backstage)
+        actions = reset_mainstep(self)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, main step (there was no target)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        actions = reset_mainstep(self)
+
+    def test_hBP01_057_lui_collab_snipe_target(self):
+        p1deck = generate_deck_with([], {"hBP01-057": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = []
+        player2.collab = [player2.backstage[0]]
+        player2.backstage = player2.backstage[1:]
+        p2collab = player2.collab[0]
+        test_card = put_card_in_play(self, player1, "hBP01-057", player1.backstage)
+        actions = reset_mainstep(self)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, deal damage, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "died": False,
+            "game_over": False,
+            "target_player": self.player2,
+            "special": True,
+            "life_lost": 0,
+            "life_loss_prevented": False,
+        })
+        actions = reset_mainstep(self)
 
     def test_hBP01_076_suisei_back_snipe(self):
         p1deck = generate_deck_with([], {"hBP01-076": 3 }, [])

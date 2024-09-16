@@ -30,6 +30,8 @@ class DecisionType:
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
+    EffectType_ArchiveFromHand = "archive_from_hand"
+    EffectType_ArchiveFromHandVariable = "archive_from_hand_variable"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
     EffectType_BlockOpponentMovement = "block_opponent_movement"
@@ -38,6 +40,7 @@ class EffectType:
     EffectType_DealDamage = "deal_damage"
     EffectType_Draw = "draw"
     EffectType_ForceDieResult = "force_die_result"
+    EffectType_GenerateChoiceTemplate = "generate_choice_template"
     EffectType_GenerateHolopower = "generate_holopower"
     EffectType_OshiActivation = "oshi_activation"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
@@ -51,6 +54,7 @@ class EffectType:
     EffectType_RecordUsedOncePerGameEffect = "record_used_once_per_game_effect"
     EffectType_RecordUsedOncePerTurnEffect = "record_used_once_per_turn_effect"
     EffectType_ReduceDamage = "reduce_damage"
+    EffectType_ReduceRequiredArchiveCount = "reduce_required_archive_count"
     EffectType_RepeatArt = "repeat_art"
     EffectType_RestoreHp = "restore_hp"
     EffectType_RollDie = "roll_die"
@@ -66,6 +70,7 @@ class EffectType:
 class Condition:
     Condition_AttachedTo = "attached_to"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
+    Condition_CanArchiveFromHand = "can_archive_from_hand"
     Condition_CanMoveFrontStage = "can_move_front_stage"
     Condition_CardsInHand = "cards_in_hand"
     Condition_CenterIsColor = "center_is_color"
@@ -294,6 +299,7 @@ class PlayerState:
         self.set_next_die_roll = 0
         self.card_effects_used_this_turn = []
         self.block_movement_for_turn = False
+        self.last_archived_count = 0
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -398,6 +404,22 @@ class PlayerState:
                 if color in card["colors"]:
                     return True
         return False
+
+    def can_archive_from_hand(self, amount, condition_source):
+        return self.get_can_archive_from_hand_count(condition_source) >= amount
+
+    def get_can_archive_from_hand_count(self, condition_source):
+        available_to_archive = len(self.hand)
+        if "special_hand_archive_skill_per_turn" in self.oshi_card and self.oshi_card["special_hand_archive_skill_per_turn"] == "executivesorder":
+            if condition_source == "holomem_red" and not self.has_used_once_per_turn_effect("executivesorder"):
+                # Lui can use holopower as well.
+                available_to_archive += len(self.holopower)
+        return available_to_archive
+
+    def get_and_reset_last_archived_count(self):
+        last_archived_count = self.last_archived_count
+        self.last_archived_count = 0
+        return last_archived_count
 
     def can_move_front_stage(self):
         return not self.block_movement_for_turn
@@ -968,6 +990,7 @@ class GameEngine:
         self.floating_cards = []
         self.on_down_info_card = None
         self.last_die_value = 0
+        self.archive_count_required = 0
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -1614,6 +1637,12 @@ class GameEngine:
         self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_kill_effects, self.performance_continuation)
 
     def deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
+        if target_card["damage"] >= target_card["hp"]:
+            # Already dead somehow!
+            # Just call the continuation, you don't get to kill them twice.
+            continuation()
+            return
+
         target_card["damage"] += damage
 
         self.damage_modifications = DamageModifications()
@@ -1813,6 +1842,10 @@ class GameEngine:
                 # Bloom target is always in the 0 slot.
                 target_card = bloom_card["stacked_cards"][0]
                 return target_card["card_type"] == "holomem_debut"
+            case Condition.Condition_CanArchiveFromHand:
+                amount_min = condition.get("amount_min", 1)
+                condition_source = condition["condition_source"]
+                return effect_player.can_archive_from_hand(amount_min, condition_source)
             case Condition.Condition_CanMoveFrontStage:
                 return effect_player.can_move_front_stage()
             case Condition.Condition_CardsInHand:
@@ -1847,12 +1880,6 @@ class GameEngine:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
                 return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
-            case Condition.Condition_CurrentHolopower:
-                amount_min = condition.get(amount_min, -1)
-                amount_max = condition.get(amount_max, -1)
-                if amount_max == -1:
-                    amount_max = UNLIMITED_SIZE
-                return amount_min <= len(effect_player.holopower) <= amount_max
             case Condition.Condition_DamageSourceIsOpponent:
                 return self.damage_modifications.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
@@ -1981,9 +2008,51 @@ class GameEngine:
                         "effect_resolution": self.handle_add_turn_effect_for_holomem,
                         "continuation": self.continue_resolving_effects,
                     })
-            case EffectType.EffectType_ArchiveHolopower:
+            case EffectType.EffectType_ArchiveFromHand:
                 amount = effect["amount"]
-                effect_player.archive_holopower(amount)
+                ability_source = effect["ability_source"]
+                self.archive_count_required = amount
+                before_archive_effects = effect_player.get_effects_at_timing("before_archive", None, ability_source)
+                def archive_hand_continuation():
+                    if self.archive_count_required > 0:
+                        # Ask the player to pick cards from their hand to archive.
+                        cards_can_choose = ids_from_cards(effect_player.hand)
+                        choose_event = {
+                            "event_type": EventType.EventType_Decision_ChooseCards,
+                            "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                            "effect_player_id": effect_player_id,
+                            "all_card_seen": cards_can_choose,
+                            "cards_can_choose": cards_can_choose,
+                            "from_zone": "hand",
+                            "to_zone": "archive",
+                            "amount_min": self.archive_count_required,
+                            "amount_max": self.archive_count_required,
+                            "reveal_chosen": True,
+                            "remaining_cards_action": "nothing",
+                            "hidden_info_player": effect_player_id,
+                            "hidden_info_fields": ["all_card_seen", "cards_can_choose"],
+                        }
+                        self.broadcast_event(choose_event)
+                        self.set_decision({
+                            "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                            "decision_player": effect_player_id,
+                            "all_card_seen": cards_can_choose,
+                            "cards_can_choose": cards_can_choose,
+                            "from_zone": "hand",
+                            "to_zone": "archive",
+                            "amount_min": self.archive_count_required,
+                            "amount_max": self.archive_count_required,
+                            "reveal_chosen": True,
+                            "remaining_cards_action": "nothing",
+                            "effect_resolution": self.handle_choose_cards_result,
+                            "continuation": self.continue_resolving_effects,
+                        })
+                    else:
+                        self.continue_resolving_effects()
+                self.begin_resolving_effects(before_archive_effects, archive_hand_continuation)
+                passed_on_continuation = True
+            case EffectType.EffectType_ArchiveFromHandVariable:
+                pass
             case EffectType.EffectType_AttachCardToHolomem:
                 source_card_id = effect["source_card_id"]
                 continuation = self.continue_resolving_effects
@@ -2050,26 +2119,7 @@ class GameEngine:
             case EffectType.EffectType_Choice:
                 choice = effect["choice"]
                 add_ids_to_effects(choice, effect_player_id, effect.get("source_card_id", None))
-                min_choice = 0
-                max_choice = len(choice)
-                decision_event = {
-                    "event_type": EventType.EventType_Decision_Choice,
-                    "desired_response": GameAction.EffectResolution_MakeChoice,
-                    "effect_player_id": effect_player_id,
-                    "choice": choice,
-                    "min_choice": min_choice,
-                    "max_choice": max_choice,
-                }
-                self.broadcast_event(decision_event)
-                self.set_decision({
-                    "decision_type": DecisionType.DecisionChoice,
-                    "decision_player": effect_player_id,
-                    "choice": choice,
-                    "min_choice": min_choice,
-                    "max_choice": max_choice,
-                    "resolution_func": self.handle_choice_effects,
-                    "continuation": self.continue_resolving_effects,
-                })
+                self.send_choice_to_player(effect_player_id, choice)
             case EffectType.EffectType_ChooseCards:
                 from_zone = effect["from"]
                 destination = effect["destination"]
@@ -2273,6 +2323,66 @@ class GameEngine:
             case EffectType.EffectType_ForceDieResult:
                 die_result = effect["die_result"]
                 effect_player.set_next_die_roll = die_result
+            case EffectType.EffectType_GenerateChoiceTemplate:
+                template_choice = effect["template_choice"]
+                starts_at = effect["starts_at"]
+                ends_at = effect["ends_at"]
+                usage_count_restriction = effect["usage_count_restriction"]
+                can_pass = effect.get("can_pass", False)
+                max_count = ends_at
+                multi_value = effect.get("multi_value", 1)
+                match ends_at:
+                    case "archive_count_required":
+                        max_count = self.archive_count_required
+                        # Check to see if the starts_at and pass have to change.
+                        holopower_available = len(effect_player.holopower)
+                        cards_in_hand = len(effect_player.hand)
+                        must_pay_with_holo = self.archive_count_required - cards_in_hand
+                        if must_pay_with_holo > 0:
+                            starts_at = max(starts_at, must_pay_with_holo)
+                            can_pass = False
+                match usage_count_restriction:
+                    case "available_archive_from_hand":
+                        ability_source = effect["ability_source"]
+                        max_count = min(max_count, effect_player.get_can_archive_from_hand_count(ability_source))
+                    case "holopower":
+                        max_count = min(len(effect_player.holopower), max_count)
+                choices = []
+                for i in range(starts_at, max_count + 1):
+                    # Populate the "amount": "X"/"multiX" fields.
+                    new_choice = deepcopy(template_choice)
+                    if "amount" in new_choice:
+                        match new_choice["amount"]:
+                            case "multiX":
+                                new_choice["amount"] = i * multi_value
+                            case "X":
+                                new_choice["amount"] = i
+                    if "pre_effects" in new_choice:
+                        for pre_effect in new_choice["pre_effects"]:
+                            if "amount" in pre_effect:
+                                match pre_effect["amount"]:
+                                    case "multiX":
+                                        pre_effect["amount"] = i * multi_value
+                                    case "X":
+                                        pre_effect["amount"] = i
+                    if "and" in new_choice:
+                        for and_effect in new_choice["and"]:
+                            if "amount" in and_effect:
+                                match and_effect["amount"]:
+                                    case "multiX":
+                                        and_effect["amount"] = i * multi_value
+                                    case "X":
+                                        and_effect["amount"] = i
+                    choices.append(new_choice)
+                if can_pass:
+                    choices.append({ "effect_type": EffectType.EffectType_Pass })
+                # Now do this as a choice effect.
+                add_ids_to_effects(choices, effect_player_id, effect.get("source_card_id", None))
+                if len(choices) == 1:
+                    # There is no choice, the player has to do the effect.
+                    self.do_effect(effect_player, choices[0])
+                else:
+                    self.send_choice_to_player(effect_player_id, choices)
             case EffectType.EffectType_GenerateHolopower:
                 amount = effect["amount"]
                 effect_player.generate_holopower(amount)
@@ -2363,6 +2473,9 @@ class GameEngine:
                     amount_num = amount
                 self.damage_modifications.prevented_damage += amount_num
                 self.send_boost_event("", "damage_prevented", amount)
+            case EffectType.EffectType_ReduceRequiredArchiveCount:
+                amount = effect["amount"]
+                self.archive_count_required -= amount
             case EffectType.EffectType_RepeatArt:
                 self.performance_artstatboosts.repeat_art = True
             case EffectType.EffectType_RestoreHp:
@@ -2713,6 +2826,28 @@ class GameEngine:
 
     def add_effects_to_front(self, new_effects):
         self.effect_resolution_state.effects_to_resolve = new_effects + self.effect_resolution_state.effects_to_resolve
+
+    def send_choice_to_player(self, effect_player_id, choice):
+        min_choice = 0
+        max_choice = len(choice)
+        decision_event = {
+            "event_type": EventType.EventType_Decision_Choice,
+            "desired_response": GameAction.EffectResolution_MakeChoice,
+            "effect_player_id": effect_player_id,
+            "choice": choice,
+            "min_choice": min_choice,
+            "max_choice": max_choice,
+        }
+        self.broadcast_event(decision_event)
+        self.set_decision({
+            "decision_type": DecisionType.DecisionChoice,
+            "decision_player": effect_player_id,
+            "choice": choice,
+            "min_choice": min_choice,
+            "max_choice": max_choice,
+            "resolution_func": self.handle_choice_effects,
+            "continuation": self.continue_resolving_effects,
+        })
 
     def end_game(self, loser_id, reason_id):
         if not self.is_game_over():
@@ -3073,6 +3208,10 @@ class GameEngine:
         player.collab_action(card_id, continuation)
 
     def validate_decision_base(self, player_id:str, action_data:dict, expected_decision_type, expected_action_type):
+        if not isinstance(player_id, str):
+            self.send_event(self.make_error_event(player_id, "invalid_player", "Invalid player id."))
+            return False
+
         if not self.current_decision:
             self.send_event(self.make_error_event(player_id, "invalid_decision", "No current decision."))
             return False
