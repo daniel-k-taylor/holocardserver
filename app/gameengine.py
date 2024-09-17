@@ -2457,6 +2457,8 @@ class GameEngine:
                         target_cards = target_player.collab
                     case "center_or_collab":
                         target_cards = target_player.center + target_player.collab
+                    case "holomem":
+                        target_cards = target_player.get_holomem_on_stage()
                     case "self":
                         target_cards = [source_holomem_card]
                     case _:
@@ -2781,6 +2783,7 @@ class GameEngine:
                 from_limitation_colors = effect.get("from_limitation_colors", [])
                 to_limitation = effect.get("to_limitation", "")
                 to_limitation_colors = effect.get("to_limitation_colors", [])
+                to_limitation_tags = effect.get("to_limitation_tags", [])
                 multi_to = effect.get("multi_to", False)
 
                 # Determine options
@@ -2846,6 +2849,8 @@ class GameEngine:
                                     to_options = effect_player.center
                                 case "center_or_collab":
                                     to_options = effect_player.center + effect_player.collab
+                                case "tag_in":
+                                    to_options = [card for card in effect_player.get_holomem_on_stage() if any(tag in card["tags"] for tag in to_limitation_tags)]
                                 case _:
                                     raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
                             to_options = ids_from_cards(to_options)

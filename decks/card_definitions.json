@@ -1368,7 +1368,7 @@
                     { "condition": "holopower_at_least", "amount": 1 }
                 ],
                 "timing": "on_archive_cheer",
-                "timing_source_requirement": "holomem_ability_color_blue",
+                "timing_source_requirement": "holomem_blue",
                 "effect_type": "choice",
                 "choice": [
                     {

@@ -1,13 +1,16 @@
+☐ 008
+✔ "skill_id": "prayingforrain", @done(24-09-17 01:29)
+☐ "effect_type": "send_cheer", amount min/max different for multi_to, @started(24-09-17 01:59)
+☐ from archive, tag_in to limitation @started(24-09-17 01:35)
+☐ rainshamanism @started(24-09-17 01:29)
+☐ "timing": "on_archive_cheer",
+☐ "timing_source_requirement": "holomem_blue",
+☐ dealdamage "target": "holomem", @started(24-09-17 02:00)
 
-008
-"skill_id": "prayingforrain",
-"effect_type": "send_cheer", amount min/max different for multi_to, from archive, tag_in to limitation
-
-rainshamanism
-"timing": "on_archive_cheer",
-"timing_source_requirement": "holomem_ability_color_blue",
-dealdamage "target": "holomem",
-
+☐ currently only club em into nothingness can archive your own cheer with choose cards
+☐ suisei calls archive_cheer_from_holomem
+    - this does use choose cards to archive
+    - strategy - when this is called, add an extra effect after to handle on_archive_cheer?
 
 Todo:
 
