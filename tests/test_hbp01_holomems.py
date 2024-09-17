@@ -2170,6 +2170,151 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(player2.archive[0]["game_card_id"], sniped["game_card_id"])
 
 
+    def test_hBP01_077_suisei_oshi_archive_cheer_from_mem_has0(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-077": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-077", player1.backstage)
+        actions = reset_mainstep(self)
+
+        # Collab
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        actions = reset_mainstep(self)
+
+
+    def test_hBP01_077_suisei_oshi_archive_cheer_from_mem_has1(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-077": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-077", player1.backstage)
+        b1 = spawn_cheer_on_card(self, player1, player1.backstage[-1]["game_card_id"], "blue", "b1")
+        actions = reset_mainstep(self)
+
+        # Collab
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, choice
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
+        choice = events[2]["choice"]
+        self.assertEqual(len(player1.hand), 3)
+        self.assertEqual(len(choice), 2) # Use ability or pass
+        events = pick_choice(self, self.player1, 0)
+        # Events - only 1 cheer, so it happens, draw 2, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": test_card["game_card_id"],
+            "to_holomem_id": "archive",
+            "attached_id": b1["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1
+        })
+        self.assertEqual(len(player1.hand), 5)
+        self.assertEqual(player1.archive[0]["game_card_id"], b1["game_card_id"])
+        actions = reset_mainstep(self)
+
+    def test_hBP01_077_suisei_oshi_archive_cheer_from_mem_has3(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-077": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-077", player1.backstage)
+        b1 = spawn_cheer_on_card(self, player1, player1.backstage[-1]["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, player1.backstage[-1]["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, player1.backstage[-1]["game_card_id"], "blue", "b3")
+        actions = reset_mainstep(self)
+
+        # Collab
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, choice
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
+        choice = events[2]["choice"]
+        self.assertEqual(len(player1.hand), 3)
+        self.assertEqual(len(choice), 2) # Use ability or pass
+        events = pick_choice(self, self.player1, 0)
+        # Events - 3 cheer so choose cards
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+            "amount_min": 1,
+            "amount_max": 1,
+            "remaining_cards_action": "nothing"
+        })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [b2["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - move cheer, draw 2, main step
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": test_card["game_card_id"],
+            "to_zone": "archive",
+            "zone_card_id": "",
+            "card_id": b2["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1
+        })
+        self.assertEqual(len(player1.hand), 5)
+        self.assertEqual(len(test_card["attached_cheer"]), 2)
+        self.assertEqual(player1.archive[0]["game_card_id"], b2["game_card_id"])
+        actions = reset_mainstep(self)
+
     def test_hBP01_079_suisei_bloom_snipe_kill(self):
         p1deck = generate_deck_with([], {"hBP01-076": 3,"hBP01-079": 3  }, [])
         initialize_game_to_third_turn(self, p1deck)

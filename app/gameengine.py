@@ -30,6 +30,7 @@ class DecisionType:
 class EffectType:
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
+    EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
     EffectType_ArchiveFromHandVariable = "archive_from_hand_variable"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
@@ -98,6 +99,7 @@ class Condition:
     Condition_PerformerIsColor = "performer_is_color"
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
+    Condition_SelfHasCheer = "self_has_cheer"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
@@ -591,7 +593,9 @@ class PlayerState:
 
     def move_card(self, card_id, to_zone, zone_card_id="", hidden_info=False, add_to_bottom=False, no_events=False):
         card, _, from_zone_name = self.find_and_remove_card(card_id)
-
+        if not card:
+            card, previous_holder_id = self.find_and_remove_attached(card_id)
+            from_zone_name = previous_holder_id
         if to_zone == "center":
             self.center.append(card)
         elif to_zone == "backstage":
@@ -617,7 +621,7 @@ class PlayerState:
             else:
                 self.archive.insert(0, card)
 
-        if to_zone in ["center", "backstage", "holomem"] and from_zone_name == "hand":
+        if to_zone in ["center", "backstage", "collab", "holomem"] and from_zone_name in ["hand", "deck"]:
             card["played_this_turn"] = True
 
         move_card_event = {
@@ -778,6 +782,12 @@ class PlayerState:
                 found_card = next(card for card in card["attached_support"] if card["game_card_id"] == attached_id)
                 previous_holder_id = card["game_card_id"]
                 card["attached_support"].remove(found_card)
+                break
+            if attached_id in ids_from_cards(card["stacked_cards"]):
+                # Remove the stacked card.
+                found_card = next(card for card in card["stacked_cards"] if card["game_card_id"] == attached_id)
+                previous_holder_id = card["game_card_id"]
+                card["stacked_cards"].remove(found_card)
                 break
         if not previous_holder_id:
             # Check the life deck.
@@ -1100,6 +1110,10 @@ class GameEngine:
                     for cheer in holomem["attached_cheer"]:
                         if cheer["game_card_id"] == game_card_id:
                             card = cheer
+                            return card
+                    for stacked in holomem["stacked_cards"]:
+                        if stacked["game_card_id"] == game_card_id:
+                            card = stacked
                             return card
             else:
                 return card
@@ -2036,6 +2050,12 @@ class GameEngine:
                     if tag in valid_tags:
                         return True
                 return False
+            case Condition.Condition_SelfHasCheer:
+                amount_min = condition["amount_min"]
+                source_card, _, _ = effect_player.find_card(source_card_id)
+                if source_card:
+                    return amount_min <= len(source_card["attached_cheer"])
+                return False
             case Condition.Condition_StageHasSpace:
                 return len(effect_player.get_holomem_on_stage()) < MAX_MEMBERS_ON_STAGE
             case Condition.Condition_TargetColor:
@@ -2107,6 +2127,49 @@ class GameEngine:
                         "amount_max": 1,
                         "turn_effect": turn_effect_copy,
                         "effect_resolution": self.handle_add_turn_effect_for_holomem,
+                        "continuation": self.continue_resolving_effects,
+                    })
+            case EffectType.EffectType_ArchiveCheerFromHolomem:
+                amount = effect["amount"]
+                from_zone = effect["from"]
+                target_holomems = []
+                match from_zone:
+                    case "self":
+                        holomem, _, _ = effect_player.find_card(effect["source_card_id"])
+                        target_holomems.append(holomem)
+                cheer_options = []
+                for holomem in target_holomems:
+                    cheer_options += ids_from_cards(holomem["attached_cheer"])
+                if amount == len(cheer_options):
+                    # Do it immediately.
+                    effect_player.archive_attached_cards(cheer_options)
+                else:
+                    choose_event = {
+                        "event_type": EventType.EventType_Decision_ChooseCards,
+                        "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                        "effect_player_id": effect_player_id,
+                        "all_card_seen": cheer_options,
+                        "cards_can_choose": cheer_options,
+                        "from_zone": "holomem",
+                        "to_zone": "archive",
+                        "amount_min": amount,
+                        "amount_max": amount,
+                        "reveal_chosen": True,
+                        "remaining_cards_action": "nothing",
+                    }
+                    self.broadcast_event(choose_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                        "decision_player": effect_player_id,
+                        "all_card_seen": cheer_options,
+                        "cards_can_choose": cheer_options,
+                        "from_zone": "holomem",
+                        "to_zone": "archive",
+                        "amount_min": amount,
+                        "amount_max": amount,
+                        "reveal_chosen": True,
+                        "remaining_cards_action": "nothing",
+                        "effect_resolution": self.handle_choose_cards_result,
                         "continuation": self.continue_resolving_effects,
                     })
             case EffectType.EffectType_ArchiveFromHand:
@@ -2946,7 +3009,7 @@ class GameEngine:
 
     def send_choice_to_player(self, effect_player_id, choice):
         min_choice = 0
-        max_choice = len(choice)
+        max_choice = len(choice) - 1
         decision_event = {
             "event_type": EventType.EventType_Decision_Choice,
             "desired_response": GameAction.EffectResolution_MakeChoice,

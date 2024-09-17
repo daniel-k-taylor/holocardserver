@@ -2844,6 +2844,51 @@
             }
         ]
     },
+    {
+        "card_id": "hBP01-077",
+        "card_type": "holomem_debut",
+        "holomem_names": ["hoshimachi_suisei"],
+        "special_deck_limit": 50,
+        "rarity": "u",
+        "colors": ["blue"],
+        "hp": 70,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen0",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "newcostume",
+                "costs": [
+                    { "color": "blue", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            }
+        ],
+        "collab_effects": [
+            {
+                "conditions": [
+                    { "condition": "oshi_is", "required_member_name": "hoshimachi_suisei" },
+                    { "condition": "self_has_cheer", "amount_min": 1 }
+                ],
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "effect_type": "archive_cheer_from_holomem",
+                        "from": "self",
+                        "amount": 1,
+                        "and": [
+                            { "effect_type": "draw", "amount": 2 }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
 
 
     {
