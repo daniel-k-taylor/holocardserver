@@ -607,6 +607,8 @@ class PlayerState:
             from_zone_name = previous_holder_id
         if to_zone == "center":
             self.center.append(card)
+        elif to_zone == "collab":
+            self.collab.append(card)
         elif to_zone == "backstage":
             self.backstage.append(card)
         elif to_zone == "cheer_deck":
@@ -3989,6 +3991,13 @@ class GameEngine:
             # Determine possible options (backstage, center, collab) depending on what's open.
             choice = [
             ]
+            choice.append({
+                "effect_type": EffectType.EffectType_PlaceHolomem,
+                "player_id": performing_player_id,
+                "source_card_id": "",
+                "location": "backstage",
+                "card_id": card_ids[0],
+            })
             if len(player.center) == 0:
                 choice.append({
                     "effect_type": EffectType.EffectType_PlaceHolomem,
@@ -4005,13 +4014,6 @@ class GameEngine:
                     "location": "collab",
                     "card_id": card_ids[0],
                 })
-            choice.append({
-                "effect_type": EffectType.EffectType_PlaceHolomem,
-                "player_id": performing_player_id,
-                "source_card_id": "",
-                "location": "backstage",
-                "card_id": card_ids[0],
-            })
 
             if len(choice) == 1:
                 # Must be backstage.
