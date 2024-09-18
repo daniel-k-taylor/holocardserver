@@ -1,3 +1,19 @@
+011
+0 cost baton pass
+15
+"conditions": [{ "condition": "played_support_this_turn" }],
+18
+"effect_type": "reveal_top_deck",
+45
+"bloom_level_skip": 2,
+"bloom_level_skip_requirement": "3lifeorless",
+46
+effect_type": "send_cheer",
+                "amount_min": 1,
+                "amount_max": 1,
+                "from": "holomem",
+                "to": "holomem"
+
 
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
@@ -10,10 +26,6 @@ Revisit:
     ☐ Stone axe (114)
         - KO Self what happens?
         - Do you get the draw even if you heal 0?
-
-Skipped cards:
-    hbp:
-        11,15,17,18,25,28,29,34,39,40,78
 
 One time Bug:
     ☐ Can't bloom 59 onto 58 with 3 stacked - 57, 59, 58
