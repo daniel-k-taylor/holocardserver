@@ -1743,6 +1743,16 @@ class GameEngine:
             target_card["damage"] += damage
         self.damage_modifications.clear()
 
+        # Damage is decided here, so play the event.
+        damage_event = {
+            "event_type": EventType.EventType_DamageDealt,
+            "target_id": target_card["game_card_id"],
+            "target_player": target_player.player_id,
+            "damage": damage,
+            "special": special,
+        }
+        self.broadcast_event(damage_event)
+
         after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
         nested_state = None
         if self.after_damage_state:
@@ -1771,27 +1781,9 @@ class GameEngine:
             self.complete_deal_damage(target_player, target_card, damage, special, prevent_life_loss, died, continuation)
 
     def complete_deal_damage(self, target_player : PlayerState, target_card, damage, special, prevent_life_loss, died, continuation):
-
-        def damage_event_callback(life_lost, game_over, archived_ids, hand_ids):
-            damage_event = {
-                "event_type": EventType.EventType_DamageDealt,
-                "target_id": target_card["game_card_id"],
-                "target_player": target_player.player_id,
-                "damage": damage,
-                "special": special,
-                "died": died,
-                "life_lost": life_lost,
-                "life_loss_prevented": prevent_life_loss,
-                "game_over": game_over,
-                "archived_ids": archived_ids,
-                "hand_ids": hand_ids,
-            }
-            self.broadcast_event(damage_event)
-
         if died:
-            self.complete_downed_holomem(target_player, target_card, prevent_life_loss, continuation, damage_event_callback)
+            self.process_downed_holomem(target_player, target_card, prevent_life_loss, continuation)
         else:
-            damage_event_callback(0, False, [], [])
             continuation()
 
     def begin_down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, arts_kill_effects, continuation):
@@ -1806,10 +1798,10 @@ class GameEngine:
 
     def down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, prevent_life_loss, continuation):
         self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, [], lambda :
-            self.complete_down_holomem(target_player, target_card, prevent_life_loss, continuation)
+            self.process_downed_holomem(target_player, target_card, prevent_life_loss, continuation)
         )
 
-    def complete_downed_holomem(self, target_player, target_card, prevent_life_loss, continuation, event_callback):
+    def process_downed_holomem(self, target_player, target_card, prevent_life_loss, continuation):
         self.down_holomem_state = self.down_holomem_state.nested_state
         game_over = False
         game_over_reason = ""
@@ -1845,7 +1837,17 @@ class GameEngine:
             life_to_distribute = ids_from_cards(target_player.life[:life_lost])
 
         # Sent the down event.
-        event_callback(life_lost, game_over, archived_ids, hand_ids)
+        down_event = {
+            "event_type": EventType.EventType_DownedHolomem,
+            "target_id": target_card["game_card_id"],
+            "target_player": target_player.player_id,
+            "life_lost": life_lost,
+            "life_loss_prevented": prevent_life_loss,
+            "game_over": game_over,
+            "archived_ids": archived_ids,
+            "hand_ids": hand_ids,
+        }
+        self.broadcast_event(down_event)
 
         if game_over:
             self.end_game(loser_id=target_player.player_id, reason_id=game_over_reason)
@@ -1877,21 +1879,6 @@ class GameEngine:
             })
         else:
             continuation()
-
-    def complete_down_holomem(self, target_player : PlayerState, target_card, prevent_life_loss, continuation):
-        def down_event_callback(life_lost, game_over, archived_ids, hand_ids):
-            down_event = {
-                "event_type": EventType.EventType_DownedHolomem,
-                "target_id": target_card["game_card_id"],
-                "target_player": target_player.player_id,
-                "life_lost": life_lost,
-                "life_loss_prevented": prevent_life_loss,
-                "game_over": game_over,
-                "archived_ids": archived_ids,
-                "hand_ids": hand_ids,
-            }
-            self.broadcast_event(down_event)
-        self.complete_downed_holomem(target_player, target_card, prevent_life_loss, continuation, down_event_callback)
 
     def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
         effect_continuation = continuation
@@ -2525,6 +2512,9 @@ class GameEngine:
                         target_cards = [source_holomem_card]
                     case _:
                         raise NotImplementedError("Only center is supported for now.")
+
+                # Filter out any target cards that already have damage over their hp.
+                target_cards = [card for card in target_cards if card["damage"] < card["hp"]]
                 if len(target_cards) == 0:
                     pass
                 elif len(target_cards) == 1:

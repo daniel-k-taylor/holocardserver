@@ -179,15 +179,11 @@ class Test_hbp01_008(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, boost, art, damage, send cheer cause dead
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "damage": 20,
-            "died": False,
-            "game_over": False,
             "target_player": self.player2,
             "special": True,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
@@ -201,14 +197,16 @@ class Test_hbp01_008(unittest.TestCase):
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 180,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,

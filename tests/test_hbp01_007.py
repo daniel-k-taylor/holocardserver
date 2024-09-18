@@ -64,11 +64,16 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[0]]
         })
         events = engine.grab_events()
-        # Events - choice for comet
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+        # Events - damage from special and choice for comet
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "damage": 10,
+            "special": True,
         })
-        choice = events[0]["choice"]
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
+        })
+        choice = events[2]["choice"]
         # Use or don't use.
         self.assertEqual(len(choice), 2)
         events = pick_choice(self, self.player1, 0)
@@ -88,36 +93,22 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[1]]
         })
         events = engine.grab_events()
-        # Events - comet damage, art effect bonus damage, art actual damage, performance step
+        # Events - comet damage,  art actual damage, performance step
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": backstage_options[1],
             "damage": 50,
             "special": True,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[0]["game_card_id"],
-            "damage": 10,
-            "special": True,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": True,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "diamondintherough",
             "target_id": p2center["game_card_id"],
             "power": 20,
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "special": False,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         reset_performancestep(self)
 
@@ -167,29 +158,31 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[0]]
         })
         events = engine.grab_events()
-        # Events - choice for comet
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
-        })
-        choice = events[0]["choice"]
-        # Don't use Comet this time.
-        self.assertEqual(len(choice), 2)
-        events = pick_choice(self, self.player1, 1)
-        # With comet skipped, we see the damage from 76, then the performance step, then a choice for shooting star.
-        self.assertEqual(len(events), 6)
+        # Events - damage from effect then choice for comet
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[0]["game_card_id"],
             "damage": 10,
             "special": True,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": True,
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
+        })
+        choice = events[2]["choice"]
+        # Don't use Comet this time.
+        self.assertEqual(len(choice), 2)
+        events = pick_choice(self, self.player1, 1)
+        # then the performance step, damage from it, then a choice for shooting star.
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "diamondintherough",
             "target_id": p2center["game_card_id"],
             "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 20, # Arts damage
+            "special": False,
         })
         validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {
         })
@@ -204,9 +197,14 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[1]]
         })
         events = engine.grab_events()
-        # Trigger choice for comet
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+        # damage event and Trigger choice for comet
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[1]["game_card_id"],
+            "damage": 20, # Shooting star copies art damage
+            "special": True,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
         })
         # Use comet.
         events = pick_choice(self, self.player1, 0)
@@ -219,23 +217,25 @@ class Test_hbp01_007(unittest.TestCase):
         })
         events = engine.grab_events()
         # Comet damage, we killed somebody
-        self.assertEqual(len(events), 4)
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": backstage_options[2],
             "damage": 50, # comet
             "special": True,
-            "died": True,
+        })
+        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": backstage_options[2],
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
           "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[2]["from_options"]
+        from_options = events[4]["from_options"]
         placements = {
             from_options[0]: p2center["game_card_id"],
         }
@@ -243,24 +243,9 @@ class Test_hbp01_007(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move cheer, continue with shooting star damage, arts damage, then perf step over
-        self.assertEqual(len(events), 8)
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[1]["game_card_id"],
-            "damage": 20, # Shooting star copies art damage
-            "special": True,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.center[0]["game_card_id"],
-            "damage": 20,
-            "special": False,
-            "died": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
-        })
+        # Events - move cheer, then perf step over
+        self.assertEqual(len(events), 4)
+
         reset_performancestep(self)
 
 

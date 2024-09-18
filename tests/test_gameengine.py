@@ -302,7 +302,7 @@ class TestGameEngine(unittest.TestCase):
         })
         events = self.engine.grab_events()
         # Events = stat boost from effect, performance, damage, player 1's mem died, so distribute cheer decision.
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         self.validate_event(events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player2.center[0]["game_card_id"],
             "stat": "power",
@@ -317,21 +317,24 @@ class TestGameEngine(unittest.TestCase):
         self.validate_event(events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p1_center_before_attack["game_card_id"],
             "damage": 50, # 30 art + 20 from collab
-            "died": True, # Irys only had 50 hp
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
+        })
+        self.validate_event(events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p1_center_before_attack["game_card_id"],
+            "game_over": False,
+            "target_player": self.player1,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        self.validate_event(events[7], EventType.EventType_Decision_SendCheer, self.player2, {
+        self.validate_event(events[9], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
         })
-        available_cheer = events[7]["from_options"]
-        available_targets = events[7]["to_options"]
+        available_cheer = events[9]["from_options"]
+        available_targets = events[9]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_cheer[0], top_p1_life_before_attack)
         self.assertEqual(len(available_targets), 1)
@@ -545,12 +548,8 @@ class TestGameEngine(unittest.TestCase):
         self.validate_event(events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collaber["game_card_id"],
             "damage": 20,
-            "died": False, # Only does 20 of 50 hp
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         self.validate_event(events[4], EventType.EventType_EndTurn, self.player1, {
             "ending_player_id": self.player1,

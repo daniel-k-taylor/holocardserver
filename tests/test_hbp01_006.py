@@ -132,20 +132,22 @@ class Test_hbp01_006(unittest.TestCase):
             "target_id": b3["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - perform, on kill effect choice
-        self.assertEqual(len(events), 4)
+        # Events - perform, damage, on kill effect choice
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": b3["game_card_id"],
+            "damage": 30,
+            "special": False,
+        })
         events = pick_choice(self, self.player1, 0)
-        # Events - 2 holopower, oshi, damage, send cheer
+        # Events - 2 holopower, oshi, down, send cheer
         self.assertEqual(len(events), 10)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
             "oshi_player_id": self.player1,
             "skill_id": "risefromtheashes",
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": b3["game_card_id"],
-            "damage": 30,
-            "special": False,
-            "died": True,
             "life_lost": 1
         })
         archived_ids = events[6]["archived_ids"]
