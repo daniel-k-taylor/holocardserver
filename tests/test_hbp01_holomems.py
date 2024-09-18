@@ -2371,6 +2371,147 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         actions = reset_mainstep(self)
 
+    def test_hBP01_080_down_holomem(self):
+        p1deck = generate_deck_with([], {"hBP01-080": 3,"hBP01-079": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-080", player1.backstage)
+        player2.center[0]["damage"] = 40
+        player2.backstage[1]["damage"] = 40
+        p2target = player2.backstage[1]
+        actions = reset_mainstep(self)
+
+        set_next_die_rolls(self, [5])
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - collab, roll die, automatic since only 1 so down them, no cheer since prevented, so main step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 5,
+            "rigged": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p2target["game_card_id"],
+            "target_player": self.player2,
+            "life_lost": 0,
+            "life_loss_prevented": True,
+            "game_over": False,
+        })
+        reset_mainstep(self)
+
+
+    def test_hBP01_080_down_holomem_2_options(self):
+        p1deck = generate_deck_with([], {"hBP01-080": 3,"hBP01-079": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-080", player1.backstage)
+        player2.center[0]["damage"] = 40
+        player2.backstage[1]["damage"] = 40
+        player2.backstage[2]["damage"] = 40
+        p2target = player2.backstage[2]
+        actions = reset_mainstep(self)
+
+        set_next_die_rolls(self, [5])
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - collab, roll die, choose cards
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 5,
+            "rigged": False,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [p2target["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - down, no cheer, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p2target["game_card_id"],
+            "target_player": self.player2,
+            "life_lost": 0,
+            "life_loss_prevented": True,
+            "game_over": False,
+        })
+        reset_mainstep(self)
+
+
+    def test_hBP01_081_collabsendcheer_toblue(self):
+        p1deck = generate_deck_with([], {"hBP01-081": 3,"hBP01-079": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-081", player1.backstage)
+        player1.center = []
+        other_card = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - collab, send cheer with 2 options
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player1,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "cheer_deck",
+            "to_zone": "holomem",
+        })
+        to_options = events[2]["to_options"]
+        self.assertEqual(to_options[0], other_card["game_card_id"])
+        self.assertEqual(to_options[1], test_card["game_card_id"])
+
 
     def test_hBP01_101_watson_item(self):
         p1deck = generate_deck_with([], {"hBP01-101": 3,"hBP01-102": 3  }, [])
