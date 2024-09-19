@@ -47,6 +47,7 @@ class EffectType:
     EffectType_GenerateHolopower = "generate_holopower"
     EffectType_OshiActivation = "oshi_activation"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
+    EffectType_OrderCards = "order_cards"
     EffectType_Pass = "pass"
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
     EffectType_PlaceHolomem = "place_holomem"
@@ -82,6 +83,7 @@ class Condition:
     Condition_CenterIsColor = "center_is_color"
     Condition_CenterHasAnyTag = "center_has_any_tag"
     Condition_CheerInPlay = "cheer_in_play"
+    Condition_ChosenCardHasTag = "chosen_card_has_tag"
     Condition_CollabWith = "collab_with"
     Condition_CurrentHolopower = "current_holopower"
     Condition_DamageAbilityIsColor = "damage_ability_is_color"
@@ -105,6 +107,7 @@ class Condition:
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
     Condition_SelfHasCheer = "self_has_cheer"
+    Condition_SelfHasCheerColor = "self_has_cheer_color"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
@@ -1087,6 +1090,8 @@ class GameEngine:
         self.archive_count_required = 0
         self.remove_downed_holomems_to_hand = False
         self.after_damage_state : AfterDamageState = None
+        self.last_chosen_cards = []
+        self.last_card_count = 0
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -2022,6 +2027,13 @@ class GameEngine:
                 if amount_max == -1:
                     amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.get_cheer_ids_on_holomems()) <= amount_max
+            case Condition.Condition_ChosenCardHasTag:
+                if len(self.last_chosen_cards) == 0:
+                    return False
+                chosen_card_id = self.last_chosen_cards[0]
+                chosen_card = self.find_card(chosen_card_id)
+                valid_tags = condition["condition_tags"]
+                return any(tag in chosen_card["tags"] for tag in valid_tags)
             case Condition.Condition_CollabWith:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
@@ -2108,6 +2120,14 @@ class GameEngine:
                 source_card, _, _ = effect_player.find_card(source_card_id)
                 if source_card:
                     return amount_min <= len(source_card["attached_cheer"])
+                return False
+            case Condition.Condition_SelfHasCheerColor:
+                condition_color = condition["condition_color"]
+                source_card, _, _ = effect_player.find_card(source_card_id)
+                if source_card:
+                    for cheer in source_card["attached_cheer"]:
+                        if condition_color in cheer["colors"]:
+                            return True
                 return False
             case Condition.Condition_StageHasSpace:
                 return len(effect_player.get_holomem_on_stage()) < MAX_MEMBERS_ON_STAGE
@@ -2249,6 +2269,7 @@ class GameEngine:
                         "amount_max": amount,
                         "reveal_chosen": True,
                         "remaining_cards_action": "nothing",
+                        "source_card_id": effect["source_card_id"],
                         "effect_resolution": self.handle_choose_cards_result,
                         "continuation": self.continue_resolving_effects,
                     })
@@ -2288,6 +2309,7 @@ class GameEngine:
                             "amount_max": self.archive_count_required,
                             "reveal_chosen": True,
                             "remaining_cards_action": "nothing",
+                            "source_card_id": effect["source_card_id"],
                             "effect_resolution": self.handle_choose_cards_result,
                             "continuation": self.continue_resolving_effects,
                         })
@@ -2385,6 +2407,7 @@ class GameEngine:
                 requirement_match_oshi_color = effect.get("requirement_match_oshi_color", False)
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
+                after_choose_effect = effect.get("after_choose_effect", None)
                 requirement_details = {
                     "requirement": requirement,
                     "requirement_bloom_levels": requirement_bloom_levels,
@@ -2504,6 +2527,8 @@ class GameEngine:
                     "amount_max": amount_max,
                     "reveal_chosen": reveal_chosen,
                     "remaining_cards_action": remaining_cards_action,
+                    "after_choose_effect": after_choose_effect,
+                    "source_card_id": effect["source_card_id"],
                     "effect_resolution": self.handle_choose_cards_result,
                     "continuation": self.continue_resolving_effects,
                 })
@@ -2641,7 +2666,14 @@ class GameEngine:
                     })
             case EffectType.EffectType_Draw:
                 amount = effect["amount"]
-                effect_player.draw(amount)
+                if str(amount) == "last_card_count":
+                    amount = self.last_card_count
+                    self.last_card_count = 0
+                if amount > 0:
+                    target_player = effect_player
+                    if effect.get("opponent", False):
+                        target_player = self.other_player(effect_player_id)
+                    target_player.draw(amount)
             case EffectType.EffectType_ForceDieResult:
                 die_result = effect["die_result"]
                 effect_player.set_next_die_roll = die_result
@@ -2748,6 +2780,23 @@ class GameEngine:
                         "available_targets": available_targets,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_OrderCards:
+                for_opponent = effect.get("opponent", False)
+                from_zone = effect["from"]
+                to_zone = effect["destination"]
+                bottom = effect.get("bottom", False)
+                order_player = effect_player
+                if for_opponent:
+                    order_player = self.other_player(effect_player_id)
+                cards_to_order = []
+                match from_zone:
+                    case "hand":
+                        cards_to_order = ids_from_cards(order_player.hand)
+                self.last_card_count = len(cards_to_order)
+                self.choose_cards_cleanup_remaining(order_player.player_id, cards_to_order, "order_on_bottom", from_zone, to_zone,
+                    self.continue_resolving_effects
+                )
+                passed_on_continuation = True
             case EffectType.EffectType_Pass:
                 pass
             case EffectType.EffectType_PerformanceLifeLostIncrease:
@@ -4006,9 +4055,17 @@ class GameEngine:
         reveal_chosen = decision_info_copy["reveal_chosen"]
         remaining_cards_action = decision_info_copy["remaining_cards_action"]
         all_card_seen = decision_info_copy["all_card_seen"]
+        source_card_id = decision_info_copy["source_card_id"]
         remaining_card_ids = [card_id for card_id in all_card_seen if card_id not in card_ids]
 
         player = self.get_player(performing_player_id)
+
+        self.last_chosen_cards = card_ids
+        if len(card_ids) > 0 and "after_choose_effect" in decision_info_copy and decision_info_copy["after_choose_effect"]:
+            # Queue this effect.
+            after_effects = [decision_info_copy["after_choose_effect"].copy()]
+            add_ids_to_effects(after_effects, performing_player_id, source_card_id)
+            self.add_effects_to_front(after_effects)
 
         # Deal with chosen cards.
         if to_zone == "holomem" and len(card_ids) > 0:
@@ -4023,7 +4080,7 @@ class GameEngine:
                 "to_limitation_colors": to_limitation_colors,
                 "continuation": lambda :
                     # Finish the cleanup of the remaining cards.
-                    self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation),
+                    self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation),
             }
             self.do_effect(player, attach_effect)
         elif to_zone == "stage":
@@ -4059,7 +4116,7 @@ class GameEngine:
                 to_zone = "backstage"
                 for card_id in card_ids:
                     player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
-                self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
+                self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
             else:
                 decision_event = {
                     "event_type": EventType.EventType_Decision_Choice,
@@ -4078,14 +4135,14 @@ class GameEngine:
                     "max_choice": len(choice) - 1,
                     "resolution_func": self.handle_choice_effects,
                     "continuation": lambda :
-                        self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
+                        self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
                 })
         else:
             for card_id in card_ids:
                 player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
-            self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation)
+            self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
 
-    def choose_cards_cleanup_remaining(self, performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, continuation):
+    def choose_cards_cleanup_remaining(self, performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, to_zone, continuation):
         player = self.get_player(performing_player_id)
         # Deal with unchosen cards.
         if remaining_card_ids:
@@ -4107,7 +4164,7 @@ class GameEngine:
                         "effect_player_id": performing_player_id,
                         "card_ids": remaining_card_ids,
                         "from_zone": from_zone,
-                        "to_zone": from_zone,
+                        "to_zone": to_zone,
                         "bottom": True,
                         "hidden_info_player": performing_player_id,
                         "hidden_info_fields": ["card_ids"],
@@ -4118,7 +4175,7 @@ class GameEngine:
                         "decision_player": performing_player_id,
                         "card_ids": remaining_card_ids,
                         "from_zone": from_zone,
-                        "to_zone": from_zone,
+                        "to_zone": to_zone,
                         "bottom": True,
                         "continuation": continuation,
                     })

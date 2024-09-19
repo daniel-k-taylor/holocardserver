@@ -2445,6 +2445,421 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         actions = reset_mainstep(self)
 
+
+
+
+    def test_hBP01_072_self_has_cheer_color_failed(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.collab = player1.center
+        player1.center = []
+        p2collab = player2.backstage[0]
+        player2.collab = [p2collab]
+        player2.backstage = player2.backstage[1:]
+        p2center = player2.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-072", player1.center)
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "g1")
+        actions = reset_mainstep(self)
+        begin_performance(self)
+        set_next_die_rolls(self, [1])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "wazzup",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # No bonus since not red, perform, damage, performance step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "wazzup",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2center["game_card_id"],
+            "damage": 20,
+            "target_player": self.player2,
+            "special": False,
+        })
+        reset_performancestep(self)
+
+
+    def test_hBP01_072_self_has_cheer_color_success(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.collab = player1.center
+        player1.center = []
+        p2collab = player2.backstage[0]
+        player2.collab = [p2collab]
+        player2.backstage = player2.backstage[1:]
+        p2center = player2.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-072", player1.center)
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "red", "r1")
+        actions = reset_mainstep(self)
+        begin_performance(self)
+        set_next_die_rolls(self, [1])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "wazzup",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # roll die, deal damage to collab, perform, damage, performance step
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2collab["game_card_id"],
+            "damage": 20,
+            "target_player": self.player2,
+            "special": True,
+        })
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "wazzup",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2center["game_card_id"],
+            "damage": 20,
+            "target_player": self.player2,
+            "special": False,
+        })
+        reset_performancestep(self)
+
+
+    def test_hBP01_074_bloom_choose_not_en_no_snipe(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3, "hBP01-074": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.collab = player1.center
+        player1.center = []
+        p2collab = player2.backstage[0]
+        player2.collab = [p2collab]
+        player2.backstage = player2.backstage[1:]
+        p2center = player2.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-072", player1.center)
+        bloom_card = add_card_to_hand(self, player1, "hBP01-074")
+        archived_card = add_card_to_archive(self, player1, "hSD01-006")
+        self.assertEqual(len(player1.archive), 1)
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": bloom_card["game_card_id"],
+            "target_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - Bloom, Choose cards from archive
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
+            "bloom_player_id": self.player1,
+            "bloom_card_id": bloom_card["game_card_id"],
+            "target_card_id": test_card["game_card_id"],
+            "bloom_from_zone": "hand",
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "archive",
+            "to_zone": "hand",
+            "amount_min": 0,
+            "amount_max": 1,
+            "remaining_cards_action": "nothing"
+        })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [archived_card["game_card_id"]],
+        })
+        events = engine.grab_events()
+        # Events - move card to hand, main step
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "archive",
+            "to_zone": "hand",
+            "zone_card_id": "",
+            "card_id": archived_card["game_card_id"],
+        })
+        actions = reset_mainstep(self)
+
+
+    def test_hBP01_074_bloom_choose_en_do_snipe(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3, "hBP01-074": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.collab = player1.center
+        player1.center = []
+        p2collab = player2.backstage[0]
+        player2.collab = [p2collab]
+        player2.backstage = player2.backstage[1:]
+        p2center = player2.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-072", player1.center)
+        bloom_card = add_card_to_hand(self, player1, "hBP01-074")
+        archived_card = add_card_to_archive(self, player1, "hBP01-072")
+        self.assertEqual(len(player1.archive), 1)
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": bloom_card["game_card_id"],
+            "target_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - Bloom, Choose cards from archive
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
+            "bloom_player_id": self.player1,
+            "bloom_card_id": bloom_card["game_card_id"],
+            "target_card_id": test_card["game_card_id"],
+            "bloom_from_zone": "hand",
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "archive",
+            "to_zone": "hand",
+            "amount_min": 0,
+            "amount_max": 1,
+            "remaining_cards_action": "nothing"
+        })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [archived_card["game_card_id"]],
+        })
+        events = engine.grab_events()
+        # Events - move card to hand, deal damage to collab, main step
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "archive",
+            "to_zone": "hand",
+            "zone_card_id": "",
+            "card_id": archived_card["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2collab["game_card_id"],
+            "damage": 20,
+            "target_player": self.player2,
+            "special": True,
+        })
+        actions = reset_mainstep(self)
+
+
+    def test_hBP01_075_collab_orderanddraw(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3, "hBP01-075": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-075", player1.backstage)
+        actions = reset_mainstep(self)
+
+        self.assertEqual(len(player2.hand), 2)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - Collab, order cards p1,
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_OrderCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "bottom": True,
+        })
+        card_ids = events[2]["card_ids"]
+        self.assertListEqual(card_ids, [card["game_card_id"] for card in player1.hand])
+        self.assertEqual(len(player1.hand), 3)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_OrderCards, {
+            "card_ids": card_ids
+        })
+        # events - move the 3 hand cards to deck, draw cards, p2 order cards
+        events = engine.grab_events()
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[0],
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[1],
+        })
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[2],
+        })
+        validate_event(self, events[6], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1,
+        })
+        self.assertEqual(len(player1.hand), 3)
+        self.assertFalse(any(card_id in [card["game_card_id"] for card in player1.hand] for card_id in card_ids))
+        p1newhand_ids = ids_from_cards(player1.hand)
+        validate_event(self, events[8], EventType.EventType_Decision_OrderCards, self.player1, {
+            "effect_player_id": self.player2,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "bottom": True,
+        })
+        hidden_card_ids = events[8]["card_ids"]
+        self.assertListEqual(hidden_card_ids, ["HIDDEN", "HIDDEN"])
+        # Begin p2 ordering
+        card_ids = events[9]["card_ids"]
+        self.assertListEqual(card_ids, [card["game_card_id"] for card in player2.hand])
+        self.assertEqual(len(player2.hand), 2)
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_OrderCards, {
+            "card_ids": card_ids
+        })
+        # events - move the 2 cards, draw cards, main step
+        events = engine.grab_events()
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[1], EventType.EventType_MoveCard, self.player2, {
+            "moving_player_id": self.player2,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[0],
+        })
+        validate_event(self, events[3], EventType.EventType_MoveCard, self.player2, {
+            "moving_player_id": self.player2,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[1],
+        })
+        validate_event(self, events[4], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player2,
+        })
+        self.assertEqual(len(player2.hand), 2)
+        self.assertFalse(any(card_id in [card["game_card_id"] for card in player2.hand] for card_id in card_ids))
+        self.assertListEqual(ids_from_cards(player1.hand), p1newhand_ids)
+        reset_mainstep(self)
+
+    def test_hBP01_075_collab_orderanddraw_p2empty(self):
+        p1deck = generate_deck_with([], {"hBP01-072": 3, "hBP01-075": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-075", player1.backstage)
+        actions = reset_mainstep(self)
+
+        player2.hand = []
+        self.assertEqual(len(player2.hand), 0)
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - Collab, order cards p1,
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": test_card["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_OrderCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "bottom": True,
+        })
+        card_ids = events[2]["card_ids"]
+        self.assertListEqual(card_ids, [card["game_card_id"] for card in player1.hand])
+        self.assertEqual(len(player1.hand), 3)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_OrderCards, {
+            "card_ids": card_ids
+        })
+        # events - move the 3 hand cards to deck, draw cards, main step
+        events = engine.grab_events()
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[0],
+        })
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[1],
+        })
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "hand",
+            "to_zone": "deck",
+            "zone_card_id": "",
+            "card_id": card_ids[2],
+        })
+        validate_event(self, events[6], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1,
+        })
+        self.assertEqual(len(player1.hand), 3)
+        self.assertFalse(any(card_id in [card["game_card_id"] for card in player1.hand] for card_id in card_ids))
+        p1newhand_ids = ids_from_cards(player1.hand)
+        self.assertListEqual(ids_from_cards(player1.hand), p1newhand_ids)
+        self.assertEqual(len(player2.hand), 0)
+        reset_mainstep(self)
+
     def test_hBP01_076_suisei_back_snipe(self):
         p1deck = generate_deck_with([], {"hBP01-076": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)

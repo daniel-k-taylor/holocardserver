@@ -3341,6 +3341,190 @@
 
 
     {
+        "card_id": "hBP01-072",
+        "card_type": "holomem_debut",
+        "holomem_names": ["hakos_baelz"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 80,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Promise",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "wazzup",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_color": "red" }],
+                        "effect_type": "roll_die",
+                        "source": "holomem_ability",
+                        "die_effects": [
+                            {
+                                "english_values": "odd",
+                                "activate_on_values": [1,3,5],
+                                "effects": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 20,
+                                        "target": "collab",
+                                        "opponent": true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-073",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["hakos_baelz"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Promise",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "witnessme",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-074",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["hakos_baelz"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 90,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Promise",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "thefunbegins",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "conditions": [{ "condition": "bloom_target_is_debut"}],
+                "effect_type": "choose_cards",
+                "from": "archive",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 1,
+                "requirement": "holomem_debut_or_bloom",
+                "requirement_bloom_levels": [1],
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing",
+                "after_choose_effect": {
+                    "conditions": [{ "condition": "chosen_card_has_tag", "condition_tags": ["#EN"] }],
+                    "effect_type": "deal_damage",
+                    "special": true,
+                    "amount": 20,
+                    "target": "collab",
+                    "opponent": true
+                }
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-075",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "holomem_names": ["hakos_baelz"],
+        "rarity": "r",
+        "colors": ["red"],
+        "hp": 180,
+        "baton_cost": 2,
+        "tags": [
+            "#EN",
+            "#Promise",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "disorder",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 100,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "green" }]
+                    }
+                ]
+            }
+        ],
+        "collab_effects": [
+            {
+                "full_english_text": "Each player put their hand on the bottom of their deck in any order then draws that many cards.",
+                "effect_type": "order_cards",
+                "from": "hand",
+                "destination": "deck",
+                "bottom": true,
+                "hide_and_text": true,
+                "and": [{
+                    "effect_type": "draw",
+                    "amount": "last_card_count",
+                    "hide_and_text": true,
+                    "and": [
+                        {
+                            "effect_type": "order_cards",
+                            "opponent": true,
+                            "from": "hand",
+                            "destination": "deck",
+                            "bottom": true,
+                            "hide_and_text": true,
+                            "and": [{
+                                "effect_type": "draw",
+                                "opponent": true,
+                                "amount": "last_card_count"
+                            }]
+                        }
+                    ]
+               }]
+            }
+        ]
+    },
+    {
         "card_id": "hBP01-076",
         "card_type": "holomem_debut",
         "holomem_names": ["hoshimachi_suisei"],
