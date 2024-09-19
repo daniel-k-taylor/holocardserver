@@ -3364,7 +3364,7 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "self_has_cheer_color", "condition_color": "red" }],
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["red"] }],
                         "effect_type": "roll_die",
                         "source": "holomem_ability",
                         "die_effects": [
@@ -3784,6 +3784,174 @@
         ]
     },
 
+
+    {
+        "card_id": "hBP01-088",
+        "card_type": "holomem_debut",
+        "holomem_names": ["moona_hoshinova"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["blue"],
+        "hp": 90,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "moonmoonmoonadayo",
+                "costs": [
+                    { "color": "blue", "amount": 1 }
+                ],
+                "power": 10,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "roll_die",
+                        "source": "holomem_ability",
+                        "die_effects": [
+                            {
+                                "english_values": "even",
+                                "activate_on_values": [2,4,6],
+                                "effects": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 20,
+                                        "target": "backstage",
+                                        "opponent": true,
+                                        "prevent_life_loss": true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-089",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["moona_hoshinova"],
+        "rarity": "c",
+        "colors": ["blue"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "otsumoona",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-090",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["moona_hoshinova"],
+        "rarity": "u",
+        "colors": ["blue"],
+        "hp": 110,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "lookforwardtoit",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "cheer_deck",
+                "look_at": -1,
+                "destination": "holomem",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "color_in",
+                "requirement_colors": ["blue", "green"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-091",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "buzz": true,
+        "holomem_names": ["moona_hoshinova"],
+        "rarity": "rr",
+        "colors": ["blue"],
+        "hp": 240,
+        "baton_cost": 2,
+        "down_life_cost": 2,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "midnightmoon",
+                "costs": [
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 50,
+                "art_effects": []
+            },
+            {
+                "art_id": "moonnightdiva",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 80,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["blue", "green"] }],
+                        "effect_type": "archive_cheer_from_holomem",
+                        "ability_source": "holomem_blue",
+                        "from": "self",
+                        "amount": 1,
+                        "and": [
+                            {
+                                "effect_type": "deal_damage",
+                                "special": true,
+                                "amount": 30,
+                                "target": "backstage",
+                                "opponent": true
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "bloom_effects": []
+    },
 
     {
         "card_id": "hBP01-100",

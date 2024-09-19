@@ -2122,11 +2122,11 @@ class GameEngine:
                     return amount_min <= len(source_card["attached_cheer"])
                 return False
             case Condition.Condition_SelfHasCheerColor:
-                condition_color = condition["condition_color"]
+                condition_colors = condition["condition_colors"]
                 source_card, _, _ = effect_player.find_card(source_card_id)
                 if source_card:
                     for cheer in source_card["attached_cheer"]:
-                        if condition_color in cheer["colors"]:
+                        if any(color in cheer["colors"] for color in condition_colors):
                             return True
                 return False
             case Condition.Condition_StageHasSpace:
@@ -2442,6 +2442,9 @@ class GameEngine:
                 cards_can_choose = cards_to_choose_from
                 if requirement:
                     match requirement:
+                        case "color_in":
+                            requirement_colors = effect.get("requirement_colors", [])
+                            cards_can_choose = [card for card in cards_can_choose if any(color in card["colors"] for color in requirement_colors)]
                         case "color_matches_holomems":
                             # Only include cards that match the colors of the holomems on stage.
                             cards_can_choose = [card for card in cards_can_choose if effect_player.matches_stage_holomems_color(card["colors"])]
