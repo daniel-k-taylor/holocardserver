@@ -3364,7 +3364,7 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["red"] }],
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["red"], "amount_min": 1 }],
                         "effect_type": "roll_die",
                         "source": "holomem_ability",
                         "die_effects": [
@@ -3586,12 +3586,13 @@
             {
                 "conditions": [
                     { "condition": "oshi_is", "required_member_name": "hoshimachi_suisei" },
-                    { "condition": "self_has_cheer", "amount_min": 1 }
+                    { "condition": "self_has_cheer_color", "amount_min": 1, "condition_colors": ["blue"] }
                 ],
                 "effect_type": "choice",
                 "choice": [
                     {
                         "effect_type": "archive_cheer_from_holomem",
+                        "required_colors": ["blue"],
                         "ability_source": "holomem_blue",
                         "from": "self",
                         "amount": 1,
@@ -3750,11 +3751,12 @@
                     },
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "self_has_cheer", "amount_min": 2 }],
+                        "conditions": [{ "condition": "self_has_cheer_color", "amount_min": 2, "condition_colors": ["blue"] }],
                         "effect_type": "choice",
                         "choice": [
                             {
                                 "effect_type": "archive_cheer_from_holomem",
+                                "required_colors": ["blue"],
                                 "ability_source": "holomem_blue",
                                 "from": "self",
                                 "amount": 2,
@@ -3932,8 +3934,9 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["blue", "green"] }],
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["blue", "green"], "amount_min": 1 }],
                         "effect_type": "archive_cheer_from_holomem",
+                        "required_colors": ["blue", "green"],
                         "ability_source": "holomem_blue",
                         "from": "self",
                         "amount": 1,

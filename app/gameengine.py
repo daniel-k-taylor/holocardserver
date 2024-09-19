@@ -106,7 +106,6 @@ class Condition:
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
-    Condition_SelfHasCheer = "self_has_cheer"
     Condition_SelfHasCheerColor = "self_has_cheer_color"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
@@ -2115,19 +2114,16 @@ class GameEngine:
                 return False
             case Condition.Condition_PlayedSupportThisTurn:
                 return effect_player.played_support_this_turn
-            case Condition.Condition_SelfHasCheer:
+            case Condition.Condition_SelfHasCheerColor:
+                condition_colors = condition["condition_colors"]
                 amount_min = condition["amount_min"]
                 source_card, _, _ = effect_player.find_card(source_card_id)
                 if source_card:
-                    return amount_min <= len(source_card["attached_cheer"])
-                return False
-            case Condition.Condition_SelfHasCheerColor:
-                condition_colors = condition["condition_colors"]
-                source_card, _, _ = effect_player.find_card(source_card_id)
-                if source_card:
+                    cheer_of_matched_colors = 0
                     for cheer in source_card["attached_cheer"]:
                         if any(color in cheer["colors"] for color in condition_colors):
-                            return True
+                            cheer_of_matched_colors += 1
+                    return amount_min <= cheer_of_matched_colors
                 return False
             case Condition.Condition_StageHasSpace:
                 return len(effect_player.get_holomem_on_stage()) < MAX_MEMBERS_ON_STAGE
@@ -2223,6 +2219,7 @@ class GameEngine:
             case EffectType.EffectType_ArchiveCheerFromHolomem:
                 amount = effect["amount"]
                 from_zone = effect["from"]
+                required_colors = effect.get("required_colors", [])
                 target_holomems = []
                 ability_source = effect["ability_source"]
                 match from_zone:
@@ -2231,7 +2228,14 @@ class GameEngine:
                         target_holomems.append(source_card)
                 cheer_options = []
                 for holomem in target_holomems:
-                    cheer_options += ids_from_cards(holomem["attached_cheer"])
+                    if required_colors:
+                        matched_cheer = []
+                        for cheer in holomem["attached_cheer"]:
+                            if any(color in cheer["colors"] for color in required_colors):
+                                matched_cheer.append(cheer)
+                        cheer_options += ids_from_cards(matched_cheer)
+                    else:
+                        cheer_options += ids_from_cards(holomem["attached_cheer"])
                 after_archive_check_effect = {
                     "player_id": effect_player_id,
                     "effect_type": EffectType.EffectType_AfterArchiveCheerCheck,
