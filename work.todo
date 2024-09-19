@@ -1,3 +1,11 @@
+92
+"effect_type": "send_cheer", from self
+94
+"from_limitation": "color_in_tagged_holomems",
+"from_limitation_tags"
+95
+"effect_type": "bloom_played_this_turn_debut_to_1st",
+effect_type": "return_holomem_to_debut",
 
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
