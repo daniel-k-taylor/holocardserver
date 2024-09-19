@@ -62,6 +62,7 @@ class EffectType:
     EffectType_ReduceRequiredArchiveCount = "reduce_required_archive_count"
     EffectType_RepeatArt = "repeat_art"
     EffectType_RestoreHp = "restore_hp"
+    EffectType_RevealTopDeck = "reveal_top_deck"
     EffectType_RollDie = "roll_die"
     EffectType_RollDie_ChooseResult = "choose_die_result"
     EffectType_RollDie_Internal = "roll_die_INTERNAL"
@@ -102,11 +103,13 @@ class Condition:
     Condition_PerformerIsColor = "performer_is_color"
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
+    Condition_PlayedSupportThisTurn = "played_support_this_turn"
     Condition_SelfHasCheer = "self_has_cheer"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
     Condition_ThisCardIsCollab = "this_card_is_collab"
+    Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
 
 
 class TurnEffectType:
@@ -153,6 +156,7 @@ class EventType:
     EventType_ResetStepChooseNewCenter = "reset_step_choose_new_center"
     EventType_ResetStepCollab = "reset_step_collab"
     EventType_RestoreHP = "restore_hp"
+    EventType_RevealCards = "reveal_cards"
     EventType_RollDie = "roll_die"
     EventType_ShuffleDeck = "shuffle_deck"
     EventType_TurnStart = "turn_start"
@@ -322,6 +326,7 @@ class PlayerState:
         self.effects_used_this_turn = []
         self.effects_used_this_game = []
         self.used_limited_this_turn = False
+        self.played_support_this_turn = False
         self.turn_effects = []
         self.set_next_die_roll = 0
         self.card_effects_used_this_turn = []
@@ -451,6 +456,24 @@ class PlayerState:
     def can_move_front_stage(self):
         return not self.block_movement_for_turn
 
+    def get_accepted_bloom_for_card(self, card):
+        accepted_bloom_levels = []
+        if card["card_type"] == "holomem_debut":
+            accepted_bloom_levels = [1]
+        elif card["card_type"] == "holomem_bloom":
+            current_bloom_level = card["bloom_level"]
+            accepted_bloom_levels = [current_bloom_level, current_bloom_level+1]
+
+        if "bloom_level_skip" in card:
+            meets_req = False
+            if "bloom_level_skip_requirement" in card:
+                match card["bloom_level_skip_requirement"]:
+                    case "3lifeorless":
+                        meets_req = len(self.life) <= 3
+            if meets_req:
+                accepted_bloom_levels.append(card["bloom_level_skip"])
+        return accepted_bloom_levels
+
     def record_card_effect_used_this_turn(self, card_id):
         if card_id not in self.card_effects_used_this_turn:
             self.card_effects_used_this_turn.append(card_id)
@@ -511,12 +534,12 @@ class PlayerState:
                     cheer_ids.append(attached_card["game_card_id"])
         return cheer_ids
 
-    def get_cheer_on_each_holomem(self):
+    def get_cheer_on_each_holomem(self, exclude_empty_members = False):
         cheer = {}
         for card in self.get_holomem_on_stage():
             cheer[card["game_card_id"]] = [attached_card["game_card_id"] for attached_card in card["attached_cheer"]]
-            if len(cheer[card["game_card_id"]]) == 0:
-                cheer.pop(card["game_card_id"])
+            if exclude_empty_members and len(cheer[card["game_card_id"]]) == 0:
+                del cheer[card["game_card_id"]]
         return cheer
 
     def get_holomems_with_cheer(self):
@@ -671,6 +694,7 @@ class PlayerState:
         self.collabed_this_turn = False
         self.turn_effects = []
         self.used_limited_this_turn = False
+        self.played_support_this_turn = False
         self.effects_used_this_turn = []
         self.card_effects_used_this_turn = []
         for card in self.get_holomem_on_stage():
@@ -1411,13 +1435,7 @@ class GameEngine:
                     # Can't bloom if already bloomed this turn.
                     continue
 
-                accepted_bloom_levels = []
-                if mem_card["card_type"] == "holomem_debut":
-                    accepted_bloom_levels = [1]
-                elif mem_card["card_type"] == "holomem_bloom":
-                    current_bloom_level = mem_card["bloom_level"]
-                    accepted_bloom_levels = [current_bloom_level, current_bloom_level+1]
-
+                accepted_bloom_levels = active_player.get_accepted_bloom_for_card(mem_card)
                 if accepted_bloom_levels:
                     for card in active_player.hand:
                         if "bloom_blocked" in card and card["bloom_blocked"]:
@@ -1482,7 +1500,7 @@ class GameEngine:
                 if "play_requirements" in card:
                     play_requirements = card["play_requirements"]
 
-                cheer_on_each_mem = active_player.get_cheer_on_each_holomem()
+                cheer_on_each_mem = active_player.get_cheer_on_each_holomem(exclude_empty_members=True)
                 available_actions.append({
                     "action_type": GameAction.MainStepPlaySupport,
                     "card_id": card["game_card_id"],
@@ -2083,6 +2101,8 @@ class GameEngine:
                     if tag in valid_tags:
                         return True
                 return False
+            case Condition.Condition_PlayedSupportThisTurn:
+                return effect_player.played_support_this_turn
             case Condition.Condition_SelfHasCheer:
                 amount_min = condition["amount_min"]
                 source_card, _, _ = effect_player.find_card(source_card_id)
@@ -2104,6 +2124,15 @@ class GameEngine:
                 if len(effect_player.collab) == 0:
                     return False
                 return effect_player.collab[0]["game_card_id"] == source_card_id
+            case Condition.Condition_TopDeckCardHasAnyTag:
+                valid_tags = condition["condition_tags"]
+                if len(effect_player.deck) == 0:
+                    return False
+                top_card = effect_player.deck[0]
+                for tag in top_card["tags"]:
+                    if tag in valid_tags:
+                        return True
+                return False
             case _:
                 raise NotImplementedError(f"Unimplemented condition: {condition['condition']}")
         return False
@@ -2696,10 +2725,6 @@ class GameEngine:
                 available_cheer = effect_player.get_cheer_ids_on_holomems()
                 available_targets = ids_from_cards(effect_player.get_holomem_on_stage())
                 cheer_on_each_mem = effect_player.get_cheer_on_each_holomem()
-                if len(cheer_on_each_mem.keys()) == 1:
-                    # If only 1 member has cheer, this member shouldn't be in the targets
-                    # because they must be the source.
-                    available_targets.remove(list(cheer_on_each_mem.keys())[0])
                 if len(available_targets) > 0:
                     decision_event = {
                         "event_type": EventType.EventType_Decision_SendCheer,
@@ -2828,7 +2853,16 @@ class GameEngine:
                         "effect_amount": amount,
                         "continuation": self.continue_resolving_effects,
                     })
-
+            case EffectType.EffectType_RevealTopDeck:
+                if len(effect_player.deck) > 0:
+                    top_card = effect_player.deck[0]
+                    reveal_event = {
+                        "event_type": EventType.EventType_RevealCards,
+                        "effect_player_id": effect_player_id,
+                        "card_ids": [top_card["game_card_id"]],
+                        "source": "topdeck"
+                    }
+                    self.broadcast_event(reveal_event)
             case EffectType.EffectType_RollDie:
                 # Put the actual roll in front on the queue, but
                 # check afterwards to see if we should add any more effects up front.
@@ -2926,11 +2960,12 @@ class GameEngine:
                                     raise NotImplementedError(f"Unimplemented from limitation: {from_limitation}")
                         else:
                             from_options = relevant_archive_cards
-
+                        from_options = ids_from_cards(from_options)
                     case "cheer_deck":
                         # Cheer deck is from top.
                         if len(effect_player.cheer_deck) > 0:
                             from_options = [effect_player.cheer_deck[0]]
+                        from_options = ids_from_cards(from_options)
                     case "downed_holomem":
                         holomem = self.down_holomem_state.holomem_card
                         if from_limitation:
@@ -2940,6 +2975,9 @@ class GameEngine:
                                         if any(color in card["colors"] for color in from_limitation_colors)]
                                 case _:
                                     from_options = holomem["attached_cheer"]
+                        from_options = ids_from_cards(from_options)
+                    case "holomem":
+                        from_options = effect_player.get_cheer_ids_on_holomems()
                     case "opponent_holomem":
                         opponent = self.other_player(effect_player_id)
                         holomem_options = opponent.get_holomem_on_stage()
@@ -2951,9 +2989,9 @@ class GameEngine:
                                     raise NotImplementedError(f"Unimplemented from limitation: {from_limitation}")
                         for holomem in holomem_options:
                             from_options.extend(holomem["attached_cheer"])
+                        from_options = ids_from_cards(from_options)
                     case _:
                         raise NotImplementedError(f"Unimplemented from zone: {from_zone}")
-                from_options = ids_from_cards(from_options)
 
                 match to_zone:
                     case "archive":
@@ -3644,6 +3682,7 @@ class GameEngine:
             player.archive_attached_cards(cheer_to_archive_from_play)
 
         # Begin resolving the card effects.
+        player.played_support_this_turn = True
         if is_card_limited(card):
             player.used_limited_this_turn = True
 

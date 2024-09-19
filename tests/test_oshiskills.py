@@ -118,7 +118,7 @@ class TestOshiSkills(unittest.TestCase):
         available_cheer = events[5]["from_options"]
         available_targets = events[5]["to_options"]
         self.assertEqual(len(available_cheer), 2) # 2 cheer for the 2 turns
-        self.assertEqual(len(available_targets), 5) # It returns all holomems in play, but removes the target if they're the only one with cheer.
+        self.assertEqual(len(available_targets), 6) # It returns all holomems in play
 
         # Try to give cheer to the center.
         placements = {
