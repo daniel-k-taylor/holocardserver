@@ -3043,9 +3043,242 @@
             }
         ]
     },
-
-
-
+    {
+        "card_id": "hBP01-050",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["kazama_iroha"],
+        "rarity": "u",
+        "colors": ["green"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX"
+        ],
+        "arts": [
+            {
+                "art_id": "illgiveyouallmyenergy",
+                "costs": [
+                    { "color": "green", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": [
+                    {
+                        "full_english_text": "Send the top card from your Cheer Deck to a #SecretSocietyholoX Holomem not Kazama Iroha.",
+                        "timing": "before_art",
+                        "effect_type": "send_cheer",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "from": "cheer_deck",
+                        "to": "holomem",
+                        "to_limitation": "tag_in",
+                        "to_limitation_tags": ["#SecretSocietyholoX"],
+                        "to_limitation_exclude_name": "kazama_iroha"
+                    }
+                ]
+            }
+        ],
+        "gift_effects": [
+            {
+                "timing": "arts_targeting",
+                "conditions": [{ "condition": "this_card_is_collab" }],
+                "effect_type": "restrict_targets_to_collab"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-051",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "buzz": "true",
+        "holomem_names": ["kazama_iroha"],
+        "rarity": "r",
+        "colors": ["green"],
+        "hp": 250,
+        "baton_cost": 2,
+        "down_life_cost": 2,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX"
+        ],
+        "arts": [
+            {
+                "art_id": "bundleupyourcheers",
+                "costs": [
+                    { "color": "green", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 50,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "this_card_is_collab" }],
+                        "effect_type": "power_boost_per_attached_cheer",
+                        "amount": 20,
+                        "limit": 5
+                    }
+                ]
+            },
+            {
+                "art_id": "brillianceofthewind",
+                "costs": [
+                    { "color": "green", "amount": 1 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 70,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-052",
+        "card_type": "holomem_debut",
+        "holomem_names": ["airani_iofifteen"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["green"],
+        "hp": 70,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "selamatpagi",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 10,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "move_cheer_between_holomems",
+                        "amount": 1,
+                        "to_limitation": "tag_in",
+                        "to_limitation_tags": ["#ID"]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-053",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["airani_iofifteen"],
+        "rarity": "c",
+        "colors": ["green"],
+        "hp": 170,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "yourbelovedalien",
+                "costs": [
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 50,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-054",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["airani_iofifteen"],
+        "rarity": "u",
+        "colors": ["green"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "imlookingforwardtoit",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "send_cheer",
+                "amount_min": 1,
+                "amount_max": 1,
+                "from": "cheer_deck",
+                "to": "holomem",
+                "to_limitation": "tag_in",
+                "to_limitation_tags": ["#ID"],
+                "to_limitation_exclude_name": "airani_iofifteen"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-055",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "holomem_names": ["airani_iofifteen"],
+        "rarity": "r",
+        "colors": ["green"],
+        "hp": 180,
+        "baton_cost": 1,
+        "tags": [
+            "#ID",
+            "#IDGen1",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "relationsky",
+                "costs": [
+                    { "color": "green", "amount": 1 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 100,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "blue" }]
+                    },
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "holomem_on_stage", "tag_in": ["#ID"], "exclude_member_name": "airani_iofifteen" }],
+                        "effect_type": "power_boost",
+                        "amount": 50
+                    }
+                ]
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "send_cheer",
+                "amount_min": 0,
+                "amount_max": 3,
+                "from": "archive",
+                "to": "holomem",
+                "to_limitation": "tag_in",
+                "to_limitation_tags": ["#ID"],
+                "limit_one_per_member": true,
+                "multi_to": true
+            }
+        ]
+    },
     {
         "card_id": "hBP01-056",
         "card_type": "holomem_debut",
@@ -3337,7 +3570,348 @@
             }
         ]
     },
-
+    {
+        "card_id": "hBP01-062",
+        "card_type": "holomem_debut",
+        "holomem_names": ["takanashi_kiara"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 90,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "kikkeriki",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
+                        "choice": [
+                            {
+                                "effect_type": "archive_from_hand",
+                                "ability_source": "holomem_red",
+                                "amount": 1,
+                                "and": [
+                                    {
+                                        "effect_type": "power_boost",
+                                        "amount": 20
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-063",
+        "card_type": "holomem_debut",
+        "holomem_names": ["takanashi_kiara"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 60,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "mofumofutime",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": []
+            }
+        ],
+        "collab_effects": [
+            {
+                "conditions": [
+                    { "condition": "center_has_any_tag", "condition_tags": ["#Bird"] },
+                    { "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }
+                ],
+                "choice": [
+                    {
+                        "effect_type": "archive_from_hand",
+                        "ability_source": "holomem_red",
+                        "amount": 1,
+                        "and": [
+                            {
+                                "effect_type": "choose_cards",
+                                "from": "deck",
+                                "look_at": -1,
+                                "destination": "hand",
+                                "amount_min": 1,
+                                "amount_max": 1,
+                                "requirement": "mascot",
+                                "reveal_chosen": true,
+                                "remaining_cards_action": "shuffle"
+                            }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-064",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takanashi_kiara"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 130,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "aufweidersehen",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-065",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takanashi_kiara"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 110,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "iwanttoliventhingsup",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40,
+                "art_effects": []
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 3,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "holomem",
+                "reveal_chosen": true,
+                "remaining_cards_action": "archive"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-066",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["takanashi_kiara"],
+        "rarity": "r",
+        "colors": ["red"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "phoenixswordprincess",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 50,
+                "art_effects": []
+            },
+            {
+                "art_id": "kneel",
+                "costs": [
+                    { "color": "red", "amount": 2 }
+                ],
+                "power": 40,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "has_stacked_holomem" }],
+                        "effect_type": "choice",
+                        "choice": [
+                            {
+                                "effect_type": "choose_cards",
+                                "from": "stacked_holomem",
+                                "look_at": -1,
+                                "destination": "archive",
+                                "amount_min": 1,
+                                "amount_max": 1,
+                                "remaining_cards_action": "nothing",
+                                "and": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 40,
+                                        "target": "collab",
+                                        "opponent": true
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-067",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "holomem_names": ["takanashi_kiara"],
+        "rarity": "rr",
+        "colors": ["red"],
+        "hp": 200,
+        "baton_cost": 2,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "flamecoloredguidance",
+                "costs": [
+                    { "color": "red", "amount": 2 }
+                ],
+                "power": 70,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "target_color", "color_requirement": "green" }],
+                        "effect_type": "power_boost",
+                        "amount": 50
+                    }
+                ]
+            },
+            {
+                "art_id": "majesticphoenix",
+                "costs": [
+                    { "color": "red", "amount": 3 }
+                ],
+                "power": 80,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "target_color", "color_requirement": "green" }],
+                        "effect_type": "power_boost",
+                        "amount": 50
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost_per_archived_holomem",
+                        "amount": 10
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "choose_cards",
+                        "from": "archive",
+                        "look_at": -1,
+                        "destination": "deck",
+                        "amount_min": 6,
+                        "amount_max": 6,
+                        "requirement": "holomem",
+                        "remaining_cards_action": "nothing"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-068",
+        "card_type": "holomem_debut",
+        "holomem_names": ["omaru_polka"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 70,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen5",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "polkaoruyo",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": []
+            }
+        ]
+    },
+    {
+        "card_id": "hBP01-069",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "holomem_names": ["omaru_polka"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 180,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen5",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "ohapol",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 20,
+                "art_effects": []
+            },
+            {
+                "art_id": "osopol",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40,
+                "art_effects": []
+            }
+        ]
+    },
 
 
     {
@@ -4048,15 +4622,18 @@
         ],
         "bloom_effects": [
             {
-                "effect_type": "send_cheer",
+                "effect_type": "choose_cards",
+                "from": "cheer_deck",
+                "look_at": -1,
+                "destination": "holomem",
                 "amount_min": 1,
                 "amount_max": 1,
-                "from": "cheer_deck",
-                "from_limitation": "color_in_tagged_holomems",
-                "from_limitation_tags": ["#Promise"],
-                "to": "holomem",
+                "requirement": "color_matches_holomems",
+                "requirement_only_holomems_with_any_tag": ["#Promise"],
                 "to_limitation": "tag_in",
-                "to_limitation_tags": ["#Promise"]
+                "to_limitation_tags": ["#Promise"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
             }
         ]
     },
@@ -4090,7 +4667,7 @@
                     },
                     {
                         "timing": "before_art",
-                        "effect_type": "bloom_played_this_turn_debut_to_1st",
+                        "effect_type": "bloom_debut_played_this_turn_to_1st",
                         "location": "backstage"
                     }
                 ]
@@ -4100,7 +4677,7 @@
             {
                 "effect_type": "return_holomem_to_debut",
                 "opponent": true,
-                "location": "backstage"
+                "target": "backstage"
             }
         ]
     },

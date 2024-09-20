@@ -783,7 +783,7 @@ class Test_hbp01_Support(unittest.TestCase):
             "from_zone": "archive",
             "to_zone": "cheer_deck",
             "amount_min": 0,
-            "amount_max": 3,
+            "amount_max": 0,
             "reveal_chosen": True,
             "remaining_cards_action": "nothing",
         })

@@ -160,5 +160,54 @@ class TestResetStep(unittest.TestCase):
         self.assertTrue(chosen_center not in ids_from_cards(player2.backstage))
         self.assertTrue(player2.center[0]["resting"])
 
+
+    def test_reset_replacement_choice_at_turn_end(self):
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test that when replacing the center and you have multiple backstage options, you can choose"""
+        # Somehow player 1's holomem center died on their turn.
+        player1.archive_holomem_from_play(player1.center[0]["game_card_id"])
+        engine.handle_game_message(self.player1, GameAction.MainStepEndTurn, {})
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_EndTurn, self.player1, {
+            "ending_player_id": self.player1,
+            "next_player_id": self.player2,
+        })
+        validate_event(self, events[-1], EventType.EventType_ResetStepChooseNewCenter, self.player2, {
+            "active_player": self.player1
+        })
+        center_options = events[-1]["center_options"]
+        self.assertEqual(len(center_options), 5)
+        # Pick the first one.
+        chosen_center = player1.backstage[0]["game_card_id"]
+        self.engine.handle_game_message(self.player1, GameAction.ChooseNewCenter, {
+            "new_center_card_id": chosen_center
+        })
+        events = self.engine.grab_events()
+        # BMove card, begin turn, resetx2, and draw/cheer events.
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[1], EventType.EventType_MoveCard, self.player2, {
+            "moving_player_id": self.player1,
+            "from_zone": "backstage",
+            "to_zone": "center",
+            "card_id": chosen_center,
+        })
+        validate_event(self, events[2], EventType.EventType_TurnStart, self.player1, {
+            "active_player": self.player2,
+        })
+        validate_event(self, events[9], EventType.EventType_Draw, self.player2, {
+            "drawing_player_id": self.player2
+        })
+        validate_event(self, events[11], EventType.EventType_CheerStep, self.player2, { "active_player": self.player2, })
+        self.assertEqual(chosen_center, player1.center[0]["game_card_id"])
+        self.assertTrue(chosen_center not in ids_from_cards(player1.backstage))
+
 if __name__ == '__main__':
     unittest.main()

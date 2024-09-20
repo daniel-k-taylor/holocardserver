@@ -172,7 +172,7 @@ class TestSupportCards(unittest.TestCase):
             "from_zone": "deck",
             "to_zone": "hand",
             "amount_min": 0, # Since we know we're getting 0 cards
-            "amount_max": 1,
+            "amount_max": 0,
             "reveal_chosen": True,
             "remaining_cards_action": "order_on_bottom",
         })
@@ -522,7 +522,7 @@ class TestSupportCards(unittest.TestCase):
             "from_zone": "deck",
             "to_zone": "hand",
             "amount_min": 0,
-            "amount_max": 4,
+            "amount_max": 3,
             "reveal_chosen": True,
             "remaining_cards_action": "order_on_bottom",
         })
