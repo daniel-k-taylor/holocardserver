@@ -2508,8 +2508,8 @@ class GameEngine:
                     self.set_decision({
                         "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                         "decision_player": effect_player_id,
-                        "all_card_seen": holomem_targets,
-                        "cards_can_choose": holomem_targets,
+                        "all_card_seen": ids_from_cards(valid_blooms_in_hand),
+                        "cards_can_choose": ids_from_cards(valid_blooms_in_hand),
                         "amount_min": 0,
                         "amount_max": 1,
                         "target_cards": debuts,
@@ -2545,6 +2545,7 @@ class GameEngine:
                 requirement_id = effect.get("requirement_id", "")
                 requirement_match_oshi_color = effect.get("requirement_match_oshi_color", False)
                 requirement_only_holomems_with_any_tag = effect.get("requirement_only_holomems_with_any_tag", False)
+                requirement_colors = effect.get("requirement_colors", [])
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 after_choose_effect = effect.get("after_choose_effect", None)
@@ -2557,6 +2558,7 @@ class GameEngine:
                     "requirement_id": requirement_id,
                     "requirement_match_oshi_color": requirement_match_oshi_color,
                     "requirement_only_holomems_with_any_tag": requirement_only_holomems_with_any_tag,
+                    "requirement_colors": requirement_colors,
                 }
 
                 cards_to_choose_from = []
