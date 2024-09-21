@@ -28,16 +28,18 @@ class DecisionType:
     DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
+    EffectType_AddDamage = "add_damage"
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
     EffectType_AfterArchiveCheerCheck = "after_archive_check"
     EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
-    EffectType_ArchiveFromHandVariable = "archive_from_hand_variable"
+    EffectType_ArchiveThisAttachment = "archive_this_attachment"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
     EffectType_BloomDebutPlayedThisTurnTo1st = "bloom_debut_played_this_turn_to_1st"
     EffectType_BlockOpponentMovement = "block_opponent_movement"
+    EffectType_BonusHp = "bonus_hp"
     EffectType_Choice = "choice"
     EffectType_ChooseCards = "choose_cards"
     EffectType_DealDamage = "deal_damage"
@@ -70,9 +72,11 @@ class EffectType:
     EffectType_RestoreHp = "restore_hp"
     EffectType_ReturnHolomemToDebut = "return_holomem_to_debut"
     EffectType_RevealTopDeck = "reveal_top_deck"
+    EffectType_RerollDie = "reroll_die"
     EffectType_RollDie = "roll_die"
     EffectType_RollDie_ChooseResult = "choose_die_result"
     EffectType_RollDie_Internal = "roll_die_INTERNAL"
+    EffectType_RollDie_Internal_Resolution = "roll_die_INTERNAL_resolution"
     EffectType_SendCheer = "send_cheer"
     EffectType_SendCollabBack = "send_collab_back"
     EffectType_SetCenterHP = "set_center_hp"
@@ -83,6 +87,7 @@ class EffectType:
 class Condition:
     Condition_AnyTagHolomemHasCheer = "any_tag_holomem_has_cheer"
     Condition_AttachedTo = "attached_to"
+    Condition_AttachedOwnerIsLocation = "attached_owner_is_location"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
     Condition_CanMoveFrontStage = "can_move_front_stage"
@@ -189,10 +194,12 @@ class ArtStatBoosts:
 
 class DamageModifications:
     def __init__(self):
+        self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
 
     def clear(self):
+        self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
 
@@ -450,6 +457,83 @@ class PlayerState:
                     return True
         return False
 
+    def is_art_requirement_met(self, card, art):
+        attached_cheer_cards = [attached_card for attached_card in card["attached_cheer"] if is_card_cheer(attached_card)]
+
+        white_cheer = 0
+        green_cheer = 0
+        blue_cheer = 0
+        red_cheer = 0
+        purple_cheer = 0
+
+        check_cheer_effects = self.get_effects_at_timing("check_cheer", card, "")
+        for effect in check_cheer_effects:
+            if check_cheer_effects and self.engine.are_conditions_met(self, card["game_card_id"], effect["conditions"]):
+                match effect["effect_type"]:
+                    case "bonus_cheer":
+                        amount = effect["amount"]
+                        match effect["color"]:
+                            case "blue":
+                                blue_cheer += amount
+                            case "green":
+                                green_cheer += amount
+                            case "red":
+                                red_cheer += amount
+                            case "purple":
+                                purple_cheer += amount
+                            case "white":
+                                white_cheer += amount
+
+        for attached_cheer_card in attached_cheer_cards:
+            if "white" in attached_cheer_card["colors"]:
+                white_cheer += 1
+            elif "green" in attached_cheer_card["colors"]:
+                green_cheer += 1
+            elif "blue" in attached_cheer_card["colors"]:
+                blue_cheer += 1
+            elif "red" in attached_cheer_card["colors"]:
+                red_cheer += 1
+            elif "purple" in attached_cheer_card["colors"]:
+                purple_cheer += 1
+
+        cheer_costs = art["costs"]
+        any_cost = 0
+        # First go through all the costs and subtract any from the color counts.
+        for cost in cheer_costs:
+            color_required = cost["color"]
+            color_amount = cost["amount"]
+            if color_required == "any":
+                any_cost += color_amount
+            else:
+                if color_required == "white":
+                    white_cheer -= color_amount
+                elif color_required == "green":
+                    green_cheer -= color_amount
+                elif color_required == "blue":
+                    blue_cheer -= color_amount
+                elif color_required == "red":
+                    red_cheer -= color_amount
+                elif color_required == "purple":
+                    purple_cheer -= color_amount
+
+        # If any cheer is negative, the requirement is not met.
+        if white_cheer < 0 or green_cheer < 0 or blue_cheer < 0 or red_cheer < 0 or purple_cheer < 0:
+            return False
+
+        total_cheer_left = white_cheer + green_cheer + blue_cheer + red_cheer + purple_cheer
+        if total_cheer_left < any_cost:
+            return False
+
+        if "art_requirement" in art:
+            match art["art_requirement"]:
+                case "has_attached":
+                    required_definition_id = art["art_requirement_attached_id"]
+                    for attached in card["attached_support"]:
+                        if attached["card_id"] == required_definition_id:
+                            return True
+
+        return True
+
     def can_archive_from_hand(self, amount, condition_source):
         return self.get_can_archive_from_hand_count(condition_source) >= amount
 
@@ -498,9 +582,20 @@ class PlayerState:
                 # Check the names of the bloom card, at last one must match a name from the base card.
                 if any(name in bloom_card["holomem_names"] for name in target_card["holomem_names"]):
                     # Check the damage, if the bloom version would die, you can't.
-                    if target_card["damage"] < bloom_card["hp"]:
+                    if target_card["damage"] < self.get_card_hp(bloom_card):
                         return True
         return False
+
+    def get_card_hp(self, card):
+        base_hp = card["hp"]
+        effects = self.get_effects_at_timing("check_hp", card, "")
+        bonus_hp = 0
+        for effect in effects:
+            if self.engine.are_conditions_met(self, effect["source_card_id"], effect["conditions"]):
+                match effect["effect_type"]:
+                    case EffectType.EffectType_BonusHp:
+                        bonus_hp += effect["amount"]
+        return base_hp + bonus_hp
 
     def record_card_effect_used_this_turn(self, card_id):
         if card_id not in self.card_effects_used_this_turn:
@@ -790,6 +885,13 @@ class PlayerState:
         bloom_card, _, bloom_from_zone_name = self.find_and_remove_card(bloom_card_id)
         target_card, zone, _ = self.find_and_remove_card(target_card_id)
 
+        previous_bloom_level = 0
+        if "bloom_level" in target_card:
+            previous_bloom_level = target_card["bloom_level"]
+        next_bloom_level = 0
+        if "bloom_level" in bloom_card:
+            next_bloom_level = bloom_card["bloom_level"]
+
         bloom_card["stacked_cards"].append(target_card)
         # Add any stacked cards on the target to this too.
         bloom_card["stacked_cards"] += target_card["stacked_cards"]
@@ -815,6 +917,13 @@ class PlayerState:
             "bloom_from_zone": bloom_from_zone_name,
         }
         self.engine.broadcast_event(bloom_event)
+
+        if next_bloom_level > previous_bloom_level:
+            on_bloom_level_up_effects = self.get_effects_at_timing("on_bloom_level_up", bloom_card, "")
+            for effect in on_bloom_level_up_effects:
+                if self.engine.are_conditions_met(self, effect["source_card_id"], effect["conditions"]):
+                    # Assumption - these don't allow decisions.
+                    self.engine.do_effect(self, effect)
 
         # Handle any bloom effects.
         if "bloom_effects" in bloom_card:
@@ -1003,9 +1112,9 @@ class PlayerState:
 
     def set_holomem_hp(self, card_id, target_hp):
         card, _, _ = self.find_card(card_id)
-        if card["damage"] < card["hp"] - target_hp:
+        if card["damage"] < self.get_card_hp(card) - target_hp:
             previous_damage = card["damage"]
-            card["damage"] = card["hp"] - target_hp
+            card["damage"] = self.get_card_hp(card) - target_hp
             modify_hp_event = {
                 "event_type": EventType.EventType_ModifyHP,
                 "target_player_id": self.player_id,
@@ -1054,60 +1163,6 @@ def add_ids_to_effects(effects, player_id, card_id):
 
 def get_owner_id_from_card_id(card_id):
     return card_id.split("_")[0]
-
-def art_requirement_met(card, art):
-    attached_cheer_cards = [attached_card for attached_card in card["attached_cheer"] if is_card_cheer(attached_card)]
-
-    white_cheer = 0
-    green_cheer = 0
-    blue_cheer = 0
-    red_cheer = 0
-
-    for attached_cheer_card in attached_cheer_cards:
-        if "white" in attached_cheer_card["colors"]:
-            white_cheer += 1
-        elif "green" in attached_cheer_card["colors"]:
-            green_cheer += 1
-        elif "blue" in attached_cheer_card["colors"]:
-            blue_cheer += 1
-        elif "red" in attached_cheer_card["colors"]:
-            red_cheer += 1
-
-    cheer_costs = art["costs"]
-    any_cost = 0
-    # First go through all the costs and subtract any from the color counts.
-    for cost in cheer_costs:
-        color_required = cost["color"]
-        color_amount = cost["amount"]
-        if color_required == "any":
-            any_cost += color_amount
-        else:
-            if color_required == "white":
-                white_cheer -= color_amount
-            elif color_required == "green":
-                green_cheer -= color_amount
-            elif color_required == "blue":
-                blue_cheer -= color_amount
-            elif color_required == "red":
-                red_cheer -= color_amount
-
-    # If any cheer is negative, the requirement is not met.
-    if white_cheer < 0 or green_cheer < 0 or blue_cheer < 0 or red_cheer < 0:
-        return False
-
-    total_cheer_left = white_cheer + green_cheer + blue_cheer + red_cheer
-    if total_cheer_left < any_cost:
-        return False
-
-    if "art_requirement" in art:
-        match art["art_requirement"]:
-            case "has_attached":
-                required_definition_id = art["art_requirement_attached_id"]
-                for attached in card["attached_support"]:
-                    if attached["card_id"] == required_definition_id:
-                        return True
-
-    return True
 
 def attach_card(attaching_card, target_card):
     card_type = attaching_card["card_type"]
@@ -1167,6 +1222,7 @@ class GameEngine:
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = None
         self.performance_performer_card = None
+        self.performance_target_player = None
         self.performance_target_card = None
         self.performance_art = None
         self.performance_continuation = self.blank_continuation
@@ -1524,7 +1580,7 @@ class GameEngine:
                             # Check the names of the bloom card, at last one must match a name from the base card.
                             if any(name in card["holomem_names"] for name in mem_card["holomem_names"]):
                                 # Check the damage, if the bloom version would die, you can't.
-                                if mem_card["damage"] < card["hp"]:
+                                if mem_card["damage"] < active_player.get_card_hp(card):
                                     available_actions.append({
                                         "action_type": GameAction.MainStepBloom,
                                         "card_id": card["game_card_id"],
@@ -1733,7 +1789,7 @@ class GameEngine:
                 continue
 
             for art in performer["arts"]:
-                if art_requirement_met(performer, art):
+                if active_player.is_art_requirement_met(performer, art):
                     performer_position = "center" if active_player.is_center_holomem(performer["game_card_id"]) else "collab"
                     valid_targets = ids_from_cards(opponent_performers)
                     if "target_condition" in art:
@@ -1770,7 +1826,7 @@ class GameEngine:
         self.continue_performance_step()
 
     def continue_performance_step(self):
-        if self.performance_artstatboosts.repeat_art and self.performance_target_card["damage"] < self.performance_target_card["hp"]:
+        if self.performance_artstatboosts.repeat_art and self.performance_target_card["damage"] < self.performance_target_player.get_card_hp(self.performance_target_card):
             self.begin_perform_art(
                 self.performance_performer_card["game_card_id"],
                 self.performance_art["art_id"],
@@ -1791,6 +1847,7 @@ class GameEngine:
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = player
         self.performance_performer_card = performer
+        self.performance_target_player = self.other_player(self.active_player_id)
         self.performance_target_card = target
         self.performance_art = art
         self.performance_continuation = continuation
@@ -1828,7 +1885,7 @@ class GameEngine:
         self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_kill_effects, self.performance_continuation)
 
     def deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
-        if target_card["damage"] >= target_card["hp"]:
+        if target_card["damage"] >= target_player.get_card_hp(target_card):
             # Already dead somehow!
             # Just call the continuation, you don't get to kill them twice.
             continuation()
@@ -1850,6 +1907,10 @@ class GameEngine:
         self.begin_resolving_effects(on_restore_effects, continuation)
 
     def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
+        if self.damage_modifications.added_damage:
+            target_card["damage"] += self.damage_modifications.added_damage
+            damage += self.damage_modifications.added_damage
+
         if self.damage_modifications.prevented_damage:
             # Recalculate the damage based on prevented damage.
             target_card["damage"] -= damage
@@ -1888,7 +1949,7 @@ class GameEngine:
 
     def after_deal_damage_effects(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
         self.after_damage_state = self.after_damage_state.nested_state
-        died = target_card["damage"] >= target_card["hp"]
+        died = target_card["damage"] >= target_player.get_card_hp(target_card)
 
         if died:
             self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_kill_effects, lambda :
@@ -2089,6 +2150,21 @@ class GameEngine:
                             if not required_bloom_levels or holomem.get("bloom_level", -1) in required_bloom_levels:
                                 return True
                 return False
+            case Condition.Condition_AttachedOwnerIsLocation:
+                required_location = condition["condition_location"]
+                holomems = effect_player.get_holomems_with_attachment(source_card_id)
+                if holomems:
+                    match required_location:
+                        case "backstage":
+                            return holomems[0] in effect_player.backstage
+                        case "center":
+                            return holomems[0] in effect_player.center
+                        case "collab":
+                            return holomems[0] in effect_player.collab
+                        case "center_or_collab":
+                            if holomems[0] in effect_player.center + effect_player.collab:
+                                return True
+                return False
             case Condition.Condition_BloomTargetIsDebut:
                 bloom_card, _, _ = effect_player.find_card(source_card_id)
                 # Bloom target is always in the 0 slot.
@@ -2212,7 +2288,7 @@ class GameEngine:
                 return required_member_name == effect_player.oshi_card["oshi_name"]
             case Condition.Condition_PerformanceTargetHasDamageOverHp:
                 amount = condition["amount"]
-                return self.performance_target_card["damage"] >= self.performance_target_card["hp"] + amount
+                return self.performance_target_card["damage"] >= self.performance_target_player.get_card_hp(self.performance_target_card) + amount
             case Condition.Condition_PerformerIsCenter:
                 if len(self.performance_performing_player.center) == 0:
                     return False
@@ -2284,6 +2360,10 @@ class GameEngine:
 
         passed_on_continuation = False
         match effect["effect_type"]:
+            case EffectType.EffectType_AddDamage:
+                amount = effect["amount"]
+                self.damage_modifications.added_damage += amount
+                self.send_boost_event("", "damage_added", amount)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -2441,8 +2521,9 @@ class GameEngine:
                         self.continue_resolving_effects()
                 self.begin_resolving_effects(before_archive_effects, archive_hand_continuation)
                 passed_on_continuation = True
-            case EffectType.EffectType_ArchiveFromHandVariable:
-                pass
+            case EffectType.EffectType_ArchiveThisAttachment:
+                attachment_id = effect["source_card_id"]
+                effect_player.archive_attached_cards([attachment_id])
             case EffectType.EffectType_AttachCardToHolomem:
                 source_card_id = effect["source_card_id"]
                 continuation = self.continue_resolving_effects
@@ -2454,10 +2535,14 @@ class GameEngine:
                 to_limitation = effect.get("to_limitation", "")
                 to_limitation_colors = effect.get("to_limitation_colors", [])
                 to_limitation_tags = effect.get("to_limitation_tags", [])
+                to_limitation_name = effect.get("to_limitation_name", "")
                 match to_limitation:
                     case "color_in":
                         holomem_targets = [holomem for holomem in holomem_targets \
                             if any(color in holomem["colors"] for color in to_limitation_colors)]
+                    case "specific_member_name":
+                        holomem_targets = [holomem for holomem in holomem_targets \
+                            if to_limitation_name in holomem["holomem_names"]]
                     case "tag_in":
                         holomem_targets = [holomem for holomem in holomem_targets \
                             if any(tag in holomem["tags"] for tag in to_limitation_tags)]
@@ -2767,7 +2852,7 @@ class GameEngine:
                         targets_allowed = multiple_targets
 
                 # Filter out any target cards that already have damage over their hp.
-                target_cards = [card for card in target_cards if card["damage"] < card["hp"]]
+                target_cards = [card for card in target_cards if card["damage"] < target_player.get_card_hp(card)]
                 if len(target_cards) == 0:
                     pass
                 elif len(target_cards) == targets_allowed:
@@ -3205,6 +3290,23 @@ class GameEngine:
                         "source": "topdeck"
                     }
                     self.broadcast_event(reveal_event)
+            case EffectType.EffectType_RerollDie:
+                rigged = False
+                if effect_player.set_next_die_roll:
+                    die_result = effect_player.set_next_die_roll
+                    effect_player.set_next_die_roll = 0
+                    rigged = True
+                else:
+                    die_result = self.random_gen.randint(1, 6)
+                self.last_die_value = die_result
+
+                die_event = {
+                    "event_type": EventType.EventType_RollDie,
+                    "effect_player_id": effect_player_id,
+                    "die_result": die_result,
+                    "rigged": rigged,
+                }
+                self.broadcast_event(die_event)
             case EffectType.EffectType_RollDie:
                 # Put the actual roll in front on the queue, but
                 # check afterwards to see if we should add any more effects up front.
@@ -3244,7 +3346,6 @@ class GameEngine:
                     "continuation": self.continue_resolving_effects,
                 })
             case EffectType.EffectType_RollDie_Internal:
-                die_effects = effect["die_effects"]
                 rigged = False
                 if effect_player.set_next_die_roll:
                     die_result = effect_player.set_next_die_roll
@@ -3261,17 +3362,32 @@ class GameEngine:
                     "rigged": rigged,
                 }
                 self.broadcast_event(die_event)
+
+                # Add the resolution to the front of the queue.
+                # This will check last_die_value to see what happens.
+                # However process any after die roll effects first.
+                rolldie_resolution_effect = deepcopy(effect)
+                rolldie_resolution_effect["effect_type"] = EffectType.EffectType_RollDie_Internal_Resolution
+                self.add_effects_to_front([effect])
+
+                # Check for after die roll effects.
+                source_card, _, _ = effect_player.find_card(effect["source_card_id"])
+                after_die_roll_effects = effect_player.get_effects_at_timing("after_die_roll", source_card, effect["source"])
+                self.begin_resolving_effects(after_die_roll_effects, lambda :
+                    self.continue_resolving_effects)
+                passed_on_continuation = True
+            case EffectType.EffectType_RollDie_Internal_Resolution:
+                die_effects = effect["die_effects"]
                 effects_to_resolve = []
                 for die_effects_option in die_effects:
                     activate_on_values = die_effects_option["activate_on_values"]
-                    if die_result in activate_on_values:
+                    if self.last_die_value in activate_on_values:
                         effects_to_resolve = die_effects_option["effects"]
                         break
                 if effects_to_resolve:
                     # Push these effects onto the front of the effect list.
                     add_ids_to_effects(effects_to_resolve, effect_player_id, effect["source_card_id"])
                     self.add_effects_to_front(effects_to_resolve)
-
             case EffectType.EffectType_SendCheer:
                 # Required params
                 amount_min = effect["amount_min"]
@@ -3380,6 +3496,10 @@ class GameEngine:
                                     to_options = effect_player.center
                                 case "center_or_collab":
                                     to_options = effect_player.center + effect_player.collab
+                                case "specific_member_name":
+                                    to_limitation_name = effect.get("to_limitation_name", "")
+                                    holomems = effect_player.get_holomem_on_stage()
+                                    to_options = [card for card in holomems if to_limitation_name in card["holomem_names"]]
                                 case "tag_in":
                                     to_options = [card for card in effect_player.get_holomem_on_stage() if any(tag in card["tags"] for tag in to_limitation_tags)]
                                 case _:

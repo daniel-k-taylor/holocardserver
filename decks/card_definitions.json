@@ -5984,7 +5984,7 @@
         "attached_effects": [
             {
                 "timing": "after_die_roll",
-                "timing_source_requirement": "owner_holomem_ability",
+                "timing_source_requirement": "holomem_ability",
                 "effect_type": "choice",
                 "choice": [
                     {

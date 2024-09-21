@@ -15,48 +15,50 @@
 ☐ "amount": "total_damage_on_backstage", @started(24-09-21 01:57)
 ☐ 96 @started(24-09-21 01:22)
 ☐ choose cards "requirement": "buzz", @started(24-09-21 01:22)
-☐ 117
-☐ "effect_type": "archive_this_attachment", to reduce damage
-☐ 118
-☐ "timing": "check_hp",
-☐ "effect_type": "bonus_hp",
-☐ "amount": 10
-☐ 119
-☐ before art - restore hp to any mem
-☐ 120
-☐ 121
-☐ "conditions": [{"condition": "attached_owner_is_location", "condition_location": "center_or_collab" }],
-☐ "timing": "on_bloom_level_up",
-☐ 122
-☐ "effect_type": "send_cheer",
-☐ "amount_min": 1,
-☐ "amount_max": 1,
-☐ "from": "cheer_deck",
-☐ "to": "holomem",
-☐ "to_limitation": "specific_member_name",
-☐ "to_limitation_name": "aki_rosenthal"
-☐ 123
-☐ "timing": "after_die_roll",
-☐ "timing_source_requirement": "owner_holomem_ability",
-☐ "effect_type": "reroll_die"
-☐ "effect_type": "archive_this_attachment",
-☐ 124
-☐ send 1 cheer "from": "downed_holomem",
-☐ 125
-☐ write test for playing fan as last support card
+
+
+☐ 117 @started(24-09-21 09:44)
+☐ "effect_type": "archive_this_attachment", to reduce damage @started(24-09-21 09:44)
+☐ 118 @started(24-09-21 09:53)
+☐ "timing": "check_hp", @started(24-09-21 09:53)
+☐ "effect_type": "bonus_hp", @started(24-09-21 09:53)
+☐ "amount": 10 @started(24-09-21 09:53)
+☐ 119 @started(24-09-21 09:45)
+☐ just test - before art - restore hp to any mem @started(24-09-21 09:45)
+☐ 120 @started(24-09-21 09:45)
+☐ 121 @started(24-09-21 10:02)
+☐ "conditions": [{"condition": "attached_owner_is_location", "condition_location": "center_or_collab" }], @started(24-09-21 10:02)
+☐ "timing": "on_bloom_level_up", @started(24-09-21 10:02)
+☐ 122 @started(24-09-21 10:04)
+☐ "effect_type": "send_cheer", @started(24-09-21 10:04)
+☐ "amount_min": 1, @started(24-09-21 10:04)
+☐ "amount_max": 1, @started(24-09-21 10:04)
+☐ "from": "cheer_deck", @started(24-09-21 10:04)
+☐ "to": "holomem", @started(24-09-21 10:04)
+☐ "to_limitation": "specific_member_name", @started(24-09-21 10:04)
+☐ "to_limitation_name": "aki_rosenthal" @started(24-09-21 10:04)
+☐ 123 @started(24-09-21 10:37)
+☐ "timing": "after_die_roll", @started(24-09-21 10:37)
+☐ "timing_source_requirement": "owner_holomem_ability", @started(24-09-21 10:37)
+☐ "effect_type": "reroll_die" @started(24-09-21 10:37)
+☐ "effect_type": "archive_this_attachment", @started(24-09-21 10:37)
+☐ 124 @started(24-09-21 10:05)
+☐ send 1 cheer "from": "downed_holomem", @started(24-09-21 10:05)
+☐ 125 @started(24-09-21 10:05)
+☐ write test for playing fan as last support card @started(24-09-21 10:05)
 ☐ 126
-☐ "effect_type": "attach_card_to_holomem",
-☐ "to_limitation": "specific_member_name",
-☐ "to_limitation_name": "omaru_polka"
+☐ "effect_type": "attach_card_to_holomem", @started(24-09-21 10:39)
+☐ "to_limitation": "specific_member_name", @started(24-09-21 10:39)
+☐ "to_limitation_name": "omaru_polka" @started(24-09-21 10:39)
 ☐
-☐ "timing": "check_cheer",
-☐ "effect_type": "bonus_cheer",
-☐ "amount": 1,
-☐ "color": "red"
+☐ "timing": "check_cheer", @started(24-09-21 10:50)
+☐ "effect_type": "bonus_cheer", @started(24-09-21 10:50)
+☐ "amount": 1, @started(24-09-21 10:50)
+☐ "color": "red" @started(24-09-21 10:50)
 ☐
-☐ "timing": "on_take_damage",
-☐ "effect_type": "add_damage",
-☐ "amount": 10
+☐ "timing": "on_take_damage", @started(24-09-21 10:43)
+☐ "effect_type": "add_damage", @started(24-09-21 10:43)
+☐ "amount": 10 @started(24-09-21 10:43)
 
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
