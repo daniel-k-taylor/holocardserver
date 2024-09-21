@@ -83,12 +83,8 @@ class Test_hbp01_002(unittest.TestCase):
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "damage": 30,
-            "died": False,
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         actions = reset_performancestep(self)
 
@@ -130,12 +126,8 @@ class Test_hbp01_002(unittest.TestCase):
         })
         validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
             "damage": 0,
-            "died": False,
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         do_cheer_step_on_card(self, player1.center[0])
         actions = reset_mainstep(self)
@@ -197,12 +189,8 @@ class Test_hbp01_002(unittest.TestCase):
         })
         validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
             "damage": 0,
-            "died": False,
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         actions = reset_performancestep(self)
         self.assertEqual(player1.center[0]["damage"], 0)
@@ -217,12 +205,8 @@ class Test_hbp01_002(unittest.TestCase):
         self.assertEqual(len(events), 16) # Use art, damage, end, start, reset2, draw, cheer
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "damage": 30,
-            "died": False,
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         do_cheer_step_on_card(self, player1.center[0])
         actions = reset_mainstep(self)

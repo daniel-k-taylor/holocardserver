@@ -83,7 +83,7 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - use art, damage, killed their center
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "sorazsympathy",
@@ -93,21 +93,24 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 60,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
         })
-        available_cheer = events[4]["from_options"]
-        available_targets = events[4]["to_options"]
+        available_cheer = events[6]["from_options"]
+        available_targets = events[6]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_targets[0], player2.backstage[0]["game_card_id"])
         self.assertEqual(len(player2.archive), 2)
@@ -161,7 +164,7 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - power boost, use art, damage, killed their center
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": test_card["game_card_id"],
             "stat": "power",
@@ -176,21 +179,24 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 110,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
         })
-        available_cheer = events[6]["from_options"]
-        available_targets = events[6]["to_options"]
+        available_cheer = events[8]["from_options"]
+        available_targets = events[8]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_targets[0], player2.backstage[0]["game_card_id"])
         self.assertEqual(len(player2.archive), 2)
@@ -240,7 +246,7 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - use art killed their center, damage, distribute 2 life
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player2.center[0]["game_card_id"],
             "art_id": "nunnun",
@@ -250,21 +256,24 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 30,
-            "died": True,
-            "game_over": False,
             "target_player": self.player1,
             "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player1,
             "life_lost": 2,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 2,
             "amount_max": 2,
             "from_zone": "life",
         })
-        available_cheer = events[4]["from_options"]
-        available_targets = events[4]["to_options"]
+        available_cheer = events[6]["from_options"]
+        available_targets = events[6]["to_options"]
         self.assertEqual(len(available_cheer), 2)
         self.assertEqual(available_targets[0], player1.backstage[0]["game_card_id"])
         self.assertEqual(len(player1.backstage[0]["attached_cheer"]), 0)
@@ -333,7 +342,7 @@ class TestStarterDeckCards(unittest.TestCase):
         }
         self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         # Events - move cheer, use art, damage, p2 distribute life
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
@@ -350,14 +359,17 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 60,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -402,7 +414,7 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - no weakness boost, roll die (1), power boost 100
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
@@ -422,14 +434,17 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 200,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -474,7 +489,7 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - weakness boost, art, damage, distribute
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         # Events - move cheer, use art, p2 distribute life
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": test_card["game_card_id"],
@@ -490,14 +505,17 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 110,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target,
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -624,12 +642,8 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 50,
-            "died": False,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
 

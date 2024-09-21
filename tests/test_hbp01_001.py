@@ -154,11 +154,7 @@ class Test_hbp01_001(unittest.TestCase):
             "target_player": self.player2,
             "target_id": p2target["game_card_id"],
             "damage": 30,
-            "died": False,
-            "game_over": False,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         actions = reset_performancestep(self)
 
@@ -169,7 +165,7 @@ class Test_hbp01_001(unittest.TestCase):
             "target_id": p2target["game_card_id"]
         })
         events = engine.grab_events()
-        self.assertEqual(len(events), 10) # 2 stat boosts, Use art, damage dealt, distribute cheer
+        self.assertEqual(len(events), 12) # 2 stat boosts, Use art, damage dealt, distribute cheer
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
@@ -189,14 +185,17 @@ class Test_hbp01_001(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2target["game_card_id"],
             "damage": 130,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p2target["game_card_id"],
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -275,12 +274,8 @@ class Test_hbp01_001(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2target["game_card_id"],
             "damage": 30,
-            "died": False,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
-            "life_lost": 0,
-            "life_loss_prevented": False,
         })
         actions = reset_performancestep(self)
 
@@ -291,7 +286,7 @@ class Test_hbp01_001(unittest.TestCase):
             "target_id": p2target["game_card_id"]
         })
         events = engine.grab_events()
-        self.assertEqual(len(events), 8) # 1 stat boosts, Use art, damage, distribute cheer
+        self.assertEqual(len(events), 10) # 1 stat boosts, Use art, damage, distribute cheer
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
@@ -306,14 +301,17 @@ class Test_hbp01_001(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2target["game_card_id"],
             "damage": 70,
-            "died": True,
-            "game_over": False,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p2target["game_card_id"],
+            "game_over": False,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,

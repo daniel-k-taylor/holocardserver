@@ -1,34 +1,5 @@
-
-☐ 006 @started(24-09-15 22:22)
-✔ "skill_id": "phoenixtail", @done(24-09-15 22:04)
-✔ "skill_id": "risefromtheashes", @done(24-09-15 22:04)
-☐ { "condition": "downed_card_is_color", "condition_color": "red" } @started(24-09-15 22:08)
-☐ "effect_type": "recover_downed_holomem_cards", @started(24-09-15 22:09)
-
-007
-"skill_id": "comet",
-"timing": "after_deal_damage", - make other timing "on_take_damage"
-{ "condition": "damaged_holomem_is_backstage" },
-{ "condition": "damage_ability_is_oshi_or_color", "condition_color": "blue" }
-
-"skill_id": "shootingstar",
-{ "condition": "damage_ability_is_color", "condition_color": "blue" }
-{ "condition": "damaged_holomem_is_center_or_collab" },
-"choice_populate_amount_x": "equal_to_last_damage",
-
-008
-"skill_id": "prayingforrain",
-"effect_type": "send_cheer", amount min/max different for multi_to, from archive, tag_in to limitation
-
-rainshamanism
-"timing": "on_archive_cheer",
-"timing_source_requirement": "holomem_ability_color_blue",
-dealdamage "target": "holomem",
-
-
-
 Todo:
-
+☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
 
 Revisit:
     - What happens when the cheer deck runs out.
@@ -38,12 +9,6 @@ Revisit:
     ☐ Stone axe (114)
         - KO Self what happens?
         - Do you get the draw even if you heal 0?
-
-Skipped cards:
-    hbp:
-        11,15,17,18,25,28,29,34,39,40,78
-    do_on_suisei_oshi:
-        77
 
 One time Bug:
     ☐ Can't bloom 59 onto 58 with 3 stacked - 57, 59, 58

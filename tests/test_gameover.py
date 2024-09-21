@@ -48,7 +48,7 @@ class TestGameOver(unittest.TestCase):
         })
         events = self.engine.grab_events()
         # Events - performance, damage dealt, gameover
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": performer["game_card_id"],
             "art_id": "nunnun",
@@ -58,14 +58,17 @@ class TestGameOver(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target["game_card_id"],
             "damage": 30,
-            "died": True,
-            "game_over": True,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target["game_card_id"],
+            "game_over": True,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[4], EventType.EventType_GameOver, self.player1, {
+        validate_event(self, events[6], EventType.EventType_GameOver, self.player1, {
             "loser_id": self.player2,
             "reason_id": GameOverReason.GameOverReason_NoHolomemsLeft,
         })
@@ -101,7 +104,7 @@ class TestGameOver(unittest.TestCase):
         })
         events = self.engine.grab_events()
         # Events - performance, dealt damage gameover
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": performer["game_card_id"],
             "art_id": "nunnun",
@@ -111,14 +114,17 @@ class TestGameOver(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target["game_card_id"],
             "damage": 30,
-            "died": True,
-            "game_over": True,
             "target_player": self.player2,
             "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target["game_card_id"],
+            "game_over": True,
+            "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[4], EventType.EventType_GameOver, self.player1, {
+        validate_event(self, events[6], EventType.EventType_GameOver, self.player1, {
             "loser_id": self.player2,
             "reason_id": GameOverReason.GameOverReason_NoLifeLeft,
         })
