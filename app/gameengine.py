@@ -595,7 +595,7 @@ class PlayerState:
         effects = self.get_effects_at_timing("check_hp", card, "")
         bonus_hp = 0
         for effect in effects:
-            if self.engine.are_conditions_met(self, effect["source_card_id"], effect["conditions"]):
+            if self.engine.are_conditions_met(self, effect["source_card_id"], effect.get("conditions", [])):
                 match effect["effect_type"]:
                     case EffectType.EffectType_BonusHp:
                         bonus_hp += effect["amount"]
@@ -3440,8 +3440,8 @@ class GameEngine:
                                 case "color_in":
                                     from_options = [card for card in holomem["attached_cheer"] \
                                         if any(color in card["colors"] for color in from_limitation_colors)]
-                                case _:
-                                    from_options = holomem["attached_cheer"]
+                        else:
+                            from_options = holomem["attached_cheer"]
                         from_options = ids_from_cards(from_options)
                     case "holomem":
                         holomem_options = effect_player.get_holomem_on_stage()

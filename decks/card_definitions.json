@@ -1112,7 +1112,7 @@
     {
         "card_id": "hBP01-005",
         "card_type": "oshi",
-        "oshi_name": "takanelui",
+        "oshi_name": "takane_lui",
         "colors": ["red"],
         "rarity": "osr",
         "life": 5,
@@ -1175,7 +1175,7 @@
     {
         "card_id": "hBP01-006",
         "card_type": "oshi",
-        "oshi_name": "takanashikiara",
+        "oshi_name": "takanashi_kiara",
         "colors": ["red"],
         "rarity": "osr",
         "life": 5,
