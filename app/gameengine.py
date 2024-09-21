@@ -468,7 +468,7 @@ class PlayerState:
 
         check_cheer_effects = self.get_effects_at_timing("check_cheer", card, "")
         for effect in check_cheer_effects:
-            if check_cheer_effects and self.engine.are_conditions_met(self, card["game_card_id"], effect["conditions"]):
+            if check_cheer_effects and self.engine.are_conditions_met(self, card["game_card_id"], effect.get("conditions", [])):
                 match effect["effect_type"]:
                     case "bonus_cheer":
                         amount = effect["amount"]
@@ -524,15 +524,19 @@ class PlayerState:
         if total_cheer_left < any_cost:
             return False
 
+        passed_requirement = False
         if "art_requirement" in art:
             match art["art_requirement"]:
                 case "has_attached":
                     required_definition_id = art["art_requirement_attached_id"]
                     for attached in card["attached_support"]:
                         if attached["card_id"] == required_definition_id:
-                            return True
+                            passed_requirement = True
+                            break
+        else:
+            passed_requirement = True
 
-        return True
+        return passed_requirement
 
     def can_archive_from_hand(self, amount, condition_source):
         return self.get_can_archive_from_hand_count(condition_source) >= amount
@@ -2850,6 +2854,8 @@ class GameEngine:
                         targets_allowed = len(target_cards)
                     else:
                         targets_allowed = multiple_targets
+                if targets_allowed > len(target_cards):
+                    targets_allowed = len(target_cards)
 
                 # Filter out any target cards that already have damage over their hp.
                 target_cards = [card for card in target_cards if card["damage"] < target_player.get_card_hp(card)]
@@ -3368,13 +3374,12 @@ class GameEngine:
                 # However process any after die roll effects first.
                 rolldie_resolution_effect = deepcopy(effect)
                 rolldie_resolution_effect["effect_type"] = EffectType.EffectType_RollDie_Internal_Resolution
-                self.add_effects_to_front([effect])
+                self.add_effects_to_front([rolldie_resolution_effect])
 
                 # Check for after die roll effects.
                 source_card, _, _ = effect_player.find_card(effect["source_card_id"])
                 after_die_roll_effects = effect_player.get_effects_at_timing("after_die_roll", source_card, effect["source"])
-                self.begin_resolving_effects(after_die_roll_effects, lambda :
-                    self.continue_resolving_effects)
+                self.begin_resolving_effects(after_die_roll_effects, self.continue_resolving_effects)
                 passed_on_continuation = True
             case EffectType.EffectType_RollDie_Internal_Resolution:
                 die_effects = effect["die_effects"]
