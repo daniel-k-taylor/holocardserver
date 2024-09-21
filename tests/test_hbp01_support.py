@@ -413,6 +413,90 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(len(player2.center), 0)
 
 
+
+    def test_hbp01_116_upao_onlyworksforattachedmember(self):
+        p1deck = generate_deck_with([], {"hBP01-010": 2, "hBP01-116": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """TEST"""
+        p1center = player1.center[0]
+        p1collab = put_card_in_play(self, player1, "hBP01-010", player1.collab)
+        test_card = add_card_to_hand(self, player1, "hBP01-116")
+        actions = reset_mainstep(self)
+        self.assertTrue(GameAction.MainStepPlaySupport in [action["action_type"] for action in actions])
+
+        # Play it onto the kanata.
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        # Events - play support, choose holomem
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": False,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "effect_player_id": self.player1,
+        })
+
+        # Pick the p1collab.
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [p1collab["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - move card attachment, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "holomem",
+            "card_id": test_card['game_card_id'],
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, {
+            "active_player": self.player1,
+        })
+        self.assertEqual(p1collab["attached_support"][0]["game_card_id"], test_card["game_card_id"])
+
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])
+
+        # Now player 2 attacks the center not the kanata.
+        engine.handle_game_message(self.player2, GameAction.MainStepBeginPerformance, {})
+        events = engine.grab_events()
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p1center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - perform, damage, end turn, start turn, 2 resets, draw, cheer
+        self.assertEqual(len(events), 16)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player2.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p1center["game_card_id"],
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p1center["game_card_id"],
+            "damage": 30,
+            "target_player": self.player1,
+            "special": False,
+        })
+
+        # Player 1 turn
+        do_cheer_step_on_card(self, player1.center[0])
+        actions = reset_mainstep(self)
+
     def test_hbp01_103_oshi_matches_color(self):
         p1deck = generate_deck_with([], {"hBP01-103": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)

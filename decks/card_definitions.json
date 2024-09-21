@@ -3931,8 +3931,8 @@
         "arts": [
             {
                 "art_id": "sharedconciousness",
-                "target_condition": "has_attached",
-                "target_condition_attached_id": "hBP01-126",
+                "art_requirement": "has_attached",
+                "art_requirement_attached_id": "hBP01-126",
                 "costs": [
                     { "color": "red", "amount": 1 },
                     { "color": "any", "amount": 1 }
@@ -4613,15 +4613,18 @@
         ],
         "bloom_effects": [
             {
-                "conditions": [{ "condition": "tag_has_cheer", "condition_tags": ["#ID"] }],
+                "conditions": [{ "condition": "any_tag_holomem_has_cheer", "condition_tags": ["#ID"] }],
                 "effect_type": "choice",
                 "choice": [
                     {
-                        "effect_type": "archive_cheer_from_holomem",
+                        "effect_type": "send_cheer",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "from": "holomem",
+                        "from_limitation": "tag_in",
+                        "from_limitation_tags": ["#ID"],
+                        "to": "archive",
                         "ability_source": "holomem_blue",
-                        "from": "holomem_with_tag",
-                        "required_tags": ["#ID"],
-                        "amount": 1,
                         "and": [
                             {
                                 "effect_type": "deal_damage",
@@ -4668,7 +4671,7 @@
                     },
                     {
                         "timing": "before_art",
-                        "conditions": [{"condition": "self_has_cheer_color", "condition_colors": [], "amount_min": 1}],
+                        "conditions": [{"condition": "self_has_cheer_color", "condition_colors": ["any"], "amount_min": 1}],
                         "effect_type": "choice",
                         "choice": [
                             {

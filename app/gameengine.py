@@ -41,6 +41,7 @@ class EffectType:
     EffectType_Choice = "choice"
     EffectType_ChooseCards = "choose_cards"
     EffectType_DealDamage = "deal_damage"
+    EffectType_DealDamage_Internal = "deal_damage_INTERNAL"
     EffectType_DownHolomem = "down_holomem"
     EffectType_Draw = "draw"
     EffectType_ForceDieResult = "force_die_result"
@@ -53,6 +54,7 @@ class EffectType:
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
     EffectType_PlaceHolomem = "place_holomem"
     EffectType_PowerBoost = "power_boost"
+    EffectType_PowerBoostPerAllFans = "power_boost_per_all_fans"
     EffectType_PowerBoostPerArchivedHolomem = "power_boost_per_archived_holomem"
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
@@ -79,6 +81,7 @@ class EffectType:
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
 
 class Condition:
+    Condition_AnyTagHolomemHasCheer = "any_tag_holomem_has_cheer"
     Condition_AttachedTo = "attached_to"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
@@ -1096,6 +1099,14 @@ def art_requirement_met(card, art):
     if total_cheer_left < any_cost:
         return False
 
+    if "art_requirement" in art:
+        match art["art_requirement"]:
+            case "has_attached":
+                required_definition_id = art["art_requirement_attached_id"]
+                for attached in card["attached_support"]:
+                    if attached["card_id"] == required_definition_id:
+                        return True
+
     return True
 
 def attach_card(attaching_card, target_card):
@@ -1730,6 +1741,7 @@ class GameEngine:
                             case "center_only":
                                 valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
 
+
                     if len(valid_targets) > 0:
                         available_actions.append({
                             "action_type": GameAction.PerformanceStepUseArt,
@@ -2057,6 +2069,13 @@ class GameEngine:
 
     def is_condition_met(self, effect_player: PlayerState, source_card_id, condition):
         match condition["condition"]:
+            case Condition.Condition_AnyTagHolomemHasCheer:
+                valid_tags = condition["condition_tags"]
+                for card in effect_player.get_holomem_on_stage():
+                    for tag in card["tags"]:
+                        if tag in valid_tags and len(card["attached_cheer"]) > 0:
+                            return True
+                return False
             case Condition.Condition_AttachedTo:
                 required_member_name = condition["required_member_name"]
                 required_bloom_levels = condition.get("required_bloom_levels", [])
@@ -2222,7 +2241,7 @@ class GameEngine:
                 if source_card:
                     cheer_of_matched_colors = 0
                     for cheer in source_card["attached_cheer"]:
-                        if any(color in cheer["colors"] for color in condition_colors):
+                        if "any" in condition_colors or any(color in cheer["colors"] for color in condition_colors):
                             cheer_of_matched_colors += 1
                     return amount_min <= cheer_of_matched_colors
                 return False
@@ -2596,6 +2615,8 @@ class GameEngine:
                 cards_can_choose = cards_to_choose_from
                 if requirement:
                     match requirement:
+                        case "buzz":
+                            cards_can_choose = [card for card in cards_can_choose if "buzz" in card and card["buzz"]]
                         case "color_in":
                             requirement_colors = effect.get("requirement_colors", [])
                             cards_can_choose = [card for card in cards_can_choose if any(color in card["colors"] for color in requirement_colors)]
@@ -2702,6 +2723,7 @@ class GameEngine:
                 opponent = effect.get("opponent", False)
                 amount = effect["amount"]
                 prevent_life_loss = effect.get("prevent_life_loss", False)
+                multiple_targets = effect.get("multiple_targets", None)
                 source_player = self.get_player(effect_player_id)
                 target_player = effect_player
                 if opponent:
@@ -2716,6 +2738,10 @@ class GameEngine:
                             if attachment["game_card_id"] == effect["source_card_id"]:
                                 source_holomem_card = holomem
                                 break
+                match str(amount):
+                    case "total_damage_on_backstage":
+                        amount = sum(card["damage"] for card in target_player.backstage)
+
                 target_cards = []
                 match target:
                     case "backstage":
@@ -2733,13 +2759,29 @@ class GameEngine:
                     case _:
                         raise NotImplementedError("Only center is supported for now.")
 
+                targets_allowed = 1
+                if multiple_targets:
+                    if str(multiple_targets) == "all":
+                        targets_allowed = len(target_cards)
+                    else:
+                        targets_allowed = multiple_targets
+
                 # Filter out any target cards that already have damage over their hp.
                 target_cards = [card for card in target_cards if card["damage"] < card["hp"]]
                 if len(target_cards) == 0:
                     pass
-                elif len(target_cards) == 1:
-                    self.deal_damage(source_player, target_player, source_holomem_card, target_cards[0], amount, special, prevent_life_loss, [], self.continue_resolving_effects)
-                    passed_on_continuation = True
+                elif len(target_cards) == targets_allowed:
+                    target_cards.reverse()
+                    for i in range(targets_allowed):
+                        self.add_deal_damage_internal_effect(
+                            source_player,
+                            target_player,
+                            source_holomem_card,
+                            target_cards[i],
+                            amount,
+                            special,
+                            prevent_life_loss
+                        )
                 else:
                     # Player gets to choose.
                     # Choose holomem for effect.
@@ -2757,14 +2799,24 @@ class GameEngine:
                         "decision_player": effect_player_id,
                         "all_card_seen": target_options,
                         "cards_can_choose": target_options,
-                        "amount_min": 1,
-                        "amount_max": 1,
+                        "amount_min": targets_allowed,
+                        "amount_max": targets_allowed,
                         "effect_resolution": self.handle_deal_damage_to_holomem,
                         "effect": effect,
                         "source_card": source_holomem_card,
                         "target_player": target_player,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_DealDamage_Internal:
+                source_player = effect["source_player"]
+                target_player = effect["target_player"]
+                source_holomem_card = effect["source_holomem_card"]
+                target_card = effect["target_card"]
+                amount = effect["amount"]
+                special = effect["special"]
+                prevent_life_loss = effect["prevent_life_loss"]
+                self.deal_damage(source_player, target_player, source_holomem_card, target_card, amount, special, prevent_life_loss, [], self.continue_resolving_effects)
+                passed_on_continuation = True
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
                 required_damage = effect["required_damage"]
@@ -2986,6 +3038,17 @@ class GameEngine:
                 amount *= multiplier
                 self.performance_artstatboosts.power += amount
                 self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+            case EffectType.EffectType_PowerBoostPerAllFans:
+                per_amount = effect["amount"]
+                holomems = effect_player.get_holomem_on_stage()
+                fan_count = 0
+                for holomem in holomems:
+                    for attached in holomem["attached_support"]:
+                        if is_card_fan(attached):
+                            fan_count += 1
+                total = per_amount * fan_count
+                self.performance_artstatboosts.power += total
+                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
@@ -3218,6 +3281,7 @@ class GameEngine:
                 # Optional
                 from_limitation = effect.get("from_limitation", "")
                 from_limitation_colors = effect.get("from_limitation_colors", [])
+                from_limitation_tags = effect.get("from_limitation_tags", [])
                 to_limitation = effect.get("to_limitation", "")
                 to_limitation_colors = effect.get("to_limitation_colors", [])
                 to_limitation_tags = effect.get("to_limitation_tags", [])
@@ -3259,7 +3323,15 @@ class GameEngine:
                                     from_options = holomem["attached_cheer"]
                         from_options = ids_from_cards(from_options)
                     case "holomem":
-                        from_options = effect_player.get_cheer_ids_on_holomems()
+                        holomem_options = effect_player.get_holomem_on_stage()
+                        if from_limitation:
+                            match from_limitation:
+                                case "tag_in":
+                                    holomem_options = [card for card in holomem_options if any(tag in card["tags"] for tag in from_limitation_tags)]
+                        for holomem in holomem_options:
+                            for cheer in holomem["attached_cheer"]:
+                                from_options.append(cheer)
+                        from_options = ids_from_cards(from_options)
                     case "opponent_holomem":
                         opponent = self.other_player(effect_player_id)
                         holomem_options = opponent.get_holomem_on_stage()
@@ -3283,6 +3355,16 @@ class GameEngine:
                 match to_zone:
                     case "archive":
                         to_options = ["archive"]
+                        # Add the after archive effect unless we're moving opponent cheer.
+                        if from_zone != "opponent_holomem":
+                            after_archive_check_effect = {
+                                "player_id": effect_player_id,
+                                "effect_type": EffectType.EffectType_AfterArchiveCheerCheck,
+                                "effect_player_id": effect_player_id,
+                                "previous_archive_count": len(effect_player.archive),
+                                "ability_source": effect.get("ability_source", ""),
+                            }
+                            self.add_effects_to_front([after_archive_check_effect])
                     case "holomem":
                         if to_limitation:
                             match to_limitation:
@@ -3318,9 +3400,6 @@ class GameEngine:
                 if str(amount_max) == "all":
                     amount_max = len(from_options)
 
-                if from_zone == "downed_holomem":
-                    # Can't give it to the dead holomem.
-                    to_options.remove(self.down_holomem_state.holomem_card["game_card_id"])
                 if remove_from_to_options:
                     for card_id in remove_from_to_options:
                         to_options.remove(card_id)
@@ -3470,6 +3549,23 @@ class GameEngine:
 
     def add_effects_to_front(self, new_effects):
         self.effect_resolution_state.effects_to_resolve = new_effects + self.effect_resolution_state.effects_to_resolve
+
+    def add_deal_damage_internal_effect(self, source_player : PlayerState, target_player : PlayerState, source_holomem_card, target_card, amount, special, prevent_life_loss):
+        effects = [{
+            "effect_type": EffectType.EffectType_DealDamage_Internal,
+            "source_player": source_player,
+            "target_player": target_player,
+            "source_holomem_card": source_holomem_card,
+            "target_card": target_card,
+            "amount": amount,
+            "special": special,
+            "prevent_life_loss": prevent_life_loss,
+        }]
+        source_id = "oshi"
+        if "game_card_id" in source_holomem_card:
+            source_id = source_holomem_card["game_card_id"]
+        add_ids_to_effects(effects, source_player.player_id, source_id)
+        self.add_effects_to_front(effects)
 
     def send_choice_to_player(self, effect_player_id, choice):
         min_choice = 0
@@ -4274,10 +4370,19 @@ class GameEngine:
         source_player = self.get_player(performing_player_id)
         source_card = decision_info_copy["source_card"]
         target_player = decision_info_copy["target_player"]
-        target_card, _, _ = target_player.find_card(card_ids[0])
-        self.deal_damage(source_player, target_player, source_card, target_card, effect["amount"], \
-            effect.get("special", False), effect.get("prevent_life_loss", False), [], continuation
-        )
+        card_ids.reverse()
+        for card_id in card_ids:
+            target_card, _, _ = target_player.find_card(card_id)
+            self.add_deal_damage_internal_effect(
+                source_player,
+                target_player,
+                source_card,
+                target_card,
+                effect["amount"],
+                effect.get("special", False),
+                effect.get("prevent_life_loss", False)
+            )
+        continuation()
 
     def handle_down_holomem(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
         effect = decision_info_copy["effect"]
