@@ -1852,7 +1852,10 @@ class GameEngine:
         }
         self.broadcast_event(damage_event)
 
-        after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
+        if damage > 0:
+            after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
+        else:
+            after_deal_damage_effects = []
         nested_state = None
         if self.after_damage_state:
             nested_state = self.after_damage_state
@@ -1965,6 +1968,7 @@ class GameEngine:
                 "from_options": life_to_distribute,
                 "to_options": remaining_holomems,
                 "cheer_on_each_mem": cheer_on_each_mem,
+                "multi_to": True,
             }
             self.broadcast_event(decision_event)
             self.set_decision({
@@ -1975,6 +1979,7 @@ class GameEngine:
                 "available_cheer": life_to_distribute,
                 "available_targets": remaining_holomems,
                 "continuation": continuation,
+                "multi_to": True,
             })
         else:
             continuation()
@@ -2501,6 +2506,7 @@ class GameEngine:
                         "to_zone": "holomem",
                         "amount_min": 0,
                         "amount_max": 1,
+                        "special_reason": "bloom_debut_played_this_turn",
                         "reveal_chosen": True,
                         "remaining_cards_action": "nothing",
                     }
@@ -4316,8 +4322,8 @@ class GameEngine:
         self.set_decision({
             "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
             "decision_player": performing_player_id,
-            "all_card_seen": valid_targets,
-            "cards_can_choose": valid_targets,
+            "all_card_seen": ids_from_cards(valid_targets),
+            "cards_can_choose": ids_from_cards(valid_targets),
             "amount_min": 0,
             "amount_max": 1,
             "bloom_card_id": card_ids[0],

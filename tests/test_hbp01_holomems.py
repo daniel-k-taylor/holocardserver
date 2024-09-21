@@ -4091,6 +4091,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": p2center["game_card_id"],
         })
         events = engine.grab_events()
+        # Choice to use ability, do it.
+        events = pick_choice(self, self.player1, 0)
         # Events - before archive cheer
         validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
             "from_zone": "holomem",

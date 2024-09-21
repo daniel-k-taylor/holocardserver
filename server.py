@@ -74,7 +74,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 await send_error_message(websocket, "invalid_message", f"ERROR: Invalid JSON: {data}")
                 continue
 
-            logger.info(f"MESSAGE: {message.message_type}")
             if isinstance(message, message_types.JoinServerMessage):
                 await broadcast_server_info()
 

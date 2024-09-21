@@ -1,18 +1,3 @@
-Extra ui tests:
-    ☐ 92 send cheer from self
-    ☐ 95 both effects
-    ☐ limit_one_per_member
-
-✔ 92 @started(24-09-19 19:00) @done(24-09-19 22:28) @lasted(3h28m58s)
-✔ "effect_type": "send_cheer", from self @started(24-09-19 19:00) @done(24-09-19 22:28) @lasted(3h28m58s)
-✔ 94 @started(24-09-19 19:09) @done(24-09-19 22:46) @lasted(3h37m19s)
-✔ choosecards "from_limitation": "color_in_tagged_holomems", @started(24-09-19 19:09) @done(24-09-19 22:46) @lasted(3h37m19s)
-✔ "from_limitation_tags" @started(24-09-19 19:09) @done(24-09-19 22:46) @lasted(3h37m19s)
-✔ 95 @started(24-09-19 20:22) @done(24-09-19 23:23) @lasted(3h1m14s)
-✔ "effect_type": "bloom_played_this_turn_debut_to_1st", @started(24-09-19 19:53) @done(24-09-19 23:23) @lasted(3h30m14s)
-✔ effect_type": "return_holomem_to_debut", @started(24-09-19 20:22) @done(24-09-19 23:23) @lasted(3h1m14s)
-
-
 
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
