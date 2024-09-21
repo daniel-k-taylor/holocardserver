@@ -497,6 +497,99 @@ class Test_hbp01_Support(unittest.TestCase):
         do_cheer_step_on_card(self, player1.center[0])
         actions = reset_mainstep(self)
 
+
+    def test_support_hBP01_113(self):
+        p1deck = generate_deck_with([], {"hBP01-113": 3, "hBP01-092": 2, "hBP01-028": 2,}, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        play1 = add_card_to_hand(self, player1, "hBP01-113")
+        expect1 = add_card_to_hand(self, player1, "hBP01-092")
+        expect2 = add_card_to_hand(self, player1, "hBP01-028")
+        junk1 = add_card_to_hand(self, player1, "hBP01-113")
+        junk2 = add_card_to_hand(self, player1, "hBP01-113")
+
+        player1.deck.insert(0, junk1)
+        player1.deck.insert(0, junk2)
+        player1.deck.insert(0, expect1)
+        player1.deck.insert(0, expect2)
+        player1.hand = [play1]
+
+        actions = reset_mainstep(self)
+
+        # Play the card.
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": play1["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 4)
+        # Events - play card, choose #Promise tagged
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": play1["game_card_id"],
+            "limited": True,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "amount_min": 0,
+            "amount_max": 2,
+            "reveal_chosen": True,
+            "remaining_cards_action": "order_on_bottom",
+        })
+        available_to_choose = events[2]["cards_can_choose"]
+        all_cards_seen = events[2]["all_card_seen"]
+        self.assertEqual(len(available_to_choose), 2) # Kronii and irys
+        self.assertEqual(len(all_cards_seen), 4)
+
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+              "card_ids": available_to_choose
+        })
+        events = self.engine.grab_events()
+        # Draw those 2
+        self.assertEqual(len(events), 6)
+        # Even player 2 can see.
+        validate_event(self, events[1], EventType.EventType_MoveCard, self.player2, {
+            "moving_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "card_id": available_to_choose[0],
+        })
+        validate_event(self, events[3], EventType.EventType_MoveCard, self.player2, {
+            "moving_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "card_id": available_to_choose[1],
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_OrderCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "deck",
+            "bottom": True,
+        })
+        cards_in_order = events[4]["card_ids"]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_OrderCards, {
+              "card_ids": cards_in_order
+        })
+        events = self.engine.grab_events()
+        # Events - 2 move cards, discard support, main step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "archive",
+            "card_id": play1["game_card_id"],
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_MainStep, self.player1, {"active_player": self.player1})
+
     def test_hbp01_103_oshi_matches_color(self):
         p1deck = generate_deck_with([], {"hBP01-103": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)

@@ -2557,7 +2557,9 @@ class GameEngine:
                         "card_id": source_card_id,
                         "card_ids": [], # Filled in by the decision.
                         "to_limitation": to_limitation,
-                        "to_limitation_colors": to_limitation_colors
+                        "to_limitation_colors": to_limitation_colors,
+                        "to_limitation_tags": to_limitation_tags,
+                        "to_limitation_name": to_limitation_name,
                     }
                     add_ids_to_effects([attach_effect], effect_player.player_id, source_card_id)
                     decision_event = {
