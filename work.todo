@@ -1,3 +1,68 @@
+70
+"target_condition": "has_attached",
+"target_condition_attached_id": "",
+
+71
+"effect_type": "power_boost_per_all_fans",
+
+85
+"multiple_targets": 3
+
+86
+"multiple_targets": "all"
+"conditions": [{ "condition": "tag_has_cheer", "condition_tags": ["#ID"] }],
+"from": "holomem_with_tag", "required_tags": ["#ID"],
+87
+"conditions": [{"condition": "self_has_cheer_color", "condition_colors": [], "amount_min": 1}],
+archive cheer no required color
+"amount": "total_damage_on_backstage",
+96
+choose cards "requirement": "buzz",
+117
+"effect_type": "archive_this_attachment", to reduce damage
+118
+"timing": "check_hp",
+"effect_type": "bonus_hp",
+"amount": 10
+119
+before art - restore hp to any mem
+120
+
+121
+"conditions": [{"condition": "attached_owner_is_location", "condition_location": "center_or_collab" }],
+"timing": "on_bloom_level_up",
+122
+"effect_type": "send_cheer",
+"amount_min": 1,
+"amount_max": 1,
+"from": "cheer_deck",
+"to": "holomem",
+"to_limitation": "specific_member_name",
+"to_limitation_name": "aki_rosenthal"
+123
+"timing": "after_die_roll",
+"timing_source_requirement": "owner_holomem_ability",
+"effect_type": "reroll_die"
+"effect_type": "archive_this_attachment",
+124
+send 1 cheer "from": "downed_holomem",
+125
+write test for playing fan as last support card
+126
+"effect_type": "attach_card_to_holomem",
+"to_limitation": "specific_member_name",
+"to_limitation_name": "omaru_polka"
+
+"timing": "check_cheer",
+"effect_type": "bonus_cheer",
+"amount": 1,
+"color": "red"
+
+"timing": "on_take_damage",
+"effect_type": "add_damage",
+"amount": 10
+
+test - make sure upao doesn't work if upao holder isn't the target
 
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state

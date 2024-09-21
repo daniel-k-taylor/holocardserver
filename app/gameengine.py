@@ -1117,6 +1117,9 @@ def is_card_event(card):
 def is_card_tool(card):
     return "sub_type" in card and card["sub_type"] == "tool"
 
+def is_card_fan(card):
+    return "sub_type" in card and card["sub_type"] == "fan"
+
 def is_card_item(card):
     return "sub_type" in card and card["sub_type"] == "item"
 
@@ -2616,6 +2619,9 @@ class GameEngine:
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
+                        case "fan":
+                            # Only include cards that are fans.
+                            cards_can_choose = [card for card in cards_can_choose if is_card_fan(card)]
                         case "item":
                             # Only include cards that are items.
                             cards_can_choose = [card for card in cards_can_choose if is_card_item(card)]
@@ -3300,6 +3306,10 @@ class GameEngine:
                             to_options = effect_player.get_holomem_on_stage()
                         if to_limitation_exclude_name:
                             to_options = [card for card in to_options if to_limitation_exclude_name not in card["holomem_names"]]
+
+                        # Remove any to_options where the holomem is downed.
+                        if self.down_holomem_state:
+                            to_options = [card for card in to_options if card["game_card_id"] != self.down_holomem_state.holomem_card["game_card_id"]]
                         to_options = ids_from_cards(to_options)
                     case "this_holomem":
                         to_options = [effect["source_card_id"]]
