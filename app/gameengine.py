@@ -1102,7 +1102,6 @@ class PlayerState:
 
         to_archive = attached_cheer + attached_support
         to_hand = [returning_card] # Make sure to grab the actual card itself.
-        self.hand.append(returning_card)
 
         if include_stacked_holomem:
             to_hand += stacked_cards
@@ -1115,6 +1114,10 @@ class PlayerState:
             self.hand.append(card)
         archived_ids = ids_from_cards(to_archive)
         hand_ids = ids_from_cards(to_hand)
+
+        returning_card["attached_cheer"] = []
+        returning_card["attached_support"] = []
+        returning_card["stacked_cards"] = []
 
         return archived_ids, hand_ids
 
@@ -2023,7 +2026,7 @@ class GameEngine:
             self.process_downed_holomem(target_player, target_card, prevent_life_loss, continuation)
         )
 
-    def process_downed_holomem(self, target_player, target_card, prevent_life_loss, continuation):
+    def process_downed_holomem(self, target_player : PlayerState, target_card, prevent_life_loss, continuation):
         self.down_holomem_state = self.down_holomem_state.nested_state
         game_over = False
         game_over_reason = ""

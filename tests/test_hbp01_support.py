@@ -1724,6 +1724,147 @@ class Test_hbp01_Support(unittest.TestCase):
         reset_mainstep(self)
 
 
+    def test_hbp01_121_kotori_doesntworkonother(self):
+        p1deck = generate_deck_with([], {"hBP01-121": 2, "hBP01-062": 2, "hBP01-064": 2, "hBP01-067": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.collab = player1.center
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-062", player1.center)
+        test_card = put_card_in_play(self, player1, "hBP01-121", p1center["attached_support"])
+
+        # Start with debut with kotori, bloom and check card draw.
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])
+        player2.collab = [player2.backstage[0]]
+        player2.backstage = player2.backstage[1:]
+        spawn_cheer_on_card(self, player2, player2.collab[0]["game_card_id"], "green", "g1")
+        spawn_cheer_on_card(self, player2, player2.collab[0]["game_card_id"], "white", "w1")
+        reset_mainstep(self)
+        begin_performance(self)
+
+        # Attack p1's collab, which should not get damage reduction.
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": player1.collab[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - perform, damage, performance step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "nunnun",
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 30,
+            "special": False
+        })
+        reset_performancestep(self)
+
+        # But it does work for the center.
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.collab[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p1center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - reduce damage, perform, damage, end turn etc
+        self.assertEqual(len(events), 18)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "nunnun",
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "stat": "damage_prevented",
+            "amount": 10,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 20,
+            "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
+        do_cheer_step_on_card(self, player1.center[0])
+        reset_mainstep(self)
+
+
+    def test_hbp01_121_kotori_doesntworkonother_swappositions(self):
+        p1deck = generate_deck_with([], {"hBP01-121": 2, "hBP01-062": 2, "hBP01-064": 2, "hBP01-067": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        p1collab = put_card_in_play(self, player1, "hBP01-062", player1.collab)
+        p1center = player1.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-121", p1collab["attached_support"])
+
+        # Start with debut with kotori, bloom and check card draw.
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])
+        player2.collab = [player2.backstage[0]]
+        player2.backstage = player2.backstage[1:]
+        spawn_cheer_on_card(self, player2, player2.collab[0]["game_card_id"], "green", "g1")
+        spawn_cheer_on_card(self, player2, player2.collab[0]["game_card_id"], "white", "w1")
+        reset_mainstep(self)
+        begin_performance(self)
+
+        # Attack p1's collab, which should not get damage reduction.
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p1center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - perform, damage, performance step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "nunnun",
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 30,
+            "special": False
+        })
+        reset_performancestep(self)
+
+        # But it does work for the center.
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.collab[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p1collab["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - reduce damage, perform, damage, end turn etc
+        self.assertEqual(len(events), 18)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "nunnun",
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "stat": "damage_prevented",
+            "amount": 10,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 20,
+            "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
+        do_cheer_step_on_card(self, player1.center[0])
+        reset_mainstep(self)
 
     def test_hbp01_122_rosetai_ondown_send_aki_cheer(self):
         p1deck = generate_deck_with([], {"hBP01-122": 2, "hBP01-032": 3 }, [])
