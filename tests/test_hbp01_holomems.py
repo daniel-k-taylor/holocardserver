@@ -4431,6 +4431,8 @@ class Test_hbp01_holomems(unittest.TestCase):
         # Events - deal damage choose cards
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "amount_min": 3,
+            "amount_max": 3,
         })
         cards_can_choose = events[0]["cards_can_choose"]
         self.assertListEqual(cards_can_choose, ids_from_cards(player2.backstage))

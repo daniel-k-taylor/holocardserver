@@ -2941,6 +2941,8 @@ class GameEngine:
                         "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
                         "effect_player_id": effect_player_id,
                         "cards_can_choose": target_options,
+                        "amount_min": targets_allowed,
+                        "amount_max": targets_allowed,
                         "effect": effect,
                     }
                     self.broadcast_event(decision_event)

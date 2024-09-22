@@ -178,11 +178,16 @@ class AIPlayer:
             # Skip events that aren't meant for me to act.
             return False, None, None
 
-        cards_can_choose = event["cards_can_choose"]
-        random_value = random.randint(0, len(cards_can_choose) - 1)
+        cards_can_choose : list = event["cards_can_choose"]
+        amount_min = event.get("amount_min", 1)
+        amount_max = event.get("amount_max", 1)
+        chosen_cards = []
+        for i in range(amount_max):
+            random_value = random.randint(0, len(cards_can_choose) - 1)
+            chosen_cards.append(cards_can_choose.pop(random_value))
 
         return True, event["desired_response"], {
-            "card_ids": [cards_can_choose[random_value]]
+            "card_ids": chosen_cards
         }
 
     def _handle_main_step(self, event):
