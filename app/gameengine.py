@@ -2,6 +2,7 @@ from typing import List, Dict, Any
 from app.card_database import CardDatabase
 import random
 from copy import deepcopy
+import traceback
 import logging
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class EffectType:
     EffectType_GenerateChoiceTemplate = "generate_choice_template"
     EffectType_GenerateHolopower = "generate_holopower"
     EffectType_OshiActivation = "oshi_activation"
+    EffectType_ModifyNextLifeLoss = "modify_next_life_loss"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
     EffectType_OrderCards = "order_cards"
     EffectType_Pass = "pass"
@@ -188,12 +190,10 @@ class GameOverReason:
 class ArtStatBoosts:
     def __init__(self):
         self.power = 0
-        self.bonus_life_loss = 0
         self.repeat_art = False
 
     def clear(self):
         self.power = 0
-        self.bonus_life_loss = 0
         self.repeat_art = False
 
 class DamageModifications:
@@ -1249,6 +1249,7 @@ class GameEngine:
         self.after_damage_state : AfterDamageState = None
         self.last_chosen_cards = []
         self.last_card_count = 0
+        self.next_life_loss_modifier = 0
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -2041,7 +2042,8 @@ class GameEngine:
         if "down_life_cost" in target_card:
             life_lost = target_card["down_life_cost"]
 
-        life_lost += self.performance_artstatboosts.bonus_life_loss
+        life_lost += self.next_life_loss_modifier
+        self.next_life_loss_modifier = 0
 
         if prevent_life_loss:
             life_lost = 0
@@ -2106,11 +2108,7 @@ class GameEngine:
     def begin_cleanup_art(self):
         # Check for any cleanup effects.
         performer_cleanup_effects = self.performance_performing_player.get_effects_at_timing("art_cleanup", self.performance_performer_card)
-        self.begin_resolving_effects(performer_cleanup_effects, self.begin_cleanup_art_target)
-
-    def begin_cleanup_art_target(self):
-        target_cleanup_effects = self.performance_target_player.get_effects_at_timing("art_cleanup", self.performance_target_card)
-        self.begin_resolving_effects(target_cleanup_effects, self.continue_performance_step)
+        self.begin_resolving_effects(performer_cleanup_effects, self.continue_performance_step)
 
     def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
         effect_continuation = continuation
@@ -3120,6 +3118,8 @@ class GameEngine:
                     "skill_id": skill_id,
                 }
                 self.broadcast_event(oshi_skill_event)
+            case EffectType.EffectType_ModifyNextLifeLoss:
+                self.next_life_loss_modifier += effect["amount"]
             case EffectType.EffectType_MoveCheerBetweenHolomems:
                 amount = effect["amount"]
                 to_limitation = effect.get("to_limitation", "")
@@ -3175,7 +3175,7 @@ class GameEngine:
                 pass
             case EffectType.EffectType_PerformanceLifeLostIncrease:
                 amount = effect["amount"]
-                self.performance_artstatboosts.bonus_life_loss += amount
+                self.next_life_loss_modifier += amount
             case EffectType.EffectType_PlaceHolomem:
                 card_id = effect["card_id"]
                 to_zone = effect["location"]
@@ -3846,49 +3846,53 @@ class GameEngine:
         return True
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
-        logger.info("Processing game message %s from player %s" % (action_type, player_id))
+        logger.info("Player(%s) Game Message: %s" % (player_id, action_type))
         handled = False
-        match action_type:
-            case GameAction.Mulligan:
-                handled = self.handle_mulligan(player_id, action_data)
-            case GameAction.InitialPlacement:
-                handled = self.handle_initial_placement(player_id, action_data)
-            case GameAction.ChooseNewCenter:
-                handled = self.handle_choose_new_center(player_id, action_data)
-            case GameAction.PlaceCheer:
-                handled = self.handle_place_cheer(player_id, action_data)
-            case GameAction.MainStepPlaceHolomem:
-                handled = self.handle_main_step_place_holomem(player_id, action_data)
-            case GameAction.MainStepBloom:
-                handled = self.handle_main_step_bloom(player_id, action_data)
-            case GameAction.MainStepCollab:
-                handled = self.handle_main_step_collab(player_id, action_data)
-            case GameAction.MainStepOshiSkill:
-                handled = self.handle_main_step_oshi_skill(player_id, action_data)
-            case GameAction.MainStepPlaySupport:
-                handled = self.handle_main_step_play_support(player_id, action_data)
-            case GameAction.MainStepBatonPass:
-                handled = self.handle_main_step_baton_pass(player_id, action_data)
-            case GameAction.MainStepBeginPerformance:
-                handled = self.handle_main_step_begin_performance(player_id, action_data)
-            case GameAction.MainStepEndTurn:
-                handled = self.handle_main_step_end_turn(player_id, action_data)
-            case GameAction.PerformanceStepUseArt:
-                handled = self.handle_performance_step_use_art(player_id, action_data)
-            case GameAction.PerformanceStepEndTurn:
-                handled = self.handle_performance_step_end_turn(player_id, action_data)
-            case GameAction.EffectResolution_MoveCheerBetweenHolomems:
-                handled = self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
-            case GameAction.EffectResolution_ChooseCardsForEffect:
-                handled = self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
-            case GameAction.EffectResolution_MakeChoice:
-                handled = self.handle_effect_resolution_make_choice(player_id, action_data)
-            case GameAction.EffectResolution_OrderCards:
-                handled = self.handle_effect_resolution_order_cards(player_id, action_data)
-            case GameAction.Resign:
-                handled = self.handle_player_resign(player_id)
-            case _:
-                self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
+        try:
+            match action_type:
+                case GameAction.Mulligan:
+                    handled = self.handle_mulligan(player_id, action_data)
+                case GameAction.InitialPlacement:
+                    handled = self.handle_initial_placement(player_id, action_data)
+                case GameAction.ChooseNewCenter:
+                    handled = self.handle_choose_new_center(player_id, action_data)
+                case GameAction.PlaceCheer:
+                    handled = self.handle_place_cheer(player_id, action_data)
+                case GameAction.MainStepPlaceHolomem:
+                    handled = self.handle_main_step_place_holomem(player_id, action_data)
+                case GameAction.MainStepBloom:
+                    handled = self.handle_main_step_bloom(player_id, action_data)
+                case GameAction.MainStepCollab:
+                    handled = self.handle_main_step_collab(player_id, action_data)
+                case GameAction.MainStepOshiSkill:
+                    handled = self.handle_main_step_oshi_skill(player_id, action_data)
+                case GameAction.MainStepPlaySupport:
+                    handled = self.handle_main_step_play_support(player_id, action_data)
+                case GameAction.MainStepBatonPass:
+                    handled = self.handle_main_step_baton_pass(player_id, action_data)
+                case GameAction.MainStepBeginPerformance:
+                    handled = self.handle_main_step_begin_performance(player_id, action_data)
+                case GameAction.MainStepEndTurn:
+                    handled = self.handle_main_step_end_turn(player_id, action_data)
+                case GameAction.PerformanceStepUseArt:
+                    handled = self.handle_performance_step_use_art(player_id, action_data)
+                case GameAction.PerformanceStepEndTurn:
+                    handled = self.handle_performance_step_end_turn(player_id, action_data)
+                case GameAction.EffectResolution_MoveCheerBetweenHolomems:
+                    handled = self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
+                case GameAction.EffectResolution_ChooseCardsForEffect:
+                    handled = self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
+                case GameAction.EffectResolution_MakeChoice:
+                    handled = self.handle_effect_resolution_make_choice(player_id, action_data)
+                case GameAction.EffectResolution_OrderCards:
+                    handled = self.handle_effect_resolution_order_cards(player_id, action_data)
+                case GameAction.Resign:
+                    handled = self.handle_player_resign(player_id)
+                case _:
+                    self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error processing game message {action_type} from player {player_id}: {e}\nCallstack:\n{error_details}")
         if not handled:
             # Put out a warning log line with the action that was sent.
             logger.warning(f"Action {action_type} was not handled: {action_data}.")

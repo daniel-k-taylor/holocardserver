@@ -67,7 +67,7 @@ class GameRoom:
             await self.send_events(events)
             if self.is_ai_game():
                 ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
-                logger.info("AI Action: %s %s" % (ai_performing_action, ai_action))
+                #logger.info("AI Action: %s %s" % (ai_performing_action, ai_action))
                 if ai_performing_action:
                     player_id = self.ai_player.player_id
                     action_type = ai_action["action_type"]

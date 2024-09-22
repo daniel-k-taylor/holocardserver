@@ -141,14 +141,14 @@ class Test_hbp01_006(unittest.TestCase):
         })
         events = pick_choice(self, self.player1, 0)
         # Events - 2 holopower, oshi, down, send cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 18)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
             "oshi_player_id": self.player1,
             "skill_id": "risefromtheashes",
         })
         validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": b3["game_card_id"],
-            "life_lost": 1
+            "life_lost": 0
         })
         archived_ids = events[6]["archived_ids"]
         hand_ids = events[6]["hand_ids"]
@@ -157,25 +157,9 @@ class Test_hbp01_006(unittest.TestCase):
         self.assertTrue(b2["game_card_id"] in hand_ids)
         self.assertTrue(b3["game_card_id"] in hand_ids)
         self.assertTrue(test1["game_card_id"] in hand_ids)
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
-            "effect_player_id": self.player1,
-            "amount_min": 1,
-            "amount_max": 1,
-            "from_zone": "life",
-            "to_zone": "holomem",
-        })
-        from_options = events[8]["from_options"]
-        self.assertEqual(len(from_options), 1)
-        placements = {
-            from_options[0]: player1.backstage[0]["game_card_id"],
-        }
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
-            "placements": placements
-        })
-        events = engine.grab_events()
-        # move card, end turn, etc.
-        self.assertEqual(len(events), 12)
-        validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, self.player1, {
+        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
+
+        validate_event(self, events[16], EventType.EventType_ResetStepChooseNewCenter, self.player1, {
             "active_player": self.player1
         })
         inhand = ids_from_cards(player1.hand)
