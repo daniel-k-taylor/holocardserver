@@ -181,6 +181,7 @@ class GameOverReason:
     GameOverReason_NoHolomemsLeft = "no_holomems_left"
     GameOverReason_DeckEmptyDraw = "deck_empty_draw"
     GameOverReason_NoLifeLeft = "no_life_left"
+    GameOverReason_MulliganToZero = "mulligan_to_zero"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -423,8 +424,12 @@ class PlayerState:
         self.shuffle_hand_to_deck()
 
         # Draw new hand, don't ever let them draw 0 and lose.
-        draw_amount = max(STARTING_HAND_SIZE - (self.mulligan_count - 1), 1)
-        self.draw(draw_amount)
+        draw_amount = STARTING_HAND_SIZE - (self.mulligan_count - 1)
+        if draw_amount == 0:
+            # Game over already!
+            self.engine.end_game(self.player_id, GameOverReason.GameOverReason_MulliganToZero)
+        else:
+            self.draw(draw_amount)
 
     def shuffle_hand_to_deck(self):
         while len(self.hand) > 0:
@@ -923,6 +928,12 @@ class PlayerState:
         }
         self.engine.broadcast_event(bloom_event)
 
+        # Check if any attached cards must now be archived.
+        attachments = bloom_card["attached_support"].copy()
+        for attached_card in attachments:
+            if is_card_equipment(attached_card) and not is_card_attach_requirements_meant(attached_card, bloom_card):
+                self.move_card(attached_card["game_card_id"], "archive")
+
         if next_bloom_level > previous_bloom_level:
             on_bloom_level_up_effects = self.get_effects_at_timing("on_bloom_level_up", bloom_card, "")
             for effect in on_bloom_level_up_effects:
@@ -1179,6 +1190,17 @@ def attach_card(attaching_card, target_card):
 def is_card_limited(card):
     return "limited" in card and card["limited"]
 
+def is_card_attach_requirements_meant(attachment, card):
+    if "effects" in attachment:
+        first_effect = attachment["effects"][0]
+        if first_effect["effect_type"] == "attach_card_to_holomem":
+            to_limitation = first_effect.get("to_limitation", "")
+            if to_limitation == "specific_member_name":
+                name = first_effect.get("to_limitation_name", "")
+                if name not in card["holomem_names"]:
+                    return False
+    return True
+
 def is_card_equipment(card):
     return is_card_mascot(card) or is_card_tool(card) or is_card_fan(card)
 
@@ -1334,6 +1356,8 @@ class GameEngine:
         # If so, move on to the next phase.
         if all(player_state.mulligan_completed for player_state in self.player_states):
             self.process_forced_mulligans()
+            if self.is_game_over():
+                return
             self.begin_initial_placement()
         else:
             active_player = self.get_player(self.active_player_id)
@@ -3767,7 +3791,7 @@ class GameEngine:
     def process_forced_mulligans(self):
         # If the player has no debut holomems, they must mulligan.
         for player in self.player_states:
-            while not player.mulligan_hand_valid:
+            while not player.mulligan_hand_valid and not self.is_game_over():
                 # If the player has a debut holomem, they are done.
                 if any(card["card_type"] == "holomem_debut" for card in player.hand):
                     player.mulligan_hand_valid = True

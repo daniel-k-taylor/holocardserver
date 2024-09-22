@@ -1994,6 +1994,41 @@ class Test_hbp01_Support(unittest.TestCase):
         do_cheer_step_on_card(self, player1.center[0])
         reset_mainstep(self)
 
+    def test_hbp01_124_pioneer_archived_blooming_out_of_dual(self):
+        p1deck = generate_deck_with([], {"hBP01-124": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hSD01-013", player1.center)
+        test_card = put_card_in_play(self, player1, "hBP01-124", p1center["attached_support"])
+        bloom_card = add_card_to_hand(self, player1, "hSD01-006")
+        reset_mainstep(self)
+
+        # When we bloom into just sora, pioneer is archived immediately.
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": bloom_card["game_card_id"],
+            "target_id": p1center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - bloom, archive pioneer, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": bloom_card["game_card_id"],
+            "to_zone": "archive",
+            "card_id": test_card['game_card_id'],
+        })
+        reset_mainstep(self)
+
+
 
 
     def test_hbp01_125_playfanassupport_noothercards(self):
