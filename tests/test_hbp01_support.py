@@ -638,7 +638,7 @@ class Test_hbp01_Support(unittest.TestCase):
             self.assertTrue("white" in card["colors"])
 
 
-    def test_hbp01_104_placeonstage(self):
+    def test_hbp01_104_placeonbackstagestage(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -668,7 +668,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
@@ -682,18 +682,12 @@ class Test_hbp01_Support(unittest.TestCase):
           "card_ids": [cards_can_choose[5]]
         })
         events = self.engine.grab_events()
-        # events - Choice where to put, center or backstage
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
-        choice = events[0]["choice"]
-        self.assertEqual(len(choice), 2)
-        events = pick_choice(self, player1.player_id, 1)
-        # Events - move card to center, shuffle,discard, main step
+        # Events - move card to backstage, shuffle,discard, main step
         self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "center",
+            "to_zone": "backstage",
             "card_id": cards_can_choose[5]
         })
         validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
@@ -703,7 +697,7 @@ class Test_hbp01_Support(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
 
-    def test_hbp01_104_placeonstage_collab_blockscollab(self):
+    def test_hbp01_104_placeonstage_backstage2(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -731,7 +725,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
@@ -745,18 +739,12 @@ class Test_hbp01_Support(unittest.TestCase):
           "card_ids": [cards_can_choose[5]]
         })
         events = self.engine.grab_events()
-        # events - Choice where to put, backstage or collab
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
-        choice = events[0]["choice"]
-        self.assertEqual(len(choice), 2)
-        events = pick_choice(self, player1.player_id, 1)
-        # Events - move card to collab, shuffle,discard, main step
+        # Events - move card to backstage, shuffle,discard, main step
         self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "collab",
+            "to_zone": "backstage",
             "card_id": cards_can_choose[5]
         })
         validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
@@ -766,8 +754,8 @@ class Test_hbp01_Support(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         actions = reset_mainstep(self)
-        # Verify that there is no collab action in the list.
-        self.assertFalse(GameAction.MainStepCollab in [action["action_type"] for action in actions])
+        # Verify you can collab now.
+        self.assertTrue(GameAction.MainStepCollab in [action["action_type"] for action in actions])
 
     def test_hbp01_104_placeonstage_autoback(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
@@ -798,7 +786,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
