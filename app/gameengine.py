@@ -124,6 +124,8 @@ class Condition:
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
+    Condition_TargetIsBackstage = "target_is_backstage"
+    Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCollab = "this_card_is_collab"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
 
@@ -1783,7 +1785,7 @@ class GameEngine:
                 "decision_type": DecisionType.DecisionPerformanceStep,
                 "decision_player": self.active_player_id,
                 "available_actions": available_actions,
-                "continuation": self.continue_performance_step,
+                "continuation": self.begin_cleanup_art,
             })
         else:
             # Can only end the turn, do it for them.
@@ -1826,6 +1828,10 @@ class GameEngine:
                     valid_targets = ids_from_cards(opponent_performers)
                     if "target_condition" in art:
                         match art["target_condition"]:
+                            case "all_if_meets_conditions":
+                                conditions = art["target_conditions"]
+                                if self.are_conditions_met(active_player, performer["game_card_id"], conditions):
+                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False))
                             case "center_only":
                                 valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
 
@@ -1863,7 +1869,7 @@ class GameEngine:
                 self.performance_performer_card["game_card_id"],
                 self.performance_art["art_id"],
                 self.performance_target_card["game_card_id"],
-                self.continue_performance_step
+                self.begin_cleanup_art
             )
         else:
             self.performance_artstatboosts.clear()
@@ -2096,6 +2102,15 @@ class GameEngine:
             })
         else:
             continuation()
+
+    def begin_cleanup_art(self):
+        # Check for any cleanup effects.
+        performer_cleanup_effects = self.performance_performing_player.get_effects_at_timing("art_cleanup", self.performance_performer_card)
+        self.begin_resolving_effects(performer_cleanup_effects, self.begin_cleanup_art_target)
+
+    def begin_cleanup_art_target(self):
+        target_cleanup_effects = self.performance_target_player.get_effects_at_timing("art_cleanup", self.performance_target_card)
+        self.begin_resolving_effects(target_cleanup_effects, self.continue_performance_step)
 
     def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
         effect_continuation = continuation
@@ -2369,6 +2384,10 @@ class GameEngine:
                     if tag in valid_tags:
                         return True
                 return False
+            case Condition.Condition_TargetIsBackstage:
+                return self.performance_target_card in self.performance_target_player.backstage
+            case Condition.Condition_TargetIsNotBackstage:
+                return self.performance_target_card not in self.performance_target_player.backstage
             case Condition.Condition_ThisCardIsCollab:
                 if len(effect_player.collab) == 0:
                     return False

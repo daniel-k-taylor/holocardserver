@@ -1,3 +1,6 @@
+☐ suisei 81 - should be able to pick backstage for performance target @started(24-09-21 20:38)
+☐ Test kobo choose 3 to deal damage in UI
+
 Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
 
@@ -8,10 +11,8 @@ Revisit:
     ☐ Collab effects go away if you bloom over them?
 
 Q&A Todos:
-    ☐ Q63: Stone Axe recoil damage happens after all arts effects and damage have resolved.
-        - Make a performance art cleanup step that happens before getting back to performance step
     ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
-        - also in cleanup phase
+        - upao is a special deal damage after down process phase
 
 
     ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.

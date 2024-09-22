@@ -1548,7 +1548,7 @@ class Test_hbp01_Support(unittest.TestCase):
         reset_mainstep(self)
 
 
-    def test_hbp01_119_beforeart_restorehp_any(self):
+    def test_hbp01_119_art_cleanup_restorehp_any(self):
         p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -1573,26 +1573,26 @@ class Test_hbp01_Support(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - before restore hp
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        # Events -perform, damage, restore hp ask
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 30,
+            "special": False
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [player1.backstage[0]["game_card_id"]],
         })
         events = engine.grab_events()
-        # Events - restore hp, perform, damage, perform step
-        self.assertEqual(len(events), 8)
+        # Events - restore hp, performance step
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_RestoreHP, self.player1, {
             "card_id": player1.backstage[0]["game_card_id"],
             "healed_amount": 10,
             "new_damage": 30,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "alona"
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
-            "damage": 30,
-            "special": False
         })
         reset_performancestep(self)
 
