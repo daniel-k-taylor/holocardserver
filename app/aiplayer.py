@@ -54,8 +54,10 @@ class AIPlayer:
             EventType.EventType_Choice_SendCollabBack: self._handle_choice,
             EventType.EventType_Collab: self._handle_event_ignore,
             EventType.EventType_DamageDealt: self._handle_event_ignore,
+            EventType.EventType_DownedHolomem: self._handle_event_ignore,
             EventType.EventType_Decision_Choice: self._handle_choice,
             EventType.EventType_Decision_ChooseCards: self._handle_choose_cards,
+            EventType.EventType_Decision_ChooseHolomemForEffect: self._handle_choose_holomem_for_effect,
             EventType.EventType_Decision_MainStep: self._handle_main_step,
             EventType.EventType_Decision_OrderCards: self._handle_order_cards,
             EventType.EventType_Decision_PerformanceStep: self._handle_performance_step,
@@ -71,6 +73,7 @@ class AIPlayer:
             EventType.EventType_InitialPlacementPlaced: self._handle_event_ignore,
             EventType.EventType_InitialPlacementReveal: self._handle_event_ignore,
             EventType.EventType_MainStepStart: self._handle_event_ignore,
+            EventType.EventType_ModifyHP: self._handle_event_ignore,
             EventType.EventType_MoveCard: self._handle_event_ignore,
             EventType.EventType_MoveAttachedCard: self._handle_event_ignore,
             EventType.EventType_MulliganDecision: self._handle_mulligan_decision,
@@ -82,6 +85,7 @@ class AIPlayer:
             EventType.EventType_ResetStepActivate: self._handle_event_ignore,
             EventType.EventType_ResetStepChooseNewCenter: self._handle_choose_new_center,
             EventType.EventType_ResetStepCollab: self._handle_event_ignore,
+            EventType.EventType_RevealCards: self._handle_event_ignore,
             EventType.EventType_RollDie: self._handle_event_ignore,
             EventType.EventType_ShuffleDeck: self._handle_event_ignore,
             EventType.EventType_TurnStart: self._handle_event_ignore,
@@ -155,7 +159,7 @@ class AIPlayer:
             # Skip events that aren't meant for me to act.
             return False, None, None
 
-        all_card_seen = event["all_card_seen"]
+        all_card_seen = event.get("all_card_seen", [])
         cards_can_choose = event["cards_can_choose"]
         amount_min = event["amount_min"]
         amount_max = event["amount_max"]
@@ -167,6 +171,23 @@ class AIPlayer:
 
         return True, event["desired_response"], {
             "card_ids": card_ids
+        }
+
+    def _handle_choose_holomem_for_effect(self, event):
+        if self.player_id != event["effect_player_id"]:
+            # Skip events that aren't meant for me to act.
+            return False, None, None
+
+        cards_can_choose : list = event["cards_can_choose"]
+        amount_min = event.get("amount_min", 1)
+        amount_max = event.get("amount_max", 1)
+        chosen_cards = []
+        for i in range(amount_max):
+            random_value = random.randint(0, len(cards_can_choose) - 1)
+            chosen_cards.append(cards_can_choose.pop(random_value))
+
+        return True, event["desired_response"], {
+            "card_ids": chosen_cards
         }
 
     def _handle_main_step(self, event):

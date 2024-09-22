@@ -638,7 +638,7 @@ class Test_hbp01_Support(unittest.TestCase):
             self.assertTrue("white" in card["colors"])
 
 
-    def test_hbp01_104_placeonstage(self):
+    def test_hbp01_104_placeonbackstagestage(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -668,7 +668,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
@@ -682,18 +682,12 @@ class Test_hbp01_Support(unittest.TestCase):
           "card_ids": [cards_can_choose[5]]
         })
         events = self.engine.grab_events()
-        # events - Choice where to put, center or backstage
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
-        choice = events[0]["choice"]
-        self.assertEqual(len(choice), 2)
-        events = pick_choice(self, player1.player_id, 1)
-        # Events - move card to center, shuffle,discard, main step
+        # Events - move card to backstage, shuffle,discard, main step
         self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "center",
+            "to_zone": "backstage",
             "card_id": cards_can_choose[5]
         })
         validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
@@ -703,7 +697,7 @@ class Test_hbp01_Support(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
 
-    def test_hbp01_104_placeonstage_collab_blockscollab(self):
+    def test_hbp01_104_placeonstage_backstage2(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -731,7 +725,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
@@ -745,18 +739,12 @@ class Test_hbp01_Support(unittest.TestCase):
           "card_ids": [cards_can_choose[5]]
         })
         events = self.engine.grab_events()
-        # events - Choice where to put, backstage or collab
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
-        choice = events[0]["choice"]
-        self.assertEqual(len(choice), 2)
-        events = pick_choice(self, player1.player_id, 1)
-        # Events - move card to collab, shuffle,discard, main step
+        # Events - move card to backstage, shuffle,discard, main step
         self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "collab",
+            "to_zone": "backstage",
             "card_id": cards_can_choose[5]
         })
         validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
@@ -766,8 +754,8 @@ class Test_hbp01_Support(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         actions = reset_mainstep(self)
-        # Verify that there is no collab action in the list.
-        self.assertFalse(GameAction.MainStepCollab in [action["action_type"] for action in actions])
+        # Verify you can collab now.
+        self.assertTrue(GameAction.MainStepCollab in [action["action_type"] for action in actions])
 
     def test_hbp01_104_placeonstage_autoback(self):
         p1deck = generate_deck_with([], {"hBP01-104": 2 }, [])
@@ -798,7 +786,7 @@ class Test_hbp01_Support(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
-            "to_zone": "stage",
+            "to_zone": "backstage",
             "amount_min": 1,
             "amount_max": 1,
             "reveal_chosen": True,
@@ -1271,7 +1259,7 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(len(player1.hand), 1)
 
 
-    def test_hbp01_114_stone_axe_restorehp_0_draw_question(self):
+    def test_hbp01_114_stone_axe_restorehp_0_does_not_draw(self):
         p1deck = generate_deck_with("hBP01-003", {"hBP01-035": 4, "hBP01-114": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -1295,16 +1283,13 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(len(player1.hand), 0)
         events = use_oshi_action(self, "songoftheearth")
         # Spend 2 holopower, oshi activation, draw, main step
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
             "oshi_player_id": self.player1,
             "skill_id": "songoftheearth",
         })
-        validate_event(self, events[6], EventType.EventType_Draw, self.player1, {
-            "drawing_player_id": self.player1,
-        })
         actions = reset_mainstep(self)
-        self.assertEqual(len(player1.hand), 1)
+        self.assertEqual(len(player1.hand), 0)
 
 
     def test_hbp01_115_suisei_mic_kill(self):
@@ -1551,7 +1536,7 @@ class Test_hbp01_Support(unittest.TestCase):
         reset_mainstep(self)
 
 
-    def test_hbp01_119_beforeart_restorehp_any(self):
+    def test_hbp01_119_art_cleanup_restorehp_any(self):
         p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -1576,26 +1561,26 @@ class Test_hbp01_Support(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - before restore hp
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        # Events -perform, damage, restore hp ask
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 30,
+            "special": False
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [player1.backstage[0]["game_card_id"]],
         })
         events = engine.grab_events()
-        # Events - restore hp, perform, damage, perform step
-        self.assertEqual(len(events), 8)
+        # Events - restore hp, performance step
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_RestoreHP, self.player1, {
             "card_id": player1.backstage[0]["game_card_id"],
             "healed_amount": 10,
             "new_damage": 30,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "alona"
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
-            "damage": 30,
-            "special": False
         })
         reset_performancestep(self)
 
@@ -1996,6 +1981,41 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         do_cheer_step_on_card(self, player1.center[0])
         reset_mainstep(self)
+
+    def test_hbp01_124_pioneer_archived_blooming_out_of_dual(self):
+        p1deck = generate_deck_with([], {"hBP01-124": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hSD01-013", player1.center)
+        test_card = put_card_in_play(self, player1, "hBP01-124", p1center["attached_support"])
+        bloom_card = add_card_to_hand(self, player1, "hSD01-006")
+        reset_mainstep(self)
+
+        # When we bloom into just sora, pioneer is archived immediately.
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": bloom_card["game_card_id"],
+            "target_id": p1center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - bloom, archive pioneer, main step
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": bloom_card["game_card_id"],
+            "to_zone": "archive",
+            "card_id": test_card['game_card_id'],
+        })
+        reset_mainstep(self)
+
 
 
 

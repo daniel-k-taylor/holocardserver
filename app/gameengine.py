@@ -35,6 +35,7 @@ class EffectType:
     EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
     EffectType_ArchiveThisAttachment = "archive_this_attachment"
+    EffectType_ArchiveTopStackedHolomem = "archive_top_stacked_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
     EffectType_BloomDebutPlayedThisTurnTo1st = "bloom_debut_played_this_turn_to_1st"
@@ -123,6 +124,8 @@ class Condition:
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
     Condition_TargetHasAnyTag = "target_has_any_tag"
+    Condition_TargetIsBackstage = "target_is_backstage"
+    Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCollab = "this_card_is_collab"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
 
@@ -180,6 +183,7 @@ class GameOverReason:
     GameOverReason_NoHolomemsLeft = "no_holomems_left"
     GameOverReason_DeckEmptyDraw = "deck_empty_draw"
     GameOverReason_NoLifeLeft = "no_life_left"
+    GameOverReason_MulliganToZero = "mulligan_to_zero"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -422,8 +426,12 @@ class PlayerState:
         self.shuffle_hand_to_deck()
 
         # Draw new hand, don't ever let them draw 0 and lose.
-        draw_amount = max(STARTING_HAND_SIZE - (self.mulligan_count - 1), 1)
-        self.draw(draw_amount)
+        draw_amount = STARTING_HAND_SIZE - (self.mulligan_count - 1)
+        if draw_amount == 0:
+            # Game over already!
+            self.engine.end_game(self.player_id, GameOverReason.GameOverReason_MulliganToZero)
+        else:
+            self.draw(draw_amount)
 
     def shuffle_hand_to_deck(self):
         while len(self.hand) > 0:
@@ -867,12 +875,12 @@ class PlayerState:
         # For all cards in collab, move them back to backstage and rest them.
         rested_card_ids = []
         moved_backstage_card_ids = []
-        for card in self.collab:
-            card["resting"] = True
-            rested_card_ids.append(card["game_card_id"])
-
         if self.can_move_front_stage():
             for card in self.collab:
+                # Note: You only rest if you move backstage.
+                card["resting"] = True
+                rested_card_ids.append(card["game_card_id"])
+
                 self.backstage.append(card)
                 moved_backstage_card_ids.append(card["game_card_id"])
             self.collab = []
@@ -896,8 +904,8 @@ class PlayerState:
         if "bloom_level" in bloom_card:
             next_bloom_level = bloom_card["bloom_level"]
 
-        bloom_card["stacked_cards"].append(target_card)
         # Add any stacked cards on the target to this too.
+        bloom_card["stacked_cards"].append(target_card)
         bloom_card["stacked_cards"] += target_card["stacked_cards"]
         target_card["stacked_cards"] = []
 
@@ -921,6 +929,12 @@ class PlayerState:
             "bloom_from_zone": bloom_from_zone_name,
         }
         self.engine.broadcast_event(bloom_event)
+
+        # Check if any attached cards must now be archived.
+        attachments = bloom_card["attached_support"].copy()
+        for attached_card in attachments:
+            if is_card_equipment(attached_card) and not is_card_attach_requirements_meant(attached_card, bloom_card):
+                self.move_card(attached_card["game_card_id"], "archive")
 
         if next_bloom_level > previous_bloom_level:
             on_bloom_level_up_effects = self.get_effects_at_timing("on_bloom_level_up", bloom_card, "")
@@ -1178,6 +1192,20 @@ def attach_card(attaching_card, target_card):
 def is_card_limited(card):
     return "limited" in card and card["limited"]
 
+def is_card_attach_requirements_meant(attachment, card):
+    if "effects" in attachment:
+        first_effect = attachment["effects"][0]
+        if first_effect["effect_type"] == "attach_card_to_holomem":
+            to_limitation = first_effect.get("to_limitation", "")
+            if to_limitation == "specific_member_name":
+                name = first_effect.get("to_limitation_name", "")
+                if name not in card["holomem_names"]:
+                    return False
+    return True
+
+def is_card_equipment(card):
+    return is_card_mascot(card) or is_card_tool(card) or is_card_fan(card)
+
 def is_card_mascot(card):
     return "sub_type" in card and card["sub_type"] == "mascot"
 
@@ -1330,6 +1358,8 @@ class GameEngine:
         # If so, move on to the next phase.
         if all(player_state.mulligan_completed for player_state in self.player_states):
             self.process_forced_mulligans()
+            if self.is_game_over():
+                return
             self.begin_initial_placement()
         else:
             active_player = self.get_player(self.active_player_id)
@@ -1755,7 +1785,7 @@ class GameEngine:
                 "decision_type": DecisionType.DecisionPerformanceStep,
                 "decision_player": self.active_player_id,
                 "available_actions": available_actions,
-                "continuation": self.continue_performance_step,
+                "continuation": self.begin_cleanup_art,
             })
         else:
             # Can only end the turn, do it for them.
@@ -1798,6 +1828,10 @@ class GameEngine:
                     valid_targets = ids_from_cards(opponent_performers)
                     if "target_condition" in art:
                         match art["target_condition"]:
+                            case "all_if_meets_conditions":
+                                conditions = art["target_conditions"]
+                                if self.are_conditions_met(active_player, performer["game_card_id"], conditions):
+                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False))
                             case "center_only":
                                 valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
 
@@ -1835,7 +1869,7 @@ class GameEngine:
                 self.performance_performer_card["game_card_id"],
                 self.performance_art["art_id"],
                 self.performance_target_card["game_card_id"],
-                self.continue_performance_step
+                self.begin_cleanup_art
             )
         else:
             self.performance_artstatboosts.clear()
@@ -1905,10 +1939,15 @@ class GameEngine:
         )
 
     def restore_holomem_hp(self, target_player : PlayerState, target_card_id, amount, continuation):
-        target_player.restore_holomem_hp(target_card_id, amount)
         target_card, _, _ = target_player.find_card(target_card_id)
-        on_restore_effects = target_player.get_effects_at_timing("on_restore_hp", target_card)
-        self.begin_resolving_effects(on_restore_effects, continuation)
+        before_damage = target_card["damage"]
+        target_player.restore_holomem_hp(target_card_id, amount)
+        damage_healed = before_damage - target_card["damage"]
+        if damage_healed > 0:
+            on_restore_effects = target_player.get_effects_at_timing("on_restore_hp", target_card)
+            self.begin_resolving_effects(on_restore_effects, continuation)
+        else:
+            continuation()
 
     def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
         if self.damage_modifications.added_damage:
@@ -2063,6 +2102,15 @@ class GameEngine:
             })
         else:
             continuation()
+
+    def begin_cleanup_art(self):
+        # Check for any cleanup effects.
+        performer_cleanup_effects = self.performance_performing_player.get_effects_at_timing("art_cleanup", self.performance_performer_card)
+        self.begin_resolving_effects(performer_cleanup_effects, self.begin_cleanup_art_target)
+
+    def begin_cleanup_art_target(self):
+        target_cleanup_effects = self.performance_target_player.get_effects_at_timing("art_cleanup", self.performance_target_card)
+        self.begin_resolving_effects(target_cleanup_effects, self.continue_performance_step)
 
     def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
         effect_continuation = continuation
@@ -2336,6 +2384,10 @@ class GameEngine:
                     if tag in valid_tags:
                         return True
                 return False
+            case Condition.Condition_TargetIsBackstage:
+                return self.performance_target_card in self.performance_target_player.backstage
+            case Condition.Condition_TargetIsNotBackstage:
+                return self.performance_target_card not in self.performance_target_player.backstage
             case Condition.Condition_ThisCardIsCollab:
                 if len(effect_player.collab) == 0:
                     return False
@@ -2528,6 +2580,11 @@ class GameEngine:
             case EffectType.EffectType_ArchiveThisAttachment:
                 attachment_id = effect["source_card_id"]
                 effect_player.archive_attached_cards([attachment_id])
+            case EffectType.EffectType_ArchiveTopStackedHolomem:
+                card, _, _ = effect_player.find_card(effect["source_card_id"])
+                if len(card["stacked_cards"]) > 0:
+                    top_card = card["stacked_cards"][0]
+                    effect_player.archive_attached_cards([top_card["game_card_id"]])
             case EffectType.EffectType_AttachCardToHolomem:
                 source_card_id = effect["source_card_id"]
                 continuation = self.continue_resolving_effects
@@ -2884,6 +2941,8 @@ class GameEngine:
                         "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
                         "effect_player_id": effect_player_id,
                         "cards_can_choose": target_options,
+                        "amount_min": targets_allowed,
+                        "amount_max": targets_allowed,
                         "effect": effect,
                     }
                     self.broadcast_event(decision_event)
@@ -3753,7 +3812,7 @@ class GameEngine:
     def process_forced_mulligans(self):
         # If the player has no debut holomems, they must mulligan.
         for player in self.player_states:
-            while not player.mulligan_hand_valid:
+            while not player.mulligan_hand_valid and not self.is_game_over():
                 # If the player has a debut holomem, they are done.
                 if any(card["card_type"] == "holomem_debut" for card in player.hand):
                     player.mulligan_hand_valid = True
@@ -3788,47 +3847,51 @@ class GameEngine:
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
         logger.info("Processing game message %s from player %s" % (action_type, player_id))
+        handled = False
         match action_type:
             case GameAction.Mulligan:
-                self.handle_mulligan(player_id, action_data)
+                handled = self.handle_mulligan(player_id, action_data)
             case GameAction.InitialPlacement:
-                self.handle_initial_placement(player_id, action_data)
+                handled = self.handle_initial_placement(player_id, action_data)
             case GameAction.ChooseNewCenter:
-                self.handle_choose_new_center(player_id, action_data)
+                handled = self.handle_choose_new_center(player_id, action_data)
             case GameAction.PlaceCheer:
-                self.handle_place_cheer(player_id, action_data)
+                handled = self.handle_place_cheer(player_id, action_data)
             case GameAction.MainStepPlaceHolomem:
-                self.handle_main_step_place_holomem(player_id, action_data)
+                handled = self.handle_main_step_place_holomem(player_id, action_data)
             case GameAction.MainStepBloom:
-                self.handle_main_step_bloom(player_id, action_data)
+                handled = self.handle_main_step_bloom(player_id, action_data)
             case GameAction.MainStepCollab:
-                self.handle_main_step_collab(player_id, action_data)
+                handled = self.handle_main_step_collab(player_id, action_data)
             case GameAction.MainStepOshiSkill:
-                self.handle_main_step_oshi_skill(player_id, action_data)
+                handled = self.handle_main_step_oshi_skill(player_id, action_data)
             case GameAction.MainStepPlaySupport:
-                self.handle_main_step_play_support(player_id, action_data)
+                handled = self.handle_main_step_play_support(player_id, action_data)
             case GameAction.MainStepBatonPass:
-                self.handle_main_step_baton_pass(player_id, action_data)
+                handled = self.handle_main_step_baton_pass(player_id, action_data)
             case GameAction.MainStepBeginPerformance:
-                self.handle_main_step_begin_performance(player_id, action_data)
+                handled = self.handle_main_step_begin_performance(player_id, action_data)
             case GameAction.MainStepEndTurn:
-                self.handle_main_step_end_turn(player_id, action_data)
+                handled = self.handle_main_step_end_turn(player_id, action_data)
             case GameAction.PerformanceStepUseArt:
-                self.handle_performance_step_use_art(player_id, action_data)
+                handled = self.handle_performance_step_use_art(player_id, action_data)
             case GameAction.PerformanceStepEndTurn:
-                self.handle_performance_step_end_turn(player_id, action_data)
+                handled = self.handle_performance_step_end_turn(player_id, action_data)
             case GameAction.EffectResolution_MoveCheerBetweenHolomems:
-                self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
+                handled = self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
             case GameAction.EffectResolution_ChooseCardsForEffect:
-                self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
+                handled = self.handle_effect_resolution_choose_cards_for_effect(player_id, action_data)
             case GameAction.EffectResolution_MakeChoice:
-                self.handle_effect_resolution_make_choice(player_id, action_data)
+                handled = self.handle_effect_resolution_make_choice(player_id, action_data)
             case GameAction.EffectResolution_OrderCards:
-                self.handle_effect_resolution_order_cards(player_id, action_data)
+                handled = self.handle_effect_resolution_order_cards(player_id, action_data)
             case GameAction.Resign:
-                self.handle_player_resign(player_id)
+                handled = self.handle_player_resign(player_id)
             case _:
                 self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
+        if not handled:
+            # Put out a warning log line with the action that was sent.
+            logger.warning(f"Action {action_type} was not handled: {action_data}.")
 
     def validate_mulligan(self, player_id:str, action_data: dict):
         if self.phase != GamePhase.Mulligan:
@@ -3847,7 +3910,7 @@ class GameEngine:
 
     def handle_mulligan(self, player_id:str, action_data: dict):
         if not self.validate_mulligan(player_id, action_data):
-            return
+            return False
 
         player_state = self.get_player(player_id)
         do_mulligan = action_data["do_mulligan"]
@@ -3856,6 +3919,8 @@ class GameEngine:
         player_state.mulligan_completed = True
         self.switch_active_player()
         self.handle_mulligan_phase()
+
+        return True
 
     def validate_initial_placement(self, player_id:str, action_data: dict):
         if self.phase != GamePhase.InitialPlacement:
@@ -3899,7 +3964,7 @@ class GameEngine:
 
     def handle_initial_placement(self, player_id:str, action_data:dict):
         if not self.validate_initial_placement(player_id, action_data):
-            return
+            return False
 
         player_state = self.get_player(player_id)
         center_holomem_card_id = action_data["center_holomem_card_id"]
@@ -3925,6 +3990,8 @@ class GameEngine:
         self.broadcast_event(placement_event)
 
         self.continue_initial_placement()
+
+        return True
 
     def validate_choose_new_center(self, player_id:str, action_data:dict):
         # The center card id must be in the current_decision options
@@ -3956,7 +4023,7 @@ class GameEngine:
 
     def handle_choose_new_center(self, player_id:str, action_data:dict):
         if not self.validate_choose_new_center(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -3965,6 +4032,8 @@ class GameEngine:
         player.move_card(new_center_card_id, "center")
 
         continuation()
+
+        return True
 
     def validate_place_cheer(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionPlaceCheer, GameAction.PlaceCheerActionFields):
@@ -3983,7 +4052,7 @@ class GameEngine:
 
     def handle_place_cheer(self, player_id:str, action_data:dict):
         if not self.validate_place_cheer(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -3993,6 +4062,7 @@ class GameEngine:
             player.move_card(cheer_id, "holomem", target_id)
 
         continuation()
+        return True
 
     def validate_main_step_place_holomem(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepPlaceHolomemFields):
@@ -4011,7 +4081,7 @@ class GameEngine:
 
     def handle_main_step_place_holomem(self, player_id:str, action_data:dict):
         if not self.validate_main_step_place_holomem(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -4020,6 +4090,7 @@ class GameEngine:
         player.move_card(card_id, "backstage")
 
         continuation()
+        return True
 
 
     def validate_main_step_bloom(self, player_id:str, action_data:dict):
@@ -4040,7 +4111,7 @@ class GameEngine:
 
     def handle_main_step_bloom(self, player_id:str, action_data:dict):
         if not self.validate_main_step_bloom(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -4048,6 +4119,8 @@ class GameEngine:
         card_id = action_data["card_id"]
         target_id = action_data["target_id"]
         player.bloom(card_id, target_id, continuation)
+
+        return True
 
     def validate_main_step_collab(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepCollabFields):
@@ -4066,13 +4139,15 @@ class GameEngine:
 
     def handle_main_step_collab(self, player_id:str, action_data:dict):
         if not self.validate_main_step_collab(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
         player = self.get_player(player_id)
         card_id = action_data["card_id"]
         player.collab_action(card_id, continuation)
+
+        return True
 
     def validate_decision_base(self, player_id:str, action_data:dict, expected_decision_type, expected_action_type):
         if not isinstance(player_id, str):
@@ -4114,7 +4189,7 @@ class GameEngine:
 
     def handle_main_step_oshi_skill(self, player_id:str, action_data:dict):
         if not self.validate_main_step_oshi_skill(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -4124,6 +4199,8 @@ class GameEngine:
         action_effects = player.get_oshi_action_effects(skill_id)
         add_ids_to_effects(action_effects, player_id, "oshi")
         self.begin_resolving_effects(action_effects, continuation)
+
+        return True
 
     def validate_main_step_play_support(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepPlaySupportFields):
@@ -4176,7 +4253,7 @@ class GameEngine:
 
     def handle_main_step_play_support(self, player_id:str, action_data:dict):
         if not self.validate_main_step_play_support(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -4202,7 +4279,8 @@ class GameEngine:
             player.archive_attached_cards(cheer_to_archive_from_play)
 
         # Begin resolving the card effects.
-        player.played_support_this_turn = True
+        if not is_card_equipment(card):
+            player.played_support_this_turn = True
         if is_card_limited(card):
             player.used_limited_this_turn = True
 
@@ -4210,6 +4288,8 @@ class GameEngine:
         add_ids_to_effects(card_effects, player.player_id, card_id)
         self.floating_cards.append(card)
         self.begin_resolving_effects(card_effects, continuation, [card])
+
+        return True
 
     def validate_main_step_baton_pass(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepBatonPassFields):
@@ -4246,7 +4326,7 @@ class GameEngine:
 
     def handle_main_step_baton_pass(self, player_id:str, action_data:dict):
         if not self.validate_main_step_baton_pass(player_id, action_data):
-            return
+            return False
 
         player = self.get_player(player_id)
         new_center_id = action_data["card_id"]
@@ -4257,6 +4337,8 @@ class GameEngine:
 
         continuation = self.clear_decision()
         continuation()
+
+        return True
 
     def validate_main_step_begin_performance(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepBeginPerformanceFields):
@@ -4275,17 +4357,21 @@ class GameEngine:
 
     def handle_main_step_begin_performance(self, player_id:str, action_data:dict):
         if not self.validate_main_step_begin_performance(player_id, action_data):
-            return
+            return False
 
         self.clear_decision()
         self.begin_performance_step()
 
+        return True
+
     def handle_main_step_end_turn(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepEndTurnFields):
-            return
+            return False
 
         self.clear_decision()
         self.end_player_turn()
+
+        return True
 
     def validate_performance_step_use_art(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionPerformanceStep, GameAction.PerformanceStepUseArtFields):
@@ -4309,7 +4395,7 @@ class GameEngine:
 
     def handle_performance_step_use_art(self, player_id:str, action_data:dict):
         if not self.validate_performance_step_use_art(player_id, action_data):
-            return
+            return False
 
         continuation = self.clear_decision()
 
@@ -4319,12 +4405,16 @@ class GameEngine:
 
         self.begin_perform_art(performer_id, art_id, target_id, continuation)
 
+        return True
+
     def handle_performance_step_end_turn(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionPerformanceStep, GameAction.PerformanceStepEndTurnFields):
-            return
+            return False
 
         self.clear_decision()
         self.end_player_turn()
+
+        return True
 
     def validate_move_cheer_between_holomems(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_MoveCheerBetweenHolomems, GameAction.EffectResolution_MoveCheerBetweenHolomemsFields):
@@ -4374,7 +4464,7 @@ class GameEngine:
 
     def handle_effect_resolution_move_cheer_between_holomems(self, player_id:str, action_data:dict):
         if not self.validate_move_cheer_between_holomems(player_id, action_data):
-            return
+            return False
 
         player = self.get_player(player_id)
         placements = action_data["placements"]
@@ -4386,6 +4476,8 @@ class GameEngine:
 
         continuation = self.clear_decision()
         continuation()
+
+        return True
 
     def validate_choose_cards_for_effect(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_ChooseCardsForEffect, GameAction.EffectResolution_ChooseCardsForEffectFields):
@@ -4409,7 +4501,7 @@ class GameEngine:
 
     def handle_effect_resolution_choose_cards_for_effect(self, player_id:str, action_data:dict):
         if not self.validate_choose_cards_for_effect(player_id, action_data):
-            return
+            return False
 
         decision_info_copy = self.current_decision.copy()
         continuation = self.clear_decision()
@@ -4417,6 +4509,8 @@ class GameEngine:
         chosen_cards = action_data["card_ids"]
         resolution = decision_info_copy["effect_resolution"]
         resolution(decision_info_copy, player_id, chosen_cards, continuation)
+
+        return True
 
     def validate_effect_resolution_make_choice(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionChoice, GameAction.EffectResolution_MakeChoiceFields):
@@ -4431,7 +4525,7 @@ class GameEngine:
 
     def handle_effect_resolution_make_choice(self, player_id:str, action_data:dict):
         if not self.validate_effect_resolution_make_choice(player_id, action_data):
-            return
+            return False
 
         choice_index = action_data["choice_index"]
         resolution_func = self.current_decision["resolution_func"]
@@ -4439,6 +4533,8 @@ class GameEngine:
         decision_info_copy = self.current_decision.copy()
         continuation = self.clear_decision()
         resolution_func(decision_info_copy, player_id, choice_index, continuation)
+
+        return True
 
     def validate_effect_resolution_order_cards(self, player_id:str, action_data:dict):
         if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionEffect_OrderCards, GameAction.EffectResolution_OrderCardsFields):
@@ -4454,7 +4550,7 @@ class GameEngine:
 
     def handle_effect_resolution_order_cards(self, player_id:str, action_data:dict):
         if not self.validate_effect_resolution_order_cards(player_id, action_data):
-            return
+            return False
 
         player = self.get_player(player_id)
         card_ids = action_data["card_ids"]
@@ -4467,6 +4563,8 @@ class GameEngine:
 
         continuation = self.clear_decision()
         continuation()
+
+        return True
 
 
     def handle_holomem_swap(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
@@ -4598,11 +4696,8 @@ class GameEngine:
                 debut = stacked_card
                 break
         if not debut:
-            if card["card_type"] == "holomem_debut":
-                debut = card
-            else:
-                # Somehow no stacked debut, so this does nothing.
-                return
+            # No debut = no effect
+            return
 
         # Restore the damage.
         current_damage = card["damage"]
@@ -4657,7 +4752,7 @@ class GameEngine:
                     self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation),
             }
             self.do_effect(player, attach_effect)
-        elif to_zone == "stage":
+        elif to_zone in ["backstage", "stage"]:
             # Determine possible options (backstage, center, collab) depending on what's open.
             choice = [
             ]
@@ -4668,22 +4763,23 @@ class GameEngine:
                 "location": "backstage",
                 "card_id": card_ids[0],
             })
-            if len(player.center) == 0:
-                choice.append({
-                    "effect_type": EffectType.EffectType_PlaceHolomem,
-                    "player_id": performing_player_id,
-                    "source_card_id": "",
-                    "location": "center",
-                    "card_id": card_ids[0],
-                })
-            if len(player.collab) == 0:
-                choice.append({
-                    "effect_type": EffectType.EffectType_PlaceHolomem,
-                    "player_id": performing_player_id,
-                    "source_card_id": "",
-                    "location": "collab",
-                    "card_id": card_ids[0],
-                })
+            if to_zone == "stage":
+                if len(player.center) == 0:
+                    choice.append({
+                        "effect_type": EffectType.EffectType_PlaceHolomem,
+                        "player_id": performing_player_id,
+                        "source_card_id": "",
+                        "location": "center",
+                        "card_id": card_ids[0],
+                    })
+                if len(player.collab) == 0:
+                    choice.append({
+                        "effect_type": EffectType.EffectType_PlaceHolomem,
+                        "player_id": performing_player_id,
+                        "source_card_id": "",
+                        "location": "collab",
+                        "card_id": card_ids[0],
+                    })
 
             if len(choice) == 1:
                 # Must be backstage.
@@ -4784,3 +4880,5 @@ class GameEngine:
 
     def handle_player_resign(self, player_id):
         self.end_game(player_id, "resign")
+
+        return True

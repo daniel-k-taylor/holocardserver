@@ -1108,8 +1108,8 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(player1.hand), 3)
         self.assertEqual(len(events), 2)
         events = pick_choice(self, self.player1, 0)
-        # Events - Reveal topdeck, perform, damage, end turn etc.
-        self.assertEqual(len(events), 18)
+        # Events - Reveal topdeck, still draw!, perform, damage, end turn etc.
+        self.assertEqual(len(events), 20)
         validate_event(self, events[0], EventType.EventType_RevealCards, self.player1, {
             "effect_player_id": self.player1,
             "source": "topdeck"
@@ -1117,21 +1117,22 @@ class Test_hbp01_holomems(unittest.TestCase):
         card_ids = events[0]["card_ids"]
         self.assertEqual(len(card_ids), 1)
         self.assertEqual(topdeckcardid, card_ids[0])
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "piecesofmemories",
             "target_id": player2.center[0]["game_card_id"],
             "power": 20,
         })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
         do_cheer_step_on_card(self, player2.center[0])
-        self.assertEqual(len(player1.hand), 3)
+        self.assertEqual(len(player1.hand), 4)
 
     def test_hbp01_018_revealtopdeck_is_promise(self):
         p1deck = generate_deck_with([], {"hBP01-018": 2 }, [])
@@ -1883,17 +1884,12 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost stat, punch self, art effect send cheer with tool
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20,
         })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "damage": 10,
-            "target_player": self.player1,
-            "special": True,
-        })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -1903,7 +1899,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         p2center = player2.center[0]
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
-                events[4]["from_options"][0]: player1.center[0]["game_card_id"]
+                events[2]["from_options"][0]: player1.center[0]["game_card_id"]
             }
         })
         events = engine.grab_events()
@@ -1938,6 +1934,22 @@ class Test_hbp01_holomems(unittest.TestCase):
             "from_zone": "life",
             "to_zone": "holomem",
         })
+        # Do the send cheer from life loss
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                events[8]["from_options"][0]: player2.backstage[0]["game_card_id"]
+            }
+        })
+        events = engine.grab_events()
+        # Events - move cheer, punch self with axe as cleanup, then end turn etc up to choosing new center
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player1,
+            "special": True,
+        })
+        validate_event(self, events[4], EventType.EventType_EndTurn, self.player1, {})
+        self.assertEqual(player1.center[0]["damage"], 10)
 
 
     def test_hBP01_037_bloom_cheer_and_restore_self(self):
@@ -2955,24 +2967,14 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
-        # Events - choose cards from stacked.
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {})
-        cards_can_choose = events[0]["cards_can_choose"]
-        self.assertEqual(len(cards_can_choose), 2)
-        self.assertTrue(stack1["game_card_id"] in cards_can_choose)
-        self.assertTrue(stack2["game_card_id"] in cards_can_choose)
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [stack1["game_card_id"]]
-        })
-        events = engine.grab_events()
+        # Events - always archives the top stacked card.
         # Events - move card to archive, deal damage to collab, perform, damage, next perf
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
-            "moving_player_id": self.player1,
-            "from_zone": test_card["game_card_id"],
-            "to_zone": "archive",
-            "card_id": stack1["game_card_id"],
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": test_card["game_card_id"],
+            "to_holomem_id": "archive",
+            "attached_id": stack1["game_card_id"],
         })
         self.assertEqual(player1.archive[0]["game_card_id"], stack1["game_card_id"])
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
@@ -4095,6 +4097,183 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(to_options[1], test_card["game_card_id"])
 
 
+    def test_hBP01_081_shiningcomet_backstage_target(self):
+        p1deck = generate_deck_with([], {"hBP01-081": 3,"hBP01-079": 3,"hBP01-076": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        # Add some stacked cards
+        put_card_in_play(self, player1, "hBP01-079", p1center["stacked_cards"])
+        put_card_in_play(self, player1, "hBP01-076", p1center["stacked_cards"])
+        b1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b3")
+        g1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "green", "g1")
+        actions = reset_mainstep(self)
+        actions = begin_performance(self)
+        self.assertListEqual(actions[0]["valid_targets"], ids_from_cards(player2.get_holomem_on_stage()))
+        p2center = player2.center[0]
+        b2backtarget = player2.backstage[1]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": b2backtarget["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - archive 2 cheers
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, [b1["game_card_id"], b2["game_card_id"], b3["game_card_id"]])
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [b1["game_card_id"], b2["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - power boost, perform, damage, down, send cheer
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 120
+        })
+        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+            "power": 180
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 180
+        })
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+
+
+    def test_hBP01_081_shiningcomet_center_target_choice(self):
+        p1deck = generate_deck_with([], {"hBP01-081": 3,"hBP01-079": 3,"hBP01-076": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        # Add some stacked cards
+        put_card_in_play(self, player1, "hBP01-079", p1center["stacked_cards"])
+        put_card_in_play(self, player1, "hBP01-076", p1center["stacked_cards"])
+        b1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b3")
+        g1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "green", "g1")
+        actions = reset_mainstep(self)
+        actions = begin_performance(self)
+        self.assertListEqual(actions[0]["valid_targets"], ids_from_cards(player2.get_holomem_on_stage()))
+        p2center = player2.center[0]
+        b2backtarget = player2.backstage[1]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - choice
+        self.assertEqual(len(events), 2)
+        events = pick_choice(self, self.player1, 0)
+        # Events - archive 2 cheers
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, [b1["game_card_id"], b2["game_card_id"], b3["game_card_id"]])
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [b1["game_card_id"], b2["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - power boost, perform, damage, down, send cheer
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 120
+        })
+        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+            "power": 180
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 180
+        })
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+
+
+    def test_hBP01_081_shiningcomet_center_target_choice_pass(self):
+        p1deck = generate_deck_with([], {"hBP01-081": 3,"hBP01-079": 3,"hBP01-076": 3  }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.backstage = player1.backstage[:1]
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        # Add some stacked cards
+        put_card_in_play(self, player1, "hBP01-079", p1center["stacked_cards"])
+        put_card_in_play(self, player1, "hBP01-076", p1center["stacked_cards"])
+        b1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "blue", "b3")
+        g1 = spawn_cheer_on_card(self, player1, player1.center[0]["game_card_id"], "green", "g1")
+        actions = reset_mainstep(self)
+        actions = begin_performance(self)
+        self.assertListEqual(actions[0]["valid_targets"], ids_from_cards(player2.get_holomem_on_stage()))
+        p2center = player2.center[0]
+        b2backtarget = player2.backstage[1]
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2center["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - choice
+        self.assertEqual(len(events), 2)
+        events = pick_choice(self, self.player1, 1)
+        # Events - perform, damage, down, send cheer
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "power": 60
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 60
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+
+
     def test_hBP01_085_damage_multiple_less_than_allowed(self):
         p1deck = generate_deck_with([], {"hBP01-085": 3  }, [])
         initialize_game_to_third_turn(self, p1deck)
@@ -4252,6 +4431,8 @@ class Test_hbp01_holomems(unittest.TestCase):
         # Events - deal damage choose cards
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "amount_min": 3,
+            "amount_max": 3,
         })
         cards_can_choose = events[0]["cards_can_choose"]
         self.assertListEqual(cards_can_choose, ids_from_cards(player2.backstage))
@@ -5222,21 +5403,13 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - collab, return to debut is forced, heal, move attachment to hand, main step
-        self.assertEqual(len(events), 8)
+        # Events - collab, return to debut is forced but nothing happens at all, main step
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {})
-        validate_event(self, events[2], EventType.EventType_RestoreHP, self.player1, {
-            "target_player_id": self.player2,
-            "card_id": p2debut["game_card_id"],
-            "healed_amount": 30,
-            "new_damage": 0,
-        })
-        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
-            "card_id": attach1["game_card_id"], })
-        reset_mainstep(self)
-        self.assertEqual(len(player2.hand), 1)
-        self.assertEqual(p2debut["damage"], 0)
+        self.assertEqual(len(player2.hand), 0)
+        self.assertEqual(p2debut["damage"], 30)
         self.assertEqual(p2debut["resting"], True)
+        reset_mainstep(self)
 
 
 
