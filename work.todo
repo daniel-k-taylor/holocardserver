@@ -3,8 +3,6 @@ Todo:
 ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
 
 Revisit:
-    - What happens when the cheer deck runs out.
-        ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
 
@@ -14,10 +12,15 @@ Q&A Todos:
 
 
     ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.
-    ☐ Is this even possible currently? Q154: If both players go down to 0 life at the same time, it is a draw.
+        - this is relevant for kobo multi damage.
+        - don't want to let people put cheer on a member that is about to die.
+        - How to implement???
     ☐ Simultaneous resolution - Q64: If you have an Aki with both Jobz and Stone Axe attached, when you declare an Arts, both Stone Axe and Jobz trigger at the same time and the effects go into 'standby'.
         The resolution of this effects happens after completing the Arts Damage step, and the order of resolution is decided by the owner of the effects as it enters 'standby'.
         E.g, you may choose to resolve Jobz first to recover 10 HP, THEN receive 10 damage by the Stone Axe afterwards. If Aki has 10 HP left, and you reverse the order of resolution, Aki will be downed and no healing will take place.
+
+    ☐ Q154: If both players go down to 0 life at the same time, it is a draw.
+        - is this possible? with self damage being at cleanup time
 
 
 Very Low Pri:
