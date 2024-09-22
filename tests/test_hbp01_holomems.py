@@ -1108,8 +1108,8 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(player1.hand), 3)
         self.assertEqual(len(events), 2)
         events = pick_choice(self, self.player1, 0)
-        # Events - Reveal topdeck, perform, damage, end turn etc.
-        self.assertEqual(len(events), 18)
+        # Events - Reveal topdeck, still draw!, perform, damage, end turn etc.
+        self.assertEqual(len(events), 20)
         validate_event(self, events[0], EventType.EventType_RevealCards, self.player1, {
             "effect_player_id": self.player1,
             "source": "topdeck"
@@ -1117,21 +1117,22 @@ class Test_hbp01_holomems(unittest.TestCase):
         card_ids = events[0]["card_ids"]
         self.assertEqual(len(card_ids), 1)
         self.assertEqual(topdeckcardid, card_ids[0])
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "piecesofmemories",
             "target_id": player2.center[0]["game_card_id"],
             "power": 20,
         })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
         do_cheer_step_on_card(self, player2.center[0])
-        self.assertEqual(len(player1.hand), 3)
+        self.assertEqual(len(player1.hand), 4)
 
     def test_hbp01_018_revealtopdeck_is_promise(self):
         p1deck = generate_deck_with([], {"hBP01-018": 2 }, [])
@@ -2955,24 +2956,14 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
-        # Events - choose cards from stacked.
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {})
-        cards_can_choose = events[0]["cards_can_choose"]
-        self.assertEqual(len(cards_can_choose), 2)
-        self.assertTrue(stack1["game_card_id"] in cards_can_choose)
-        self.assertTrue(stack2["game_card_id"] in cards_can_choose)
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [stack1["game_card_id"]]
-        })
-        events = engine.grab_events()
+        # Events - always archives the top stacked card.
         # Events - move card to archive, deal damage to collab, perform, damage, next perf
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
-            "moving_player_id": self.player1,
-            "from_zone": test_card["game_card_id"],
-            "to_zone": "archive",
-            "card_id": stack1["game_card_id"],
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": test_card["game_card_id"],
+            "to_holomem_id": "archive",
+            "attached_id": stack1["game_card_id"],
         })
         self.assertEqual(player1.archive[0]["game_card_id"], stack1["game_card_id"])
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
@@ -5222,21 +5213,13 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - collab, return to debut is forced, heal, move attachment to hand, main step
-        self.assertEqual(len(events), 8)
+        # Events - collab, return to debut is forced but nothing happens at all, main step
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {})
-        validate_event(self, events[2], EventType.EventType_RestoreHP, self.player1, {
-            "target_player_id": self.player2,
-            "card_id": p2debut["game_card_id"],
-            "healed_amount": 30,
-            "new_damage": 0,
-        })
-        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
-            "card_id": attach1["game_card_id"], })
-        reset_mainstep(self)
-        self.assertEqual(len(player2.hand), 1)
-        self.assertEqual(p2debut["damage"], 0)
+        self.assertEqual(len(player2.hand), 0)
+        self.assertEqual(p2debut["damage"], 30)
         self.assertEqual(p2debut["resting"], True)
+        reset_mainstep(self)
 
 
 

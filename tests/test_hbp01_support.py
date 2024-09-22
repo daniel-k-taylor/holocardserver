@@ -1271,7 +1271,7 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(len(player1.hand), 1)
 
 
-    def test_hbp01_114_stone_axe_restorehp_0_draw_question(self):
+    def test_hbp01_114_stone_axe_restorehp_0_does_not_draw(self):
         p1deck = generate_deck_with("hBP01-003", {"hBP01-035": 4, "hBP01-114": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -1295,16 +1295,13 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(len(player1.hand), 0)
         events = use_oshi_action(self, "songoftheearth")
         # Spend 2 holopower, oshi activation, draw, main step
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
             "oshi_player_id": self.player1,
             "skill_id": "songoftheearth",
         })
-        validate_event(self, events[6], EventType.EventType_Draw, self.player1, {
-            "drawing_player_id": self.player1,
-        })
         actions = reset_mainstep(self)
-        self.assertEqual(len(player1.hand), 1)
+        self.assertEqual(len(player1.hand), 0)
 
 
     def test_hbp01_115_suisei_mic_kill(self):

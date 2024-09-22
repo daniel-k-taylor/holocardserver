@@ -33,6 +33,7 @@ class Test_hbp01_005(unittest.TestCase):
 
         """Test"""
         player2.collab = [player2.backstage[0]]
+        p2collab = player2.collab[0]
         player2.backstage = player2.backstage[1:]
         swap_card = add_card_to_hand(self, player2, "hBP01-106") # Swap center with back card
         player1.generate_holopower(2)
@@ -53,6 +54,7 @@ class Test_hbp01_005(unittest.TestCase):
         self.assertEqual(len(baton_pass), 0)
         # Their collab is still there.
         self.assertEqual(len(player2.collab), 1)
+        self.assertFalse(player2.collab[0]["resting"])
         # They don't have a play support action with that card in it.
         support_actions = [action for action in actions if action["action_type"] == GameAction.MainStepPlaySupport]
         for support in support_actions:
@@ -65,6 +67,7 @@ class Test_hbp01_005(unittest.TestCase):
         end_turn(self)
         do_cheer_step_on_card(self, player2.center[0])
         actions = reset_mainstep(self)
+        self.assertTrue(p2collab["resting"])
         baton_pass = [action for action in actions if action["action_type"] == GameAction.MainStepBatonPass]
         self.assertEqual(len(baton_pass), 1)
 

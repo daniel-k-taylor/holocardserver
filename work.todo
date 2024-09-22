@@ -6,10 +6,22 @@ Revisit:
         ☐ For now, just no more cheer
     - London Mulligan?
     ☐ Collab effects go away if you bloom over them?
-    ☐ Stone axe (114)
-        - KO Self what happens?
-        - Do you get the draw even if you heal 0?
 
-One time Bug:
-    ☐ Can't bloom 59 onto 58 with 3 stacked - 57, 59, 58
-        ☐ Potentially pulled the bloom card from a search
+Q&A Todos:
+    ☐ Q63: Stone Axe recoil damage happens after all arts effects and damage have resolved.
+        - Make a performance art cleanup step that happens before getting back to performance step
+    ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
+        - also in cleanup phase
+
+    ☐ Q116: A SorAZ with a Pioneer attached, blooms into a Tokino Sora, will have the Pioneer archived. Safe to assume that if a card loses a required trait for an equipment (fan, tool, mascot) to be attached, the attched equipment will be archived.
+    ☐ Q122: If you mulligan down to 0 cards, you lose the game
+
+    ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.
+    ☐ Is this even possible currently? Q154: If both players go down to 0 life at the same time, it is a draw.
+    ☐ Simultaneous resolution - Q64: If you have an Aki with both Jobz and Stone Axe attached, when you declare an Arts, both Stone Axe and Jobz trigger at the same time and the effects go into 'standby'.
+        The resolution of this effects happens after completing the Arts Damage step, and the order of resolution is decided by the owner of the effects as it enters 'standby'.
+        E.g, you may choose to resolve Jobz first to recover 10 HP, THEN receive 10 damage by the Stone Axe afterwards. If Aki has 10 HP left, and you reverse the order of resolution, Aki will be downed and no healing will take place.
+
+
+Very Low Pri:
+    ☐ Losing 2 life from buzz shouldn't let the player know the id in engine

@@ -35,6 +35,7 @@ class EffectType:
     EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
     EffectType_ArchiveThisAttachment = "archive_this_attachment"
+    EffectType_ArchiveTopStackedHolomem = "archive_top_stacked_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
     EffectType_BloomDebutPlayedThisTurnTo1st = "bloom_debut_played_this_turn_to_1st"
@@ -867,12 +868,12 @@ class PlayerState:
         # For all cards in collab, move them back to backstage and rest them.
         rested_card_ids = []
         moved_backstage_card_ids = []
-        for card in self.collab:
-            card["resting"] = True
-            rested_card_ids.append(card["game_card_id"])
-
         if self.can_move_front_stage():
             for card in self.collab:
+                # Note: You only rest if you move backstage.
+                card["resting"] = True
+                rested_card_ids.append(card["game_card_id"])
+
                 self.backstage.append(card)
                 moved_backstage_card_ids.append(card["game_card_id"])
             self.collab = []
@@ -896,8 +897,8 @@ class PlayerState:
         if "bloom_level" in bloom_card:
             next_bloom_level = bloom_card["bloom_level"]
 
-        bloom_card["stacked_cards"].append(target_card)
         # Add any stacked cards on the target to this too.
+        bloom_card["stacked_cards"].append(target_card)
         bloom_card["stacked_cards"] += target_card["stacked_cards"]
         target_card["stacked_cards"] = []
 
@@ -1177,6 +1178,9 @@ def attach_card(attaching_card, target_card):
 
 def is_card_limited(card):
     return "limited" in card and card["limited"]
+
+def is_card_equipment(card):
+    return is_card_mascot(card) or is_card_tool(card) or is_card_fan(card)
 
 def is_card_mascot(card):
     return "sub_type" in card and card["sub_type"] == "mascot"
@@ -1905,10 +1909,15 @@ class GameEngine:
         )
 
     def restore_holomem_hp(self, target_player : PlayerState, target_card_id, amount, continuation):
-        target_player.restore_holomem_hp(target_card_id, amount)
         target_card, _, _ = target_player.find_card(target_card_id)
-        on_restore_effects = target_player.get_effects_at_timing("on_restore_hp", target_card)
-        self.begin_resolving_effects(on_restore_effects, continuation)
+        before_damage = target_card["damage"]
+        target_player.restore_holomem_hp(target_card_id, amount)
+        damage_healed = before_damage - target_card["damage"]
+        if damage_healed > 0:
+            on_restore_effects = target_player.get_effects_at_timing("on_restore_hp", target_card)
+            self.begin_resolving_effects(on_restore_effects, continuation)
+        else:
+            continuation()
 
     def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
         if self.damage_modifications.added_damage:
@@ -2528,6 +2537,11 @@ class GameEngine:
             case EffectType.EffectType_ArchiveThisAttachment:
                 attachment_id = effect["source_card_id"]
                 effect_player.archive_attached_cards([attachment_id])
+            case EffectType.EffectType_ArchiveTopStackedHolomem:
+                card, _, _ = effect_player.find_card(effect["source_card_id"])
+                if len(card["stacked_cards"]) > 0:
+                    top_card = card["stacked_cards"][0]
+                    effect_player.archive_attached_cards([top_card["game_card_id"]])
             case EffectType.EffectType_AttachCardToHolomem:
                 source_card_id = effect["source_card_id"]
                 continuation = self.continue_resolving_effects
@@ -4202,7 +4216,8 @@ class GameEngine:
             player.archive_attached_cards(cheer_to_archive_from_play)
 
         # Begin resolving the card effects.
-        player.played_support_this_turn = True
+        if not is_card_equipment(card):
+            player.played_support_this_turn = True
         if is_card_limited(card):
             player.used_limited_this_turn = True
 
@@ -4598,11 +4613,8 @@ class GameEngine:
                 debut = stacked_card
                 break
         if not debut:
-            if card["card_type"] == "holomem_debut":
-                debut = card
-            else:
-                # Somehow no stacked debut, so this does nothing.
-                return
+            # No debut = no effect
+            return
 
         # Restore the damage.
         current_damage = card["damage"]
