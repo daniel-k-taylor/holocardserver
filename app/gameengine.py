@@ -329,6 +329,7 @@ class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
         self.engine = engine
         self.player_id = player_info["player_id"]
+        self.username = player_info["username"]
 
         self.first_turn = True
         self.baton_pass_this_turn = False
@@ -1285,7 +1286,7 @@ class GameEngine:
     def get_player(self, player_id:str):
         return self.player_states[self.player_ids.index(player_id)]
 
-    def other_player(self, player_id:str):
+    def other_player(self, player_id:str) -> PlayerState:
         return self.player_states[1 - self.player_ids.index(player_id)]
 
     def shuffle_list(self, lst):
@@ -1345,6 +1346,8 @@ class GameEngine:
                 "starting_player": self.starting_player_id,
                 "your_id": player_id,
                 "opponent_id": self.other_player(player_id).player_id,
+                "your_username": player_state.username,
+                "opponent_username": self.other_player(player_state.player_id).username,
                 "game_card_map": self.all_game_cards_map,
             })
 
@@ -1835,7 +1838,7 @@ class GameEngine:
                             case "all_if_meets_conditions":
                                 conditions = art["target_conditions"]
                                 if self.are_conditions_met(active_player, performer["game_card_id"], conditions):
-                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False))
+                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False, only_collab=target_can_only_be_collab))
                             case "center_only":
                                 valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
 

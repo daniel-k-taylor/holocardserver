@@ -126,12 +126,14 @@ def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2dec
     self.players = [
         {
             "player_id": "player1",
+            "username": "Test Player 1",
             "oshi_id": p1deck["oshi_id"],
             "deck": p1deck["deck"],
             "cheer_deck": p1deck["cheer_deck"]
         },
         {
             "player_id": "player2",
+            "username": "Test Player 2",
             "oshi_id": p2deck["oshi_id"],
             "deck": p2deck["deck"],
             "cheer_deck": p2deck["cheer_deck"]

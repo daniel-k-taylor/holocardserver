@@ -101,6 +101,7 @@ class AIPlayer:
     def get_player_game_info(self):
         return {
             "player_id": self.player_id,
+            "username": "Weak AI",
             "oshi_id": self.oshi_id,
             "deck": self.deck,
             "cheer_deck": self.cheer_deck
