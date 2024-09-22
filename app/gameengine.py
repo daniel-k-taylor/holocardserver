@@ -29,7 +29,7 @@ class DecisionType:
     DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
-    EffectType_AddDamage = "add_damage"
+    EffectType_AddDamageTaken = "add_damage_taken"
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
     EffectType_AfterArchiveCheerCheck = "after_archive_check"
@@ -201,11 +201,13 @@ class DamageModifications:
         self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
+        self.target_card = None
 
     def clear(self):
         self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
+        self.target_card = None
 
 class AfterDamageState:
     def __init__(self):
@@ -1940,6 +1942,7 @@ class GameEngine:
 
         self.damage_modifications = DamageModifications()
         self.damage_modifications.source_player = dealing_player
+        self.damage_modifications.target_card = target_card
         on_damage_effects = target_player.get_effects_at_timing("on_take_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
             self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
@@ -2420,10 +2423,10 @@ class GameEngine:
 
         passed_on_continuation = False
         match effect["effect_type"]:
-            case EffectType.EffectType_AddDamage:
+            case EffectType.EffectType_AddDamageTaken:
                 amount = effect["amount"]
                 self.damage_modifications.added_damage += amount
-                self.send_boost_event("", "damage_added", amount)
+                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_added", amount)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -3258,7 +3261,7 @@ class GameEngine:
                 else:
                     amount_num = amount
                 self.damage_modifications.prevented_damage += amount_num
-                self.send_boost_event("", "damage_prevented", amount)
+                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_prevented", amount)
             case EffectType.EffectType_ReduceRequiredArchiveCount:
                 amount = effect["amount"]
                 self.archive_count_required -= amount

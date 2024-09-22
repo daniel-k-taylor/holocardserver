@@ -1,9 +1,10 @@
+
+
+Todo:
 ☐ Add logging to blob storage game logs so I can replay bugged games on my local server
     - Need to record all events and then a way to load and playback
     - don't forget to save the seed too
-
-Todo:
-☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
+    ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
 
 Revisit:
     - London Mulligan?
