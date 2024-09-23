@@ -7,6 +7,10 @@ from app.playermanager import PlayerManager, Player
 from app.gameroom import GameRoom
 from app.card_database import CardDatabase
 import logging
+from dotenv import load_dotenv
+
+# Load the .env file
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -187,6 +187,8 @@ class GameOverReason:
     GameOverReason_DeckEmptyDraw = "deck_empty_draw"
     GameOverReason_NoLifeLeft = "no_life_left"
     GameOverReason_MulliganToZero = "mulligan_to_zero"
+    GameOverReason_Resign = "resign"
+    GameOverReason_Unset = "unset"
 
 class ArtStatBoosts:
     def __init__(self):
@@ -1245,6 +1247,8 @@ class GameEngine:
         self.game_first_turn = True
         self.card_db = card_db
         self.latest_events = []
+        self.all_game_messages = []
+        self.game_over_event = {}
         self.current_decision = None
         self.effect_resolution_state = None
         self.test_random_override = None
@@ -1260,6 +1264,7 @@ class GameEngine:
         self.next_life_loss_modifier = 0
         self.current_clock_player_id = None
         self.clock_accumulation_start_time = 0
+        self.match_player_info = player_infos
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -1280,6 +1285,28 @@ class GameEngine:
         self.all_game_cards_map = {}
         for player_state in self.player_states:
             self.all_game_cards_map.update(player_state.game_cards_map)
+
+    def get_match_log(self):
+        winner = "none"
+        game_over_reason = GameOverReason.GameOverReason_Unset
+        if self.game_over_event:
+            winner_id = self.game_over_event["winner_id"]
+            game_over_reason = self.game_over_event["reason_id"]
+            winner = self.get_player(winner_id).username
+        match_data = {
+            "all_game_messages": self.all_game_messages,
+            "game_type": self.game_type,
+            "game_over_event": self.game_over_event,
+            "game_over_reason": game_over_reason,
+            "player_info": self.match_player_info,
+            "player_clocks": [player_state.clock_time_used for player_state in self.player_states],
+            "player_final_life": [str(len(player_state.life)) for player_state in self.player_states],
+            "seed": self.seed,
+            "starting_player": self.get_player(self.starting_player_id).username,
+            "turn_number": self.turn_number,
+            "winner": winner,
+        }
+        return match_data
 
     def set_random_test_hook(self, random_override):
         self.test_random_override = random_override
@@ -2090,6 +2117,10 @@ class GameEngine:
         self.broadcast_event(down_event)
 
         if game_over:
+            # For making logging look nice, go ahead and remove any life lost.
+            for _ in range(life_lost):
+                if target_player.life:
+                    target_player.life.pop()
             self.end_game(loser_id=target_player.player_id, reason_id=game_over_reason)
         elif life_to_distribute:
             # Tell the owner to distribute this life amongst their holomems.
@@ -3803,6 +3834,7 @@ class GameEngine:
                 "reason_id": reason_id,
             }
             self.broadcast_event(gameover_event)
+            self.game_over_event = gameover_event
 
     def send_boost_event(self, card_id, stat:str, amount:int):
         boost_event = {
@@ -3863,7 +3895,13 @@ class GameEngine:
         return True
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
-        logger.info("Player(%s) Game Message: %s" % (player_id, action_type))
+        self.all_game_messages.append({
+            "player_id": player_id,
+            "action_type": action_type,
+            "action_data": action_data
+        })
+        username = self.get_player(player_id).username
+        logger.info("Game Message: Player(%s) : %s" % (username, action_type))
         handled = False
         try:
             match action_type:
@@ -4904,6 +4942,6 @@ class GameEngine:
         self.begin_resolving_effects([chosen_effect], continuation)
 
     def handle_player_resign(self, player_id):
-        self.end_game(player_id, "resign")
+        self.end_game(player_id, GameOverReason.GameOverReason_Resign)
 
         return True
