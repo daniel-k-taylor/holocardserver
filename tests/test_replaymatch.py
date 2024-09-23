@@ -48,6 +48,8 @@ class TestReplayMatch(unittest.TestCase):
         events = engine.grab_events()
         all_events += events
         self.assertTrue(engine.is_game_over())
+        self.assertEqual(match_data["game_over_reason"], engine.game_over_event["reason_id"])
+        self.assertEqual(match_data["winner"], engine.get_player(engine.game_over_event["winner_id"]).username)
 
 
 if __name__ == '__main__':
