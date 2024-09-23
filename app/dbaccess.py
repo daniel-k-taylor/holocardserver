@@ -18,37 +18,38 @@ def upload_match_to_blob_storage(match_data):
     AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
 
     if not AZURE_STORAGE_CONNECTION_STRING:
-        raise ValueError("Please set the AZURE_STORAGE_CONNECTION_STRING environment variable.")
+        logger.error("Please set the AZURE_STORAGE_CONNECTION_STRING environment variable.")
+        return
 
-    # Initialize BlobServiceClient
-    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-    # Define the container name
-    container_name = MATCH_LOG_CONTAINER
-
-    container_client = blob_service_client.get_container_client(container_name)
-
-    uuid = generate_short_alphanumeric_id()
-    blob_name = f"match_{uuid}_{match_data["player_info"][0]["username"]}_VS_{match_data["player_info"][1]["username"]}.json"
-
-    metadata = {
-        "player1": match_data["player_info"][0]["username"],
-        "player2": match_data["player_info"][1]["username"],
-        "player1_clock": str(match_data["player_clocks"][0]),
-        "player2_clock": str(match_data["player_clocks"][1]),
-        "player1_life": str(match_data["player_final_life"][0]),
-        "player2_life": str(match_data["player_final_life"][1]),
-        "oshi1": match_data["player_info"][0]["oshi_id"],
-        "oshi2": match_data["player_info"][1]["oshi_id"],
-        "game_over_reason": match_data["game_over_reason"],
-        "queue_name": match_data["queue_name"],
-        "starting_player": match_data["starting_player"],
-        "turn_count": str(match_data["turn_number"]),
-        "winner": match_data["winner"],
-    }
-
-    json_data = json.dumps(match_data, indent=2)
     try:
+        # Initialize BlobServiceClient
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+        # Define the container name
+        container_name = MATCH_LOG_CONTAINER
+
+        container_client = blob_service_client.get_container_client(container_name)
+
+        uuid = generate_short_alphanumeric_id()
+        blob_name = f"match_{uuid}_{match_data["player_info"][0]["username"]}_VS_{match_data["player_info"][1]["username"]}.json"
+
+        metadata = {
+            "player1": match_data["player_info"][0]["username"],
+            "player2": match_data["player_info"][1]["username"],
+            "player1_clock": str(match_data["player_clocks"][0]),
+            "player2_clock": str(match_data["player_clocks"][1]),
+            "player1_life": str(match_data["player_final_life"][0]),
+            "player2_life": str(match_data["player_final_life"][1]),
+            "oshi1": match_data["player_info"][0]["oshi_id"],
+            "oshi2": match_data["player_info"][1]["oshi_id"],
+            "game_over_reason": match_data["game_over_reason"],
+            "queue_name": match_data["queue_name"],
+            "starting_player": match_data["starting_player"],
+            "turn_count": str(match_data["turn_number"]),
+            "winner": match_data["winner"],
+        }
+
+        json_data = json.dumps(match_data, indent=2)
         upload_blob(container_client, json_data, blob_name, metadata)
     except Exception as e:
         logger.error(f"Error uploading match data to Blob Storage: {e}")
