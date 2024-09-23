@@ -139,6 +139,9 @@ class Test_hbp01_006(unittest.TestCase):
             "damage": 30,
             "special": False,
         })
+
+        # Before doing this, let's get an empty hand.
+        player1.hand = []
         events = pick_choice(self, self.player1, 0)
         # Events - 2 holopower, oshi, down, send cheer
         self.assertEqual(len(events), 18)
@@ -167,6 +170,7 @@ class Test_hbp01_006(unittest.TestCase):
         self.assertTrue(b2["game_card_id"] in inhand)
         self.assertTrue(b3["game_card_id"] in inhand)
         self.assertTrue(test1["game_card_id"] in inhand)
+        self.assertEqual(len(player1.hand), 4)
 
 
 if __name__ == '__main__':

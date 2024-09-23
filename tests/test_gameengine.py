@@ -28,12 +28,14 @@ class TestGameEngine(unittest.TestCase):
         self.players = [
             {
                 "player_id": "player1",
+                "username": "Test Player 1",
                 "oshi_id": azki_starter["oshi_id"],
                 "deck": azki_starter["deck"],
                 "cheer_deck": azki_starter["cheer_deck"]
             },
             {
                 "player_id": "player2",
+                "username": "Test Player 2",
                 "oshi_id": sora_starter["oshi_id"],
                 "deck": sora_starter["deck"],
                 "cheer_deck": sora_starter["cheer_deck"]

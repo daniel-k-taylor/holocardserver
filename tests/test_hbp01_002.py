@@ -120,7 +120,7 @@ class Test_hbp01_002(unittest.TestCase):
             "skill_id": "guardianofcivilization",
         })
         validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
-            "card_id": "",
+            "card_id": player1.center[0]["game_card_id"],
             "stat": "damage_prevented",
             "amount": 50,
         })
@@ -183,7 +183,7 @@ class Test_hbp01_002(unittest.TestCase):
             "skill_id": "guardianofcivilization",
         })
         validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
-            "card_id": "",
+            "card_id": player1.center[0]["game_card_id"],
             "stat": "damage_prevented",
             "amount": 50,
         })

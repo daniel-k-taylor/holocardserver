@@ -3,6 +3,7 @@ from app.card_database import CardDatabase
 import random
 from copy import deepcopy
 import traceback
+import time
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class DecisionType:
     DecisionEffect_OrderCards = "decision_order_cards"
 
 class EffectType:
-    EffectType_AddDamage = "add_damage"
+    EffectType_AddDamageTaken = "add_damage_taken"
     EffectType_AddTurnEffect = "add_turn_effect"
     EffectType_AddTurnEffectForHolomem = "add_turn_effect_for_holomem"
     EffectType_AfterArchiveCheerCheck = "after_archive_check"
@@ -201,11 +202,13 @@ class DamageModifications:
         self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
+        self.target_card = None
 
     def clear(self):
         self.added_damage = 0
         self.prevented_damage = 0
         self.source_player = None
+        self.target_card = None
 
 class AfterDamageState:
     def __init__(self):
@@ -329,6 +332,7 @@ class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
         self.engine = engine
         self.player_id = player_info["player_id"]
+        self.username = player_info["username"]
 
         self.first_turn = True
         self.baton_pass_this_turn = False
@@ -353,6 +357,7 @@ class PlayerState:
         self.card_effects_used_this_turn = []
         self.block_movement_for_turn = False
         self.last_archived_count = 0
+        self.clock_time_used = 0
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -1102,7 +1107,6 @@ class PlayerState:
 
         to_archive = attached_cheer + attached_support
         to_hand = [returning_card] # Make sure to grab the actual card itself.
-        self.hand.append(returning_card)
 
         if include_stacked_holomem:
             to_hand += stacked_cards
@@ -1115,6 +1119,10 @@ class PlayerState:
             self.hand.append(card)
         archived_ids = ids_from_cards(to_archive)
         hand_ids = ids_from_cards(to_hand)
+
+        returning_card["attached_cheer"] = []
+        returning_card["attached_support"] = []
+        returning_card["stacked_cards"] = []
 
         return archived_ids, hand_ids
 
@@ -1250,6 +1258,8 @@ class GameEngine:
         self.last_chosen_cards = []
         self.last_card_count = 0
         self.next_life_loss_modifier = 0
+        self.current_clock_player_id = None
+        self.clock_accumulation_start_time = 0
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -1282,7 +1292,7 @@ class GameEngine:
     def get_player(self, player_id:str):
         return self.player_states[self.player_ids.index(player_id)]
 
-    def other_player(self, player_id:str):
+    def other_player(self, player_id:str) -> PlayerState:
         return self.player_states[1 - self.player_ids.index(player_id)]
 
     def shuffle_list(self, lst):
@@ -1342,6 +1352,8 @@ class GameEngine:
                 "starting_player": self.starting_player_id,
                 "your_id": player_id,
                 "opponent_id": self.other_player(player_id).player_id,
+                "your_username": player_state.username,
+                "opponent_username": self.other_player(player_state.player_id).username,
                 "game_card_map": self.all_game_cards_map,
             })
 
@@ -1385,6 +1397,8 @@ class GameEngine:
             should_sanitize = not (player_state.player_id == event.get("hidden_info_player"))
             new_event = {
                 "event_player_id": player_state.player_id,
+                "your_clock_used": player_state.clock_time_used,
+                "opponent_clock_used": self.other_player(player_state.player_id).clock_time_used,
                 **event,
             }
             if should_sanitize:
@@ -1404,6 +1418,8 @@ class GameEngine:
         if self.current_decision:
             raise Exception("Decision already set.")
         self.current_decision = new_decision
+        self.current_clock_player_id = new_decision["decision_player"]
+        self.clock_accumulation_start_time = time.time()
 
     def begin_initial_placement(self):
         self.phase = GamePhase.InitialPlacement
@@ -1832,7 +1848,7 @@ class GameEngine:
                             case "all_if_meets_conditions":
                                 conditions = art["target_conditions"]
                                 if self.are_conditions_met(active_player, performer["game_card_id"], conditions):
-                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False))
+                                    valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False, only_collab=target_can_only_be_collab))
                             case "center_only":
                                 valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
 
@@ -1934,6 +1950,7 @@ class GameEngine:
 
         self.damage_modifications = DamageModifications()
         self.damage_modifications.source_player = dealing_player
+        self.damage_modifications.target_card = target_card
         on_damage_effects = target_player.get_effects_at_timing("on_take_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
             self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
@@ -2023,7 +2040,7 @@ class GameEngine:
             self.process_downed_holomem(target_player, target_card, prevent_life_loss, continuation)
         )
 
-    def process_downed_holomem(self, target_player, target_card, prevent_life_loss, continuation):
+    def process_downed_holomem(self, target_player : PlayerState, target_card, prevent_life_loss, continuation):
         self.down_holomem_state = self.down_holomem_state.nested_state
         game_over = False
         game_over_reason = ""
@@ -2414,10 +2431,10 @@ class GameEngine:
 
         passed_on_continuation = False
         match effect["effect_type"]:
-            case EffectType.EffectType_AddDamage:
+            case EffectType.EffectType_AddDamageTaken:
                 amount = effect["amount"]
                 self.damage_modifications.added_damage += amount
-                self.send_boost_event("", "damage_added", amount)
+                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_added", amount)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -3252,7 +3269,7 @@ class GameEngine:
                 else:
                     amount_num = amount
                 self.damage_modifications.prevented_damage += amount_num
-                self.send_boost_event("", "damage_prevented", amount)
+                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_prevented", amount)
             case EffectType.EffectType_ReduceRequiredArchiveCount:
                 amount = effect["amount"]
                 self.archive_count_required -= amount
@@ -4019,6 +4036,10 @@ class GameEngine:
         raise NotImplementedError("Continuation expected.")
 
     def clear_decision(self):
+        if self.current_clock_player_id:
+            elapsed_time = time.time() - self.clock_accumulation_start_time
+            active_player = self.get_player(self.current_clock_player_id)
+            active_player.clock_time_used += elapsed_time
         continuation = self.blank_continuation
         if self.current_decision:
             continuation = self.current_decision["continuation"]
