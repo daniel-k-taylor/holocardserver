@@ -62,7 +62,8 @@ class MatchQueue:
             room_id=room_id,
             room_name=room_name,
             players=self.players,
-            game_type=self.game_type
+            game_type=self.game_type,
+            queue_name=self.queue_name
         )
 
 class Matchmaking:

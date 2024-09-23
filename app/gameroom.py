@@ -4,16 +4,18 @@ from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction
 from app.card_database import CardDatabase
 from app.aiplayer import AIPlayer, DefaultAIDeck
+from app.dbaccess import upload_match_to_blob_storage
 import logging
 logger = logging.getLogger(__name__)
 
 class GameRoom:
-    def __init__(self, room_id : str, room_name : str, players : List[Player], game_type : str):
+    def __init__(self, room_id : str, room_name : str, players : List[Player], game_type : str, queue_name : str):
         self.room_id = room_id
         self.room_name = room_name
         self.players = players
         self.ai_player = None
         self.game_type = game_type
+        self.queue_name = queue_name
         self.cleanup_room = False
         for player in self.players:
             player.current_game_room = self
@@ -79,6 +81,11 @@ class GameRoom:
 
         if self.engine.is_game_over():
             logger.info("ROOM: %s Game over!" % self.room_id)
+            if not self.is_ai_game():
+                match_data = self.engine.get_match_log()
+                if match_data["turn_number"] >= 0:
+                    match_data["queue_name"] = self.queue_name
+                    upload_match_to_blob_storage(match_data)
             self.cleanup_room = True
 
     def is_ready_for_cleanup(self):

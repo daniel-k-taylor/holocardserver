@@ -1,5 +1,7 @@
+azure-storage-blob
 fastapi
 gunicorn
+python-dotenv
 redis
 uvicorn
 websockets
