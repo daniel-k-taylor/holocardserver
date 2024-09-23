@@ -3,6 +3,7 @@ from app.card_database import CardDatabase
 import random
 from copy import deepcopy
 import traceback
+import time
 import logging
 logger = logging.getLogger(__name__)
 
@@ -356,6 +357,7 @@ class PlayerState:
         self.card_effects_used_this_turn = []
         self.block_movement_for_turn = False
         self.last_archived_count = 0
+        self.clock_time_used = 0
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -1256,6 +1258,8 @@ class GameEngine:
         self.last_chosen_cards = []
         self.last_card_count = 0
         self.next_life_loss_modifier = 0
+        self.current_clock_player_id = None
+        self.clock_accumulation_start_time = 0
 
         self.damage_modifications = DamageModifications()
         self.performance_artstatboosts = ArtStatBoosts()
@@ -1393,6 +1397,8 @@ class GameEngine:
             should_sanitize = not (player_state.player_id == event.get("hidden_info_player"))
             new_event = {
                 "event_player_id": player_state.player_id,
+                "your_clock_used": player_state.clock_time_used,
+                "opponent_clock_used": self.other_player(player_state.player_id).clock_time_used,
                 **event,
             }
             if should_sanitize:
@@ -1412,6 +1418,8 @@ class GameEngine:
         if self.current_decision:
             raise Exception("Decision already set.")
         self.current_decision = new_decision
+        self.current_clock_player_id = new_decision["decision_player"]
+        self.clock_accumulation_start_time = time.time()
 
     def begin_initial_placement(self):
         self.phase = GamePhase.InitialPlacement
@@ -4028,6 +4036,10 @@ class GameEngine:
         raise NotImplementedError("Continuation expected.")
 
     def clear_decision(self):
+        if self.current_clock_player_id:
+            elapsed_time = time.time() - self.clock_accumulation_start_time
+            active_player = self.get_player(self.current_clock_player_id)
+            active_player.clock_time_used += elapsed_time
         continuation = self.blank_continuation
         if self.current_decision:
             continuation = self.current_decision["continuation"]
