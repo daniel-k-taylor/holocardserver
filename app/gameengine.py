@@ -1248,6 +1248,7 @@ class GameEngine:
         self.card_db = card_db
         self.latest_events = []
         self.all_game_messages = []
+        self.all_events = []
         self.game_over_event = {}
         self.current_decision = None
         self.effect_resolution_state = None
@@ -1294,7 +1295,9 @@ class GameEngine:
             game_over_reason = self.game_over_event["reason_id"]
             winner = self.get_player(winner_id).username
         match_data = {
+            "all_events": self.all_events,
             "all_game_messages": self.all_game_messages,
+            "all_game_cards_map": self.all_game_cards_map,
             "game_type": self.game_type,
             "game_over_event": self.game_over_event,
             "game_over_reason": game_over_reason,
@@ -1418,6 +1421,9 @@ class GameEngine:
         self.latest_events.append(event)
 
     def broadcast_event(self, event):
+        event["event_number"] = len(self.all_events)
+        event["last_game_message_number"] = len(self.all_game_messages) - 1
+        self.all_events.append(event)
         hidden_fields = event.get("hidden_info_fields", [])
         hidden_erase = event.get("hidden_info_erase", [])
         for player_state in self.player_states:
@@ -3897,6 +3903,8 @@ class GameEngine:
 
     def handle_game_message(self, player_id:str, action_type:str, action_data: dict):
         self.all_game_messages.append({
+            "game_message_number": len(self.all_game_messages),
+            "last_event_number": len(self.all_events) - 1,
             "player_id": player_id,
             "action_type": action_type,
             "action_data": action_data
