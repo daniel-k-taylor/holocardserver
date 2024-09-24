@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List
 from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction
@@ -81,7 +82,7 @@ class GameRoom:
 
         if self.engine.is_game_over():
             logger.info("ROOM: %s Game over!" % self.room_id)
-            if not self.is_ai_game():
+            if not self.is_ai_game() and not os.getenv("DONT_UPLOAD_MATCHES"):
                 match_data = self.engine.get_match_log()
                 if match_data["turn_number"] >= 0:
                     match_data["queue_name"] = self.queue_name

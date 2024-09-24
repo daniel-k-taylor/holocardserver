@@ -2443,9 +2443,10 @@ class GameEngine:
                 if len(effect_player.deck) == 0:
                     return False
                 top_card = effect_player.deck[0]
-                for tag in top_card["tags"]:
-                    if tag in valid_tags:
-                        return True
+                if "tags" in top_card:
+                    for tag in top_card["tags"]:
+                        if tag in valid_tags:
+                            return True
                 return False
             case _:
                 raise NotImplementedError(f"Unimplemented condition: {condition['condition']}")
