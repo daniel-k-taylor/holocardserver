@@ -1536,6 +1536,30 @@ class Test_hbp01_Support(unittest.TestCase):
         reset_mainstep(self)
 
 
+    def test_hbp01_118_counts_as_cheer_sora(self):
+        p1deck = generate_deck_with([], {"hBP01-118": 2, "hBP01-023": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.collab = player1.center
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-023", player1.center)
+        test_card = put_card_in_play(self, player1, "hBP01-118", p1center["attached_support"])
+        spawn_cheer_on_card(self, player1, p1center["game_card_id"], "white", "w1")
+        spawn_cheer_on_card(self, player1, p1center["game_card_id"], "white", "w2")
+        actions = reset_mainstep(self)
+        begin_performance(self)
+        actions = reset_performancestep(self)
+        self.assertEqual(len(actions), 3)
+        self.assertEqual(actions[0]["performer_id"], p1center["game_card_id"])
+
+
     def test_hbp01_119_art_cleanup_restorehp_any(self):
         p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)

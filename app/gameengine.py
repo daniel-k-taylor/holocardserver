@@ -483,7 +483,7 @@ class PlayerState:
 
         check_cheer_effects = self.get_effects_at_timing("check_cheer", card, "")
         for effect in check_cheer_effects:
-            if check_cheer_effects and self.engine.are_conditions_met(self, card["game_card_id"], effect.get("conditions", [])):
+            if check_cheer_effects and self.engine.are_conditions_met(self, effect["source_card_id"], effect.get("conditions", [])):
                 match effect["effect_type"]:
                     case "bonus_cheer":
                         amount = effect["amount"]
