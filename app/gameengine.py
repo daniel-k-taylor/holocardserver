@@ -599,7 +599,7 @@ class PlayerState:
         if accepted_bloom_levels:
             if bloom_card["card_type"] == "holomem_bloom" and bloom_card["bloom_level"] in accepted_bloom_levels:
                 # Check the names of the bloom card, at last one must match a name from the base card.
-                if any(name in bloom_card["holomem_names"] for name in target_card["holomem_names"]):
+                if any(name in bloom_card["card_names"] for name in target_card["card_names"]):
                     # Check the damage, if the bloom version would die, you can't.
                     if target_card["damage"] < self.get_card_hp(bloom_card):
                         return True
@@ -1209,7 +1209,7 @@ def is_card_attach_requirements_meant(attachment, card):
             to_limitation = first_effect.get("to_limitation", "")
             if to_limitation == "specific_member_name":
                 name = first_effect.get("to_limitation_name", "")
-                if name not in card["holomem_names"]:
+                if name not in card["card_names"]:
                     return False
     return True
 
@@ -1662,7 +1662,7 @@ class GameEngine:
                             continue
                         if card["card_type"] == "holomem_bloom" and card["bloom_level"] in accepted_bloom_levels:
                             # Check the names of the bloom card, at last one must match a name from the base card.
-                            if any(name in card["holomem_names"] for name in mem_card["holomem_names"]):
+                            if any(name in card["card_names"] for name in mem_card["card_names"]):
                                 # Check the damage, if the bloom version would die, you can't.
                                 if mem_card["damage"] < active_player.get_card_hp(card):
                                     available_actions.append({
@@ -2250,7 +2250,7 @@ class GameEngine:
                 holomems = owner_player.get_holomem_on_stage()
                 for holomem in holomems:
                     if source_card_id in [card["game_card_id"] for card in holomem["attached_support"]]:
-                        if required_member_name in holomem["holomem_names"]:
+                        if required_member_name in holomem["card_names"]:
                             if not required_bloom_levels or holomem.get("bloom_level", -1) in required_bloom_levels:
                                 return True
                 return False
@@ -2318,7 +2318,7 @@ class GameEngine:
             case Condition.Condition_CollabWith:
                 required_member_name = condition["required_member_name"]
                 holomems = effect_player.get_holomem_on_stage(only_performers=True)
-                return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+                return any(required_member_name in holomem["card_names"] for holomem in holomems)
             case Condition.Condition_DamageAbilityIsColor:
                 condition_color = condition["condition_color"]
                 include_oshi_ability = condition.get("include_oshi_ability", False)
@@ -2364,14 +2364,14 @@ class GameEngine:
                 if "required_member_name" in condition:
                     required_member_name = condition["required_member_name"]
                     holomems = effect_player.get_holomem_on_stage()
-                    return any(required_member_name in holomem["holomem_names"] for holomem in holomems)
+                    return any(required_member_name in holomem["card_names"] for holomem in holomems)
                 elif "exclude_member_name" in condition:
                     exclude_member_name = condition["exclude_member_name"]
                     if "tag_in" in condition:
                         tags = condition["tag_in"]
                         holomems = effect_player.get_holomem_on_stage()
                         for holomem in holomems:
-                            if exclude_member_name in holomem["holomem_names"]:
+                            if exclude_member_name in holomem["card_names"]:
                                 continue
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
@@ -2389,7 +2389,7 @@ class GameEngine:
                 return self.active_player_id != effect_player.player_id
             case Condition.Condition_OshiIs:
                 required_member_name = condition["required_member_name"]
-                return required_member_name == effect_player.oshi_card["oshi_name"]
+                return required_member_name in effect_player.oshi_card["card_names"]
             case Condition.Condition_PerformanceTargetHasDamageOverHp:
                 amount = condition["amount"]
                 return self.performance_target_card["damage"] >= self.performance_target_player.get_card_hp(self.performance_target_card) + amount
@@ -2656,7 +2656,7 @@ class GameEngine:
                             if any(color in holomem["colors"] for color in to_limitation_colors)]
                     case "specific_member_name":
                         holomem_targets = [holomem for holomem in holomem_targets \
-                            if to_limitation_name in holomem["holomem_names"]]
+                            if to_limitation_name in holomem["card_names"]]
                     case "tag_in":
                         holomem_targets = [holomem for holomem in holomem_targets \
                             if any(tag in holomem["tags"] for tag in to_limitation_tags)]
@@ -2837,7 +2837,7 @@ class GameEngine:
                         case "holomem_named":
                             # Only include cards that have a name in the requirement_names list.
                             cards_can_choose = [card for card in cards_can_choose \
-                                if "holomem_names" in card and any(name in card["holomem_names"] for name in requirement_names)]
+                                if "card_names" in card and any(name in card["card_names"] for name in requirement_names)]
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
@@ -3620,7 +3620,7 @@ class GameEngine:
                                 case "specific_member_name":
                                     to_limitation_name = effect.get("to_limitation_name", "")
                                     holomems = effect_player.get_holomem_on_stage()
-                                    to_options = [card for card in holomems if to_limitation_name in card["holomem_names"]]
+                                    to_options = [card for card in holomems if to_limitation_name in card["card_names"]]
                                 case "tag_in":
                                     to_options = [card for card in effect_player.get_holomem_on_stage() if any(tag in card["tags"] for tag in to_limitation_tags)]
                                 case _:
@@ -3628,7 +3628,7 @@ class GameEngine:
                         else:
                             to_options = effect_player.get_holomem_on_stage()
                         if to_limitation_exclude_name:
-                            to_options = [card for card in to_options if to_limitation_exclude_name not in card["holomem_names"]]
+                            to_options = [card for card in to_options if to_limitation_exclude_name not in card["card_names"]]
 
                         # Remove any to_options where the holomem is downed.
                         if self.down_holomem_state:

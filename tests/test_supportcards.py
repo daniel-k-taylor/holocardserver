@@ -583,7 +583,7 @@ class TestSupportCards(unittest.TestCase):
         # So put 4 sora/az back on the deck. Have plenty of 004/005/006 in hand.
         cards_named_sora = []
         for card in player1.hand:
-            if "holomem_names" in card and "tokino_sora" in card["holomem_names"]:
+            if "card_names" in card and "tokino_sora" in card["card_names"]:
                 cards_named_sora.append(card["game_card_id"])
                 if len(cards_named_sora) == 4:
                     break
