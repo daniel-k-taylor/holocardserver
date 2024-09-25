@@ -145,8 +145,8 @@ class Test_hbp01_008(unittest.TestCase):
             "card_ids": [b1["game_card_id"],b2["game_card_id"]]
         })
         events = engine.grab_events()
-        # Events - archive the 2 cheer so move 2 cards, oshi choice
-        self.assertEqual(len(events), 6)
+        # Events - archive the 2 cheer so move 2 cards, then continue the art
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "to_zone": "archive",
@@ -157,7 +157,47 @@ class Test_hbp01_008(unittest.TestCase):
             "to_zone": "archive",
             "card_id": b2["game_card_id"]
         })
-        validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 120,
+        })
+        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2center["game_card_id"],
+            "power": 180,
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 180,
+            "target_player": self.player2,
+            "special": False,
+        })
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+            "game_over": False,
+            "target_player": self.player2,
+            "life_lost": 1,
+            "life_loss_prevented": False,
+        })
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player2,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "life",
+            "to_zone": "holomem",
+        })
+        # Send cheer from life
+        from_options = events[12]["from_options"]
+        to_options = events[12]["to_options"]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: player2.backstage[0]["game_card_id"],
+            }
+        })
+        events = engine.grab_events()
+        # Events - move cheer, oshi choice
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
         # Pay 1 holo, oshi activation, choose target
         self.assertEqual(len(events), 6)
@@ -175,44 +215,20 @@ class Test_hbp01_008(unittest.TestCase):
         cards_can_choose = events[4]["cards_can_choose"]
         self.assertListEqual(cards_can_choose, ids_from_cards(player2.center + player2.collab + player2.backstage))
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [player2.center[0]["game_card_id"]]
+            "card_ids": [player2.backstage[0]["game_card_id"]]
         })
         events = engine.grab_events()
-        # Events - deal damage, boost, art, damage, send cheer cause dead
+        # oshi choice
+        # Events - deal damage, end turn stuff
         self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "damage": 20,
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
-            "stat": "power",
-            "amount": 120,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "shiningcomet",
-            "target_id": p2center["game_card_id"],
-            "power": 180,
-        })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
-            "damage": 180,
-            "target_player": self.player2,
-            "special": False,
-        })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
-            "game_over": False,
-            "target_player": self.player2,
-            "life_lost": 1,
-            "life_loss_prevented": False,
-        })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
-            "effect_player_id": self.player2,
-            "amount_min": 1,
-            "amount_max": 1,
-            "from_zone": "life",
-            "to_zone": "holomem",
-        })
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, self.player1, {})
+
 
 if __name__ == '__main__':
     unittest.main()

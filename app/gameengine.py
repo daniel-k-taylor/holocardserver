@@ -360,6 +360,7 @@ class PlayerState:
         self.block_movement_for_turn = False
         self.last_archived_count = 0
         self.clock_time_used = 0
+        self.performance_cleanup_effects_pending = []
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -553,6 +554,9 @@ class PlayerState:
 
         return passed_requirement
 
+    def add_performance_cleanup(self, effects):
+        self.performance_cleanup_effects_pending.extend(effects)
+
     def can_archive_from_hand(self, amount, condition_source):
         return self.get_can_archive_from_hand_count(condition_source) >= amount
 
@@ -639,6 +643,11 @@ class PlayerState:
 
     def get_effects_at_timing(self, timing, card, timing_source_requirement = ""):
         effects = []
+
+        if timing == "art_cleanup":
+            effects.extend(self.performance_cleanup_effects_pending)
+            self.performance_cleanup_effects_pending = []
+
         for oshi_effect in self.oshi_card.get("effects", []):
             if oshi_effect["timing"] == timing:
                 if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
@@ -1922,7 +1931,10 @@ class GameEngine:
                 self.begin_cleanup_art
             )
         else:
+            # An art is no longer being performed.
+            self.performance_art = ""
             self.performance_artstatboosts.clear()
+
             self.send_performance_step_actions()
 
     def begin_perform_art(self, performer_id, art_id, target_id, continuation):
@@ -2523,8 +2535,13 @@ class GameEngine:
                 if previous_archive_count < current_archive_count:
                     # The player archived some amount of cheer.
                     after_archive_effects = effect_player.get_effects_at_timing("after_archive_cheer", None, ability_source)
-                    self.begin_resolving_effects(after_archive_effects, self.continue_resolving_effects)
-                    passed_on_continuation = True
+                    if self.performance_art:
+                        # Queue to cleanup effects.
+                        effect_player.add_performance_cleanup(after_archive_effects)
+                    else:
+                        # The effect has already been resolved, so do it now.
+                        self.begin_resolving_effects(after_archive_effects, self.continue_resolving_effects)
+                        passed_on_continuation = True
             case EffectType.EffectType_ArchiveCheerFromHolomem:
                 amount = effect["amount"]
                 from_zone = effect["from"]
