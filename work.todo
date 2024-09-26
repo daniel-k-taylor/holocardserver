@@ -1,10 +1,16 @@
 
 Todo:
-    ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
-
+    ☐ Observer mode - Let observers join, they get full messages and play them all immediately but hidden stuff stripped from both players.
+    ☐ Reconnect logic -
+        - Leave game room open,
+        - give remaining player a button to kill the match after a minute
+        - Assign to local storage a UUID for that account that they'll use to connect back
+            - pass this up when joining the server
+            - if you need to reconnect, it automatically puts you back in the right room and sends you events to catch you up
 Revisit:
+    ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
-    ☐ Collab effects go away if you bloom over them?
+    ☐ Collab add turn effects go away if you bloom over them?
 
 Q&A Todos:
     ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
@@ -21,4 +27,4 @@ Q&A Todos:
 
 
 Very Low Pri:
-    ☐ Losing 2 life from buzz shouldn't let the player know the id in engine
+    ☐ Losing 2 life from buzz shouldn't let the client know the id at all

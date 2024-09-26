@@ -3207,6 +3207,7 @@ class GameEngine:
                     "event_type": EventType.EventType_OshiSkillActivation,
                     "oshi_player_id": effect_player.player_id,
                     "skill_id": skill_id,
+                    "limit": effect["limit"]
                 }
                 self.broadcast_event(oshi_skill_event)
             case EffectType.EffectType_ModifyNextLifeLoss:
