@@ -325,10 +325,13 @@ class GameAction:
     }
 
 class EffectResolutionState:
-    def __init__(self, effects, continuation, cards_to_cleanup = []):
+    def __init__(self, effects, continuation, cards_to_cleanup = [], simultaneous_choice = False):
         self.effects_to_resolve = deepcopy(effects)
         self.effect_resolution_continuation = continuation
         self.cards_to_cleanup = cards_to_cleanup
+        self.simultaneous_choice = simultaneous_choice
+
+        self.simultaneous_choice_index = -1
 
 class PlayerState:
     def __init__(self, card_db:CardDatabase, player_info:Dict[str, Any], engine: 'GameEngine'):
@@ -360,6 +363,7 @@ class PlayerState:
         self.block_movement_for_turn = False
         self.last_archived_count = 0
         self.clock_time_used = 0
+        self.performance_cleanup_effects_pending = []
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -553,6 +557,9 @@ class PlayerState:
 
         return passed_requirement
 
+    def add_performance_cleanup(self, effects):
+        self.performance_cleanup_effects_pending.extend(effects)
+
     def can_archive_from_hand(self, amount, condition_source):
         return self.get_can_archive_from_hand_count(condition_source) >= amount
 
@@ -639,6 +646,11 @@ class PlayerState:
 
     def get_effects_at_timing(self, timing, card, timing_source_requirement = ""):
         effects = []
+
+        if timing == "art_cleanup":
+            effects.extend(self.performance_cleanup_effects_pending)
+            self.performance_cleanup_effects_pending = []
+
         for oshi_effect in self.oshi_card.get("effects", []):
             if oshi_effect["timing"] == timing:
                 if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
@@ -1922,7 +1934,10 @@ class GameEngine:
                 self.begin_cleanup_art
             )
         else:
+            # An art is no longer being performed.
+            self.performance_art = ""
             self.performance_artstatboosts.clear()
+
             self.send_performance_step_actions()
 
     def begin_perform_art(self, performer_id, art_id, target_id, continuation):
@@ -2162,9 +2177,9 @@ class GameEngine:
     def begin_cleanup_art(self):
         # Check for any cleanup effects.
         performer_cleanup_effects = self.performance_performing_player.get_effects_at_timing("art_cleanup", self.performance_performer_card)
-        self.begin_resolving_effects(performer_cleanup_effects, self.continue_performance_step)
+        self.begin_resolving_effects(performer_cleanup_effects, self.continue_performance_step, [], simultaneous_choice=True)
 
-    def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = []):
+    def begin_resolving_effects(self, effects, continuation, cards_to_cleanup = [], simultaneous_choice = False):
         effect_continuation = continuation
         if self.effect_resolution_state:
             # There is already an effects resolution going down.
@@ -2175,7 +2190,7 @@ class GameEngine:
                 self.effect_resolution_state = outer_resolution_state
                 continuation()
             effect_continuation = new_continuation
-        self.effect_resolution_state = EffectResolutionState(effects, effect_continuation, cards_to_cleanup)
+        self.effect_resolution_state = EffectResolutionState(effects, effect_continuation, cards_to_cleanup, simultaneous_choice)
         self.continue_resolving_effects()
 
     def continue_resolving_effects(self):
@@ -2204,7 +2219,23 @@ class GameEngine:
 
         passed_on_continuation = False
         while len(self.effect_resolution_state.effects_to_resolve) > 0 and not self.current_decision:
-            effect = self.effect_resolution_state.effects_to_resolve.pop(0)
+            multiple_simulatenous_choices = len(self.effect_resolution_state.effects_to_resolve) > 1 and self.effect_resolution_state.simultaneous_choice
+            if "internal_skip_simultaneous_choice" in self.effect_resolution_state.effects_to_resolve[0] and self.effect_resolution_state.effects_to_resolve[0]["internal_skip_simultaneous_choice"]:
+                # Ignore simultaneous resolution for internal effects, they should happen next no matter what.
+                multiple_simulatenous_choices = False
+
+            if multiple_simulatenous_choices and self.effect_resolution_state.simultaneous_choice_index == -1:
+                # There are multiple choices and the player has to make a decision, send the decision then break out.
+                choice = self.effect_resolution_state.effects_to_resolve
+                self.send_choice_to_player(choice[0]["player_id"], choice, simultaneous_resolution=True)
+                break
+            elif multiple_simulatenous_choices:
+                # The player decided on the choice, so pop that one.
+                effect = self.effect_resolution_state.effects_to_resolve.pop(self.effect_resolution_state.simultaneous_choice_index)
+                self.effect_resolution_state.simultaneous_choice_index = -1
+            else:
+                # Pop the effect from the front of the list.
+                effect = self.effect_resolution_state.effects_to_resolve.pop(0)
             effect_player_id = effect["player_id"]
             effect_player = self.get_player(effect_player_id)
             if "conditions" not in effect or self.are_conditions_met(effect_player, effect["source_card_id"], effect["conditions"]):
@@ -2523,8 +2554,12 @@ class GameEngine:
                 if previous_archive_count < current_archive_count:
                     # The player archived some amount of cheer.
                     after_archive_effects = effect_player.get_effects_at_timing("after_archive_cheer", None, ability_source)
-                    self.begin_resolving_effects(after_archive_effects, self.continue_resolving_effects)
-                    passed_on_continuation = True
+                    if self.performance_art:
+                        # Queue to cleanup effects.
+                        effect_player.add_performance_cleanup(after_archive_effects)
+                    else:
+                        # Add it to the rear of the queue.
+                        self.add_effects_to_rear(after_archive_effects)
             case EffectType.EffectType_ArchiveCheerFromHolomem:
                 amount = effect["amount"]
                 from_zone = effect["from"]
@@ -2670,6 +2705,7 @@ class GameEngine:
                         "to_limitation_colors": to_limitation_colors,
                         "to_limitation_tags": to_limitation_tags,
                         "to_limitation_name": to_limitation_name,
+                        "internal_skip_simultaneous_choice": True,
                     }
                     add_ids_to_effects([attach_effect], effect_player.player_id, source_card_id)
                     decision_event = {
@@ -3171,6 +3207,7 @@ class GameEngine:
                     "event_type": EventType.EventType_OshiSkillActivation,
                     "oshi_player_id": effect_player.player_id,
                     "skill_id": skill_id,
+                    "limit": effect["limit"]
                 }
                 self.broadcast_event(oshi_skill_event)
             case EffectType.EffectType_ModifyNextLifeLoss:
@@ -3434,6 +3471,7 @@ class GameEngine:
                 # check afterwards to see if we should add any more effects up front.
                 rolldie_internal_effect = deepcopy(effect)
                 rolldie_internal_effect["effect_type"] = EffectType.EffectType_RollDie_Internal
+                rolldie_internal_effect["internal_skip_simultaneous_choice"] =  True
                 # Remove the and effects because they were already processed.
                 rolldie_internal_effect["and"] = []
                 self.add_effects_to_front([rolldie_internal_effect])
@@ -3490,6 +3528,7 @@ class GameEngine:
                 # However process any after die roll effects first.
                 rolldie_resolution_effect = deepcopy(effect)
                 rolldie_resolution_effect["effect_type"] = EffectType.EffectType_RollDie_Internal_Resolution
+                rolldie_resolution_effect["internal_skip_simultaneous_choice"] =  True
                 self.add_effects_to_front([rolldie_resolution_effect])
 
                 # Check for after die roll effects.
@@ -3791,6 +3830,9 @@ class GameEngine:
     def add_effects_to_front(self, new_effects):
         self.effect_resolution_state.effects_to_resolve = new_effects + self.effect_resolution_state.effects_to_resolve
 
+    def add_effects_to_rear(self, new_effects):
+        self.effect_resolution_state.effects_to_resolve = self.effect_resolution_state.effects_to_resolve + new_effects
+
     def add_deal_damage_internal_effect(self, source_player : PlayerState, target_player : PlayerState, source_holomem_card, target_card, amount, special, prevent_life_loss):
         effects = [{
             "effect_type": EffectType.EffectType_DealDamage_Internal,
@@ -3801,6 +3843,7 @@ class GameEngine:
             "amount": amount,
             "special": special,
             "prevent_life_loss": prevent_life_loss,
+            "internal_skip_simultaneous_choice": True,
         }]
         source_id = "oshi"
         if "game_card_id" in source_holomem_card:
@@ -3808,7 +3851,7 @@ class GameEngine:
         add_ids_to_effects(effects, source_player.player_id, source_id)
         self.add_effects_to_front(effects)
 
-    def send_choice_to_player(self, effect_player_id, choice):
+    def send_choice_to_player(self, effect_player_id, choice, simultaneous_resolution = False):
         min_choice = 0
         max_choice = len(choice) - 1
         decision_event = {
@@ -3818,6 +3861,7 @@ class GameEngine:
             "choice": choice,
             "min_choice": min_choice,
             "max_choice": max_choice,
+            "simultaneous_resolution": simultaneous_resolution,
         }
         self.broadcast_event(decision_event)
         self.set_decision({
@@ -3826,6 +3870,7 @@ class GameEngine:
             "choice": choice,
             "min_choice": min_choice,
             "max_choice": max_choice,
+            "simultaneous_resolution": simultaneous_resolution,
             "resolution_func": self.handle_choice_effects,
             "continuation": self.continue_resolving_effects,
         })
@@ -4947,8 +4992,12 @@ class GameEngine:
         continuation()
 
     def handle_choice_effects(self, decision_info_copy, player_id, choice_index, continuation):
-        chosen_effect = decision_info_copy["choice"][choice_index]
-        self.begin_resolving_effects([chosen_effect], continuation)
+        if decision_info_copy.get("simultaneous_resolution", False):
+            self.effect_resolution_state.simultaneous_choice_index = choice_index
+            continuation()
+        else:
+            chosen_effect = decision_info_copy["choice"][choice_index]
+            self.begin_resolving_effects([chosen_effect], continuation)
 
     def handle_player_resign(self, player_id):
         self.end_game(player_id, GameOverReason.GameOverReason_Resign)

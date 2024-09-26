@@ -1,14 +1,16 @@
 
-
 Todo:
-☐ Add logging to blob storage game logs so I can replay bugged games on my local server
-    - Need to record all events and then a way to load and playback
-    - don't forget to save the seed too
-    ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
-
+    ☐ Observer mode - Let observers join, they get full messages and play them all immediately but hidden stuff stripped from both players.
+    ☐ Reconnect logic -
+        - Leave game room open,
+        - give remaining player a button to kill the match after a minute
+        - Assign to local storage a UUID for that account that they'll use to connect back
+            - pass this up when joining the server
+            - if you need to reconnect, it automatically puts you back in the right room and sends you events to catch you up
 Revisit:
+    ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
-    ☐ Collab effects go away if you bloom over them?
+    ☐ Collab add turn effects go away if you bloom over them?
 
 Q&A Todos:
     ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
@@ -19,13 +21,10 @@ Q&A Todos:
         - this is relevant for kobo multi damage.
         - don't want to let people put cheer on a member that is about to die.
         - How to implement???
-    ☐ Simultaneous resolution - Q64: If you have an Aki with both Jobz and Stone Axe attached, when you declare an Arts, both Stone Axe and Jobz trigger at the same time and the effects go into 'standby'.
-        The resolution of this effects happens after completing the Arts Damage step, and the order of resolution is decided by the owner of the effects as it enters 'standby'.
-        E.g, you may choose to resolve Jobz first to recover 10 HP, THEN receive 10 damage by the Stone Axe afterwards. If Aki has 10 HP left, and you reverse the order of resolution, Aki will be downed and no healing will take place.
 
     ☐ Q154: If both players go down to 0 life at the same time, it is a draw.
         - is this possible? with self damage being at cleanup time
 
 
 Very Low Pri:
-    ☐ Losing 2 life from buzz shouldn't let the player know the id in engine
+    ☐ Losing 2 life from buzz shouldn't let the client know the id at all
