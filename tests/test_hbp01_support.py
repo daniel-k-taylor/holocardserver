@@ -4,7 +4,7 @@ from pathlib import Path
 import unittest
 from app.gameengine import GameEngine, UNKNOWN_CARD_ID, ids_from_cards, PlayerState, UNLIMITED_SIZE
 from app.gameengine import EventType, GameOverReason
-from app.gameengine import GameAction, GamePhase
+from app.gameengine import GameAction, GamePhase, EffectType
 from app.card_database import CardDatabase
 from helpers import RandomOverride, initialize_game_to_third_turn, validate_event, validate_actions, do_bloom, reset_mainstep, add_card_to_hand, do_cheer_step_on_card
 from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls
@@ -1607,6 +1607,223 @@ class Test_hbp01_Support(unittest.TestCase):
             "new_damage": 30,
         })
         reset_performancestep(self)
+
+    def test_hbp01_119_jobz_axe_simulatenous(self):
+        p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3, "hBP01-114": 2, }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.collab = player1.center
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-032", player1.center)
+        jobz = put_card_in_play(self, player1, "hBP01-119", p1center["attached_support"])
+        axe = put_card_in_play(self, player1, "hBP01-114", p1center["attached_support"])
+        self.assertEqual(p1center["hp"], 100)
+        self.assertEqual(player1.get_card_hp(p1center), 110)
+        spawn_cheer_on_card(self, player1, p1center["game_card_id"], "green", "g1")
+        begin_performance(self)
+        player1.backstage[0]["damage"] = 40
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "alona",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events -perform, boost stat, damage, simultaneous choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 50,
+            "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
+            "simultaneous_resolution": True
+        })
+        choices = events[6]["choice"]
+        self.assertEqual(len(choices), 2)
+        self.assertEqual(choices[0]["effect_type"], EffectType.EffectType_RestoreHp)
+        self.assertEqual(choices[1]["effect_type"], EffectType.EffectType_DealDamage)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0,
+        })
+        # Events - restore hp decision
+        events = engine.grab_events()
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [player1.backstage[0]["game_card_id"]],
+        })
+        events = engine.grab_events()
+        # Events - restore hp, deal damage self, performance step.
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_RestoreHP, self.player1, {
+            "card_id": player1.backstage[0]["game_card_id"],
+            "healed_amount": 10,
+            "new_damage": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "special": True,
+            "target_id": p1center["game_card_id"],
+        })
+        reset_performancestep(self)
+        self.assertEqual(player1.center[0]["damage"], 10)
+
+
+    def test_hbp01_119_jobz_axe_simulatenous_axefirst(self):
+        p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3, "hBP01-114": 2, }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.collab = player1.center
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-032", player1.center)
+        jobz = put_card_in_play(self, player1, "hBP01-119", p1center["attached_support"])
+        axe = put_card_in_play(self, player1, "hBP01-114", p1center["attached_support"])
+        self.assertEqual(p1center["hp"], 100)
+        self.assertEqual(player1.get_card_hp(p1center), 110)
+        spawn_cheer_on_card(self, player1, p1center["game_card_id"], "green", "g1")
+        begin_performance(self)
+        player1.backstage[0]["damage"] = 40
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "alona",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events -perform, boost stat, damage, simultaneous choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 50,
+            "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
+            "simultaneous_resolution": True
+        })
+        choices = events[6]["choice"]
+        self.assertEqual(len(choices), 2)
+        self.assertEqual(choices[0]["effect_type"], EffectType.EffectType_RestoreHp)
+        self.assertEqual(choices[1]["effect_type"], EffectType.EffectType_DealDamage)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 1,
+        })
+        events = engine.grab_events()
+        # Events -deal damage from axe, restore hp decision
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "special": True,
+            "target_id": p1center["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [p1center["game_card_id"]],
+        })
+        events = engine.grab_events()
+        # Events - restore hp, performance step.
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RestoreHP, self.player1, {
+            "card_id": p1center["game_card_id"],
+            "healed_amount": 10,
+            "new_damage": 0,
+        })
+        reset_performancestep(self)
+        self.assertEqual(player1.center[0]["damage"], 0)
+
+    def test_hbp01_119_jobz_axe_simulatenous_axefirst_reverse_equip(self):
+        p1deck = generate_deck_with([], {"hBP01-119": 2, "hBP01-032": 3, "hBP01-114": 2, }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        player1.collab = player1.center
+        player1.center = []
+        p1center = put_card_in_play(self, player1, "hBP01-032", player1.center)
+        axe = put_card_in_play(self, player1, "hBP01-114", p1center["attached_support"])
+        jobz = put_card_in_play(self, player1, "hBP01-119", p1center["attached_support"])
+        self.assertEqual(p1center["hp"], 100)
+        self.assertEqual(player1.get_card_hp(p1center), 110)
+        spawn_cheer_on_card(self, player1, p1center["game_card_id"], "green", "g1")
+        begin_performance(self)
+        player1.backstage[0]["damage"] = 40
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "alona",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events -perform, boost stat, damage, simultaneous choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 50,
+            "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
+            "simultaneous_resolution": True
+        })
+        choices = events[6]["choice"]
+        self.assertEqual(len(choices), 2)
+        self.assertEqual(choices[0]["effect_type"], EffectType.EffectType_DealDamage)
+        self.assertEqual(choices[1]["effect_type"], EffectType.EffectType_RestoreHp)
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0,
+        })
+        events = engine.grab_events()
+        # Events -deal damage from axe, restore hp decision
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "special": True,
+            "target_id": p1center["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [p1center["game_card_id"]],
+        })
+        events = engine.grab_events()
+        # Events - restore hp, performance step.
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RestoreHP, self.player1, {
+            "card_id": p1center["game_card_id"],
+            "healed_amount": 10,
+            "new_damage": 0,
+        })
+        reset_performancestep(self)
+        self.assertEqual(player1.center[0]["damage"], 0)
 
 
     def test_hbp01_120_ganmo(self):

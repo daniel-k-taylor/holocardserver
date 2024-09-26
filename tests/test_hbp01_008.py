@@ -230,5 +230,124 @@ class Test_hbp01_008(unittest.TestCase):
         validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, self.player1, {})
 
 
+
+    def test_hbp01_008_rainshamanism_off_bloom(self):
+        p1deck = generate_deck_with("hBP01-008", {"hBP01-082": 2, "hBP01-086": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(3)
+        player1.center = []
+        p2center = player2.center[0]
+        test_card = put_card_in_play(self, player1, "hBP01-082", player1.center)
+        bloom_card = add_card_to_hand(self, player1, "hBP01-086")
+        b1 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b3")
+        b4 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b4")
+        actions = reset_mainstep(self)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": bloom_card["game_card_id"],
+            "target_id": test_card["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - bloom, archive choice
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {})
+        events = pick_choice(self, self.player1, 0)
+        # Events - archive cheer
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+        })
+        from_options = events[0]["from_options"]
+        self.assertListEqual(from_options, [b1["game_card_id"],b2["game_card_id"],b3["game_card_id"],b4["game_card_id"]])
+
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                b2["game_card_id"]: "archive",
+            }
+        })
+        events = engine.grab_events()
+        # Events - archive the 1 cheer so move 1 cards, then do the damage to all back, then oshi skill choice
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": bloom_card["game_card_id"],
+            "to_holomem_id": "archive",
+            "attached_id": b2["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player2,
+            "target_id": player2.backstage[0]["game_card_id"],
+            "special": True,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player2,
+            "target_id": player2.backstage[1]["game_card_id"],
+            "special": True,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player2,
+            "target_id": player2.backstage[2]["game_card_id"],
+            "special": True,
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player2,
+            "target_id": player2.backstage[3]["game_card_id"],
+            "special": True,
+        })
+        validate_event(self, events[10], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 10,
+            "target_player": self.player2,
+            "target_id": player2.backstage[4]["game_card_id"],
+            "special": True,
+        })
+        validate_event(self, events[12], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player1, 0)
+        # Pay 1 holo, oshi activation, choose target
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "to_zone": "archive",
+        })
+        validate_event(self, events[2], EventType.EventType_OshiSkillActivation, self.player1, {
+            "oshi_player_id": self.player1,
+            "skill_id": "rainshamanism",
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect , self.player1, {
+            "effect_player_id": self.player1,
+        })
+        cards_can_choose = events[4]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, ids_from_cards(player2.center + player2.collab + player2.backstage))
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [player2.backstage[0]["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - deal damage, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 20,
+            "target_player": self.player2,
+            "special": True,
+            "target_id": player2.backstage[0]["game_card_id"],
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, {})
+
+
+
 if __name__ == '__main__':
     unittest.main()
