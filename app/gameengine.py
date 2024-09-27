@@ -199,18 +199,21 @@ class ArtStatBoosts:
         self.power = 0
         self.repeat_art = False
 
-class DamageModifications:
+class TakeDamageState:
     def __init__(self):
         self.added_damage = 0
         self.prevented_damage = 0
+        self.incoming_base_damage = 0
         self.source_player = None
+        self.source_card = None
         self.target_card = None
+        self.special = False
+        self.prevent_life_loss = False
 
-    def clear(self):
-        self.added_damage = 0
-        self.prevented_damage = 0
-        self.source_player = None
-        self.target_card = None
+        self.nested_state = None
+
+    def get_incoming_damage(self):
+        return max(0, self.incoming_base_damage + self.added_damage - self.prevented_damage)
 
 class AfterDamageState:
     def __init__(self):
@@ -370,6 +373,7 @@ class PlayerState:
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
         self.oshi_card = card_db.get_card_by_id(self.oshi_id)
+        self.oshi_card["game_card_id"] = self.player_id + "_oshi"
 
         self.deck_list = player_info["deck"]
         # Generate unique cards for all cards in the deck.
@@ -408,6 +412,7 @@ class PlayerState:
                 self.cheer_deck.append(generated_card)
 
         self.game_cards_map = {card["game_card_id"]: card["card_id"] for card in self.deck + self.cheer_deck}
+        self.game_cards_map[self.oshi_card["game_card_id"]] = self.oshi_card["card_id"]
 
     def initialize_life(self):
         # Move cards from the cheer deck to the life area equal to the oshi's life.
@@ -1294,7 +1299,7 @@ class GameEngine:
         self.clock_accumulation_start_time = 0
         self.match_player_info = player_infos
 
-        self.damage_modifications = DamageModifications()
+        self.take_damage_state : TakeDamageState = None
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = None
         self.performance_performer_card = None
@@ -2013,9 +2018,17 @@ class GameEngine:
 
         target_card["damage"] += damage
 
-        self.damage_modifications = DamageModifications()
-        self.damage_modifications.source_player = dealing_player
-        self.damage_modifications.target_card = target_card
+        nested_state = None
+        if self.take_damage_state:
+            nested_state = self.take_damage_state
+        self.take_damage_state = TakeDamageState()
+        self.take_damage_state.nested_state = nested_state
+        self.take_damage_state.incoming_base_damage = damage
+        self.take_damage_state.special = special
+        self.take_damage_state.prevent_life_loss = prevent_life_loss
+        self.take_damage_state.source_player = dealing_player
+        self.take_damage_state.source_card = dealing_card
+        self.take_damage_state.target_card = target_card
         on_damage_effects = target_player.get_effects_at_timing("on_take_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
             self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
@@ -2033,16 +2046,16 @@ class GameEngine:
             continuation()
 
     def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
-        if self.damage_modifications.added_damage:
-            target_card["damage"] += self.damage_modifications.added_damage
-            damage += self.damage_modifications.added_damage
+        if self.take_damage_state.added_damage:
+            target_card["damage"] += self.take_damage_state.added_damage
+            damage += self.take_damage_state.added_damage
 
-        if self.damage_modifications.prevented_damage:
+        if self.take_damage_state.prevented_damage:
             # Recalculate the damage based on prevented damage.
             target_card["damage"] -= damage
-            damage = max(0, damage - self.damage_modifications.prevented_damage)
+            damage = max(0, damage - self.take_damage_state.prevented_damage)
             target_card["damage"] += damage
-        self.damage_modifications.clear()
+        self.take_damage_state = self.take_damage_state.nested_state
 
         # Damage is decided here, so play the event.
         damage_event = {
@@ -2092,8 +2105,7 @@ class GameEngine:
         )
 
     def complete_after_deal_damage(self, continuation):
-        if self.after_damage_state:
-            self.after_damage_state = self.after_damage_state.nested_state
+        self.after_damage_state = self.after_damage_state.nested_state
         continuation()
 
     def begin_down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, arts_kill_effects, continuation):
@@ -2390,7 +2402,7 @@ class GameEngine:
             case Condition.Condition_DamagedHolomemIsCenterOrCollab:
                 return self.after_damage_state.target_card_zone in ["center", "collab"]
             case Condition.Condition_DamageSourceIsOpponent:
-                return self.damage_modifications.source_player.player_id != effect_player.player_id
+                return self.take_damage_state.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
                 source_card = self.find_card(source_card_id)
                 owner_player = self.get_player(source_card["owner_id"])
@@ -2525,8 +2537,8 @@ class GameEngine:
         match effect["effect_type"]:
             case EffectType.EffectType_AddDamageTaken:
                 amount = effect["amount"]
-                self.damage_modifications.added_damage += amount
-                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_added", amount)
+                self.take_damage_state.added_damage += amount
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_added", amount)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -2811,6 +2823,15 @@ class GameEngine:
                 other_player.block_movement_for_turn = True
             case EffectType.EffectType_Choice:
                 choice = deepcopy(effect["choice"])
+                if self.take_damage_state:
+                    for choice_effect in choice:
+                        choice_effect["incoming_damage_info"] = {
+                            "amount": self.take_damage_state.get_incoming_damage(),
+                            "source_id": self.take_damage_state.source_card["game_card_id"],
+                            "target_id": self.take_damage_state.target_card["game_card_id"],
+                            "special": self.take_damage_state.special,
+                            "prevent_life_loss": self.take_damage_state.prevent_life_loss,
+                        }
                 if "choice_populate_amount_x" in effect:
                     match effect["choice_populate_amount_x"]:
                         case "equal_to_last_damage":
@@ -3373,8 +3394,8 @@ class GameEngine:
                     amount_num = 9999
                 else:
                     amount_num = amount
-                self.damage_modifications.prevented_damage += amount_num
-                self.send_boost_event(self.damage_modifications.target_card["game_card_id"], "damage_prevented", amount)
+                self.take_damage_state.prevented_damage += amount_num
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_prevented", amount)
             case EffectType.EffectType_ReduceRequiredArchiveCount:
                 amount = effect["amount"]
                 self.archive_count_required -= amount

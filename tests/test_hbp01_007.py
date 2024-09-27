@@ -250,6 +250,206 @@ class Test_hbp01_007(unittest.TestCase):
         reset_performancestep(self)
 
 
+    def test_hbp01_007_comet_vs_mumei(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-076": 2, "hBP01-079": 2 }, [])
+        p2deck = generate_deck_with("hBP01-002", {"hBP01-015": 50 }, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player2.generate_holopower(2)
+        player1.collab = player1.center
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hBP01-076", player1.center)
+        player1.backstage = player1.backstage[1:]
+
+        actions = reset_mainstep(self)
+        p2center = player2.center[0]
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - art effect first, deal damage.
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "effect_player_id": self.player1,
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        backstage_options = [card["game_card_id"] for card in player2.backstage]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [backstage_options[0]]
+        })
+        events = engine.grab_events()
+        # Events - damage from effect immediatley mumei choice
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+            "effect_player_id": self.player2,
+        })
+        choices = events[0]["choice"]
+        self.assertEqual(choices[0]["incoming_damage_info"]["amount"], 10)
+        # Don't use it on this one.
+        events = pick_choice(self, self.player2, 1)
+        # Events damage dealt, choice for comet
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "damage": 10,
+            "special": True,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
+            "effect_player_id": self.player1,
+        })
+        # Use comet
+        events = pick_choice(self, self.player1, 0)
+        # spend 2 holo, oshi activation, Choose target.
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player1,
+            "skill_id": "comet",
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "effect_player_id": self.player1,
+        })
+        cards_can_choose = events[6]["cards_can_choose"]
+        backstage_options = [card["game_card_id"] for card in player2.backstage]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [backstage_options[0]]
+        })
+        events = engine.grab_events()
+        # Events - mumei choice to reduce.
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+            "effect_player_id": self.player2,
+        })
+        events = pick_choice(self, self.player2, 0)
+        # Events - no deal damage event because 0 damage
+        self.assertEqual(player2.backstage[0]["damage"], 10) # From the art special
+        # 2x move card, oshi activation, Reduce damage, damage dealt 0
+        # perform art, damage, performance step
+        self.assertEqual(len(events), 16)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player2,
+            "skill_id": "guardianofcivilization",
+        })
+        validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
+            "stat": "damage_prevented",
+            "amount": 50
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "damage": 0,
+            "special": True,
+        })
+        validate_event(self, events[10], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[12], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 20,
+            "special": False,
+        })
+
+        reset_performancestep(self)
+
+
+    def test_hbp01_007_mumei_prevent_comet_completely(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-076": 2, "hBP01-079": 2 }, [])
+        p2deck = generate_deck_with("hBP01-002", {"hBP01-015": 50 }, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player2.generate_holopower(2)
+        player1.collab = player1.center
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hBP01-076", player1.center)
+        player1.backstage = player1.backstage[1:]
+
+        actions = reset_mainstep(self)
+        p2center = player2.center[0]
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - art effect first, deal damage.
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "effect_player_id": self.player1,
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        backstage_options = [card["game_card_id"] for card in player2.backstage]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [backstage_options[0]]
+        })
+        events = engine.grab_events()
+        # Events - damage from effect immediatley mumei choice
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+            "effect_player_id": self.player2,
+        })
+        choices = events[0]["choice"]
+        self.assertEqual(choices[0]["incoming_damage_info"]["amount"], 10)
+        # Prevent this!
+        events = pick_choice(self, self.player2, 0)
+        # Events 2x move, oshi activation, reduce damage, damage dealt = 0, perform art, etc.
+        # Events - no deal damage event because 0 damage
+        self.assertEqual(player2.backstage[0]["damage"], 0) # No damage
+        # 2x move card, oshi activation, Reduce damage, damage dealt 0
+        # perform art, damage, performance step
+        self.assertEqual(len(events), 16)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player2,
+            "skill_id": "guardianofcivilization",
+        })
+        validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
+            "stat": "damage_prevented",
+            "amount": 50
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "damage": 0,
+            "special": True,
+        })
+        validate_event(self, events[10], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[12], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 20,
+            "special": False,
+        })
+        reset_performancestep(self)
+
 
     def test_hbp01_007_shiningcomet_back_then_comet_to_kill(self):
         p1deck = generate_deck_with("hBP01-007", {"hBP01-081": 2 }, [])
