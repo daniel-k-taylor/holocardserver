@@ -1,11 +1,17 @@
+import os
 import uuid
 from typing import List
+import tempfile
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from app.matchmaking import Matchmaking
 import app.message_types as message_types
 from app.playermanager import PlayerManager, Player
 from app.gameroom import GameRoom
 from app.card_database import CardDatabase
+from app.dbaccess import download_and_extract_game_package
 import logging
 from dotenv import load_dotenv
 
@@ -16,7 +22,37 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.info("Server started")
 
-app = FastAPI()
+skip_hosting_game = os.getenv("SKIP_HOSTING_GAME", "false").lower() == "true"
+
+# FastAPI application with lifespan context
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Actions to perform during startup
+    with tempfile.TemporaryDirectory() as tmpdir:
+        if not skip_hosting_game:
+            unpacked_game_dir = os.path.join(tmpdir, "unpacked_game")
+            logger.info(f"Downloading and extracting game package to {unpacked_game_dir}...")
+            await download_and_extract_game_package(unpacked_game_dir)
+            logger.info("Game package extracted, starting application.")
+
+
+            # Serve the static game files
+            app.mount("/game", StaticFiles(directory=unpacked_game_dir), name="game")
+
+            # Make unpacked_dir accessible to route handlers via app state
+            app.state.unpacked_game_dir = unpacked_game_dir
+
+        yield  # Application runs here
+
+        # Actions to perform during shutdown (if needed)
+        # Clean up or additional teardown actions can be added here if necessary.
+
+app = FastAPI(lifespan=lifespan)
+
+# Redirect from root (/) to /game/index.html
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/game/index.html")
 
 # Store connected clients
 class ConnectionManager:

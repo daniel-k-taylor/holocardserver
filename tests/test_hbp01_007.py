@@ -350,5 +350,135 @@ class Test_hbp01_007(unittest.TestCase):
         reset_performancestep(self)
 
 
+
+    def test_hbp01_007_shiningcomet_thenshootingstar_to_kill(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-081": 2, "hBP01-076": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        # 76 can do bonus damage with art, 79 with bloom
+
+        """Test"""
+        player1.generate_holopower(6)
+        player1.backstage = []
+        player1.collab = player1.center
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        stack1 = put_card_in_play(self, player1, "hBP01-076", test_card["stacked_cards"])
+        stack2 = put_card_in_play(self, player1, "hBP01-076", test_card["stacked_cards"])
+        actions = reset_mainstep(self)
+        p2center = player2.center[0]
+        b1 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b3")
+        b4 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b4")
+        begin_performance(self)
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2center["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - since we targeted center, the first event is a choice to use the archive ability.
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player1, 0)
+        # Events - art effect first, archive 2 blue cheers
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, [b1["game_card_id"], b2["game_card_id"], b3["game_card_id"], b4["game_card_id"]])
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [b1["game_card_id"], b2["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - move 2 archive cards, boost power by 120 since 2 stacked
+        # So perform art then damage, downed, send cheer
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 120,
+        })
+        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2center["game_card_id"],
+            "power": 180,
+        })
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2center["game_card_id"],
+            "damage": 180, # Arts damage
+            "special": False,
+        })
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": p2center["game_card_id"],
+            "life_lost": 1
+        })
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        from_options = events[12]["from_options"]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: player2.backstage[0]["game_card_id"],
+            }
+        })
+        events = engine.grab_events()
+        # Events - move cheer, then choice for shooting star
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
+        # Use shooting star
+        events = pick_choice(self, self.player1, 0)
+        # Events - move card x2, oshi skill, pick target
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player1,
+            "skill_id": "shootingstar",
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {})
+        cards_can_choose = events[6]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, ids_from_cards(player2.backstage))
+        target = player2.backstage[0]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [target["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - deal damage, down, send cheer
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": target["game_card_id"],
+            "damage": 180, # Shooting star damage equals the art damage
+            "special": True,
+        })
+        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": target["game_card_id"],
+            "life_lost": 1
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {})
+        from_options = events[4]["from_options"]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: player2.backstage[0]["game_card_id"], # New backstage 0
+            }
+        })
+        events = engine.grab_events()
+        # Events - move cheer, comet choice!
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveAttachedCard, player1.player_id, {})
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {})
+        # Pass
+        events = pick_choice(self, self.player1, 1)
+        # events - end turn etc.
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_EndTurn, player1.player_id, {})
+        validate_event(self, events[8], EventType.EventType_ResetStepChooseNewCenter, player1.player_id, {})
+
 if __name__ == '__main__':
     unittest.main()
