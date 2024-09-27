@@ -219,6 +219,7 @@ class AfterDamageState:
         self.target_player : PlayerState = None
         self.target_card = None
         self.damage_dealt = 0
+        self.special = False
 
         self.nested_state = None
 
@@ -1947,6 +1948,8 @@ class GameEngine:
         target, _, _ = self.other_player(self.active_player_id).find_card(target_id)
         art = next(art for art in performer["arts"] if art["art_id"] == art_id)
 
+        # TODO: Put an initial start performance event here.
+
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = player
         self.performance_performer_card = performer
@@ -2037,6 +2040,22 @@ class GameEngine:
         }
         self.broadcast_event(damage_event)
 
+        died = target_card["damage"] >= target_player.get_card_hp(target_card)
+        if died:
+            self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_kill_effects, lambda :
+                self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation))
+        else:
+            self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation)
+
+    def complete_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation):
+        if died:
+            self.process_downed_holomem(target_player, target_card, prevent_life_loss, lambda :
+                self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, continuation)
+            )
+        else:
+            self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, continuation)
+
+    def begin_after_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, continuation):
         if damage > 0:
             after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
         else:
@@ -2051,27 +2070,16 @@ class GameEngine:
         self.after_damage_state.target_card = target_card
         self.after_damage_state.target_player = target_player
         self.after_damage_state.damage_dealt = damage
+        self.after_damage_state.special = special
 
         self.begin_resolving_effects(after_deal_damage_effects, lambda :
-            self.after_deal_damage_effects(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
+            self.complete_after_deal_damage(continuation)
         )
 
-    def after_deal_damage_effects(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
-        self.after_damage_state = self.after_damage_state.nested_state
-        died = target_card["damage"] >= target_player.get_card_hp(target_card)
-
-        if died:
-            self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_kill_effects, lambda :
-                self.complete_deal_damage(target_player, target_card, damage, special, prevent_life_loss, died, continuation))
-        else:
-            # Continue processing the damage.
-            self.complete_deal_damage(target_player, target_card, damage, special, prevent_life_loss, died, continuation)
-
-    def complete_deal_damage(self, target_player : PlayerState, target_card, damage, special, prevent_life_loss, died, continuation):
-        if died:
-            self.process_downed_holomem(target_player, target_card, prevent_life_loss, continuation)
-        else:
-            continuation()
+    def complete_after_deal_damage(self, continuation):
+        if self.after_damage_state:
+            self.after_damage_state = self.after_damage_state.nested_state
+        continuation()
 
     def begin_down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, arts_kill_effects, continuation):
         player_kill_effects = dealing_player.get_effects_at_timing("on_kill", dealing_card)
@@ -3280,8 +3288,9 @@ class GameEngine:
                         case "last_die_value":
                             multiplier = self.last_die_value
                 amount *= multiplier
-                self.performance_artstatboosts.power += amount
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+                if amount != 0:
+                    self.performance_artstatboosts.power += amount
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
             case EffectType.EffectType_PowerBoostPerAllFans:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3291,14 +3300,16 @@ class GameEngine:
                         if is_card_fan(attached):
                             fan_count += 1
                 total = per_amount * fan_count
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
                 total = per_amount * len(holomems_in_archive)
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
                 limit = effect["limit"]
@@ -3306,29 +3317,33 @@ class GameEngine:
                 cheer_count = len(source_card["attached_cheer"])
                 multiplier = min(cheer_count, limit)
                 total = per_amount * multiplier
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerBackstage:
                 per_amount = effect["amount"]
                 backstage_mems = len(effect_player.backstage)
                 total = per_amount * backstage_mems
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerHolomem:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
                 if "has_tag" in effect:
                     holomems = [holomem for holomem in holomems if effect["has_tag"] in holomem["tags"]]
                 total = per_amount * len(holomems)
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
                 stacked_holomems = [card for card in stacked_cards if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
                 total = per_amount * len(stacked_holomems)
-                self.performance_artstatboosts.power += total
-                self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
             case EffectType.EffectType_RecordUsedOncePerGameEffect:

@@ -19,7 +19,7 @@ class Test_hbp01_007(unittest.TestCase):
     def setUp(self):
         pass
 
-    def test_hbp01_007_comet_first_emptyhp(self):
+    def test_hbp01_007_art_effect_oshis_skills_timing(self):
         p1deck = generate_deck_with("hBP01-007", {"hBP01-076": 2, "hBP01-079": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -53,7 +53,7 @@ class Test_hbp01_007(unittest.TestCase):
             "target_id": p2center["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - art effect first, deal damage.
+        # Events - art effect first = deal damage
         self.assertEqual(len(events), 2)
         validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
             "effect_player_id": self.player1,
@@ -64,7 +64,7 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[0]]
         })
         events = engine.grab_events()
-        # Events - damage from special and choice for comet
+        # Events - damage from special - comet choice
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[0]["game_card_id"],
@@ -93,7 +93,8 @@ class Test_hbp01_007(unittest.TestCase):
             "card_ids": [backstage_options[1]]
         })
         events = engine.grab_events()
-        # Events - comet damage,  art actual damage, performance step
+        # Events - comet damage, perform art, deal damage, performance step
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": backstage_options[1],
             "damage": 50,
@@ -246,6 +247,106 @@ class Test_hbp01_007(unittest.TestCase):
         # Events - move cheer, then perf step over
         self.assertEqual(len(events), 4)
 
+        reset_performancestep(self)
+
+
+
+    def test_hbp01_007_shiningcomet_back_then_comet_to_kill(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-081": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        # 76 can do bonus damage with art, 79 with bloom
+
+        """Test"""
+        player1.generate_holopower(6)
+        player1.backstage = []
+        player1.collab = player1.center
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hBP01-081", player1.center)
+        actions = reset_mainstep(self)
+        p2center = player2.center[0]
+        player2.collab = [player2.backstage[0]]
+        player2.backstage = []
+        # Give p2 a high hp back
+        # Give it enough damage so it survives shining but dies to comet.
+        p2back = put_card_in_play(self, player2, "hSD01-006", player2.backstage)
+        p2back["damage"] = 160
+        b1 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        b2 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b2")
+        b3 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b3")
+        b4 = spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b4")
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2back["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - art effect first, archive 2 blue cheers
+        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "from_zone": "holomem",
+            "to_zone": "archive",
+        })
+        cards_can_choose = events[0]["cards_can_choose"]
+        self.assertListEqual(cards_can_choose, [b1["game_card_id"], b2["game_card_id"], b3["game_card_id"], b4["game_card_id"]])
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [b1["game_card_id"], b2["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - move 2 archive cards, no power boost because 0 stacked.
+        # So perform art then damage, then choice for comet
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "shiningcomet",
+            "target_id": p2back["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2back["game_card_id"],
+            "damage": 60, # Arts damage
+            "special": False,
+        })
+        validate_event(self, events[8], EventType.EventType_Decision_Choice, self.player1, {
+        })
+        # Use comet
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 12)
+        # Events - 2x move card, oshi activation, only 1 back so deal damage, down, send cheer
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player1,
+            "skill_id": "comet",
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2back["game_card_id"],
+            "damage": 50, # Comet damage
+        })
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player2,
+            "amount_min": 2,
+            "amount_max": 2,
+            "from_zone": "life",
+            "to_zone": "holomem",
+        })
+        from_options = events[10]["from_options"]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: p2center["game_card_id"],
+                from_options[1]: p2center["game_card_id"],
+            }
+        })
+        events = engine.grab_events()
+        # Move cheer, perf step
+        self.assertEqual(len(events), 6)
         reset_performancestep(self)
 
 
