@@ -220,6 +220,7 @@ class AfterDamageState:
         self.target_card = None
         self.damage_dealt = 0
         self.special = False
+        self.target_card_zone = ""
 
         self.nested_state = None
 
@@ -385,6 +386,7 @@ class PlayerState:
                 generated_card["attached_cheer"] = []
                 generated_card["attached_support"] = []
                 generated_card["stacked_cards"] = []
+                generated_card["zone_when_downed"] = ""
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
                 generated_card["rest_extra_turn"] = False
@@ -623,6 +625,17 @@ class PlayerState:
                     case EffectType.EffectType_BonusHp:
                         bonus_hp += effect["amount"]
         return base_hp + bonus_hp
+
+    def get_holomem_zone(self, card):
+        if card in self.archive:
+            return card["zone_when_downed"]
+        elif card in self.center:
+            return "center"
+        elif card in self.collab:
+            return "collab"
+        elif card in self.backstage:
+            return "backstage"
+        return ""
 
     def record_card_effect_used_this_turn(self, card_id):
         if card_id not in self.card_effects_used_this_turn:
@@ -1098,10 +1111,11 @@ class PlayerState:
                 self.engine.broadcast_event(move_attached_event)
 
     def archive_holomem_from_play(self, card_id):
-        card, _, _ = self.find_and_remove_card(card_id)
+        card, _, zone_name = self.find_and_remove_card(card_id)
         attached_cheer = card["attached_cheer"]
         attached_support = card["attached_support"]
         stacked_cards = card["stacked_cards"]
+        card["zone_when_downed"] = zone_name
 
         to_archive = attached_cheer + attached_support + stacked_cards
 
@@ -2071,6 +2085,7 @@ class GameEngine:
         self.after_damage_state.target_player = target_player
         self.after_damage_state.damage_dealt = damage
         self.after_damage_state.special = special
+        self.after_damage_state.target_card_zone = target_player.get_holomem_zone(target_card)
 
         self.begin_resolving_effects(after_deal_damage_effects, lambda :
             self.complete_after_deal_damage(continuation)
@@ -2371,9 +2386,9 @@ class GameEngine:
                     return include_oshi_ability
                 return condition_color in damage_source["colors"]
             case Condition.Condition_DamagedHolomemIsBackstage:
-                return self.after_damage_state.target_card in self.after_damage_state.target_player.backstage
+                return self.after_damage_state.target_card_zone == "backstage"
             case Condition.Condition_DamagedHolomemIsCenterOrCollab:
-                return self.after_damage_state.target_card in self.after_damage_state.target_player.center + self.after_damage_state.target_player.collab
+                return self.after_damage_state.target_card_zone in ["center", "collab"]
             case Condition.Condition_DamageSourceIsOpponent:
                 return self.damage_modifications.source_player.player_id != effect_player.player_id
             case Condition.Condition_DownedCardBelongsToOpponent:
