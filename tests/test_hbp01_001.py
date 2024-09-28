@@ -166,21 +166,21 @@ class Test_hbp01_001(unittest.TestCase):
         })
         events = engine.grab_events()
         self.assertEqual(len(events), 12) # 2 stat boosts, Use art, damage dealt, distribute cheer
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 50,
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": p2target["game_card_id"],
+            "power": 30,
         })
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
             "amount": 50,
         })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "nunnun",
-            "target_id": p2target["game_card_id"],
-            "power": 130,
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 50,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2target["game_card_id"],
@@ -287,16 +287,16 @@ class Test_hbp01_001(unittest.TestCase):
         })
         events = engine.grab_events()
         self.assertEqual(len(events), 10) # 1 stat boosts, Use art, damage, distribute cheer
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 50,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "keepworkinghard",
             "target_id": p2target["game_card_id"],
-            "power": 70,
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 50,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2target["game_card_id"],

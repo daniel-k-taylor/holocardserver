@@ -209,6 +209,7 @@ class TakeDamageState:
         self.target_card = None
         self.special = False
         self.prevent_life_loss = False
+        self.art_info = {}
 
         self.nested_state = None
 
@@ -1971,15 +1972,25 @@ class GameEngine:
         player = self.get_player(self.active_player_id)
         performer, _, _ = player.find_card(performer_id)
         performer["used_art_this_turn"] = True
-        target, _, _ = self.other_player(self.active_player_id).find_card(target_id)
+        target_owner = self.other_player(self.active_player_id)
+        target, _, _ = target_owner.find_card(target_id)
         art = next(art for art in performer["arts"] if art["art_id"] == art_id)
 
-        # TODO: Put an initial start performance event here.
+        art_event = {
+            "event_type": EventType.EventType_PerformArt,
+            "active_player": self.active_player_id,
+            "performer_id": performer["game_card_id"],
+            "art_id": art["art_id"],
+            "target_id": target["game_card_id"],
+            "target_player": target_owner.player_id,
+            "power": art["power"],
+        }
+        self.broadcast_event(art_event)
 
         self.performance_artstatboosts = ArtStatBoosts()
         self.performance_performing_player = player
         self.performance_performer_card = performer
-        self.performance_target_player = self.other_player(self.active_player_id)
+        self.performance_target_player = target_owner
         self.performance_target_card = target
         self.performance_art = art
         self.performance_continuation = continuation
@@ -1999,24 +2010,17 @@ class GameEngine:
         target_owner = self.get_player(self.performance_target_card["owner_id"])
         is_special_damage = "special" in self.performance_art and self.performance_art["special"]
 
-        art_event = {
-            "event_type": EventType.EventType_PerformArt,
-            "active_player": self.active_player_id,
-            "performer_id": self.performance_performer_card["game_card_id"],
-            "art_id": self.performance_art["art_id"],
-            "target_id": self.performance_target_card["game_card_id"],
-            "target_player": target_owner.player_id,
-            "power": total_power,
-        }
-        self.broadcast_event(art_event)
         active_player = self.get_player(self.active_player_id)
 
         # Deal damage.
         art_kill_effects = self.performance_art.get("on_kill_effects", [])
         add_ids_to_effects(art_kill_effects, self.active_player_id, self.performance_performer_card["game_card_id"])
-        self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_kill_effects, self.performance_continuation)
+        art_info = {
+            "art_kill_effects": art_kill_effects,
+        }
+        self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_info, self.performance_continuation)
 
-    def deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
+    def deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_info, continuation):
         if target_card["damage"] >= target_player.get_card_hp(target_card):
             # Already dead somehow!
             # Just call the continuation, you don't get to kill them twice.
@@ -2036,9 +2040,10 @@ class GameEngine:
         self.take_damage_state.source_player = dealing_player
         self.take_damage_state.source_card = dealing_card
         self.take_damage_state.target_card = target_card
+        self.take_damage_state.art_info = art_info
         on_damage_effects = target_player.get_effects_at_timing("on_take_damage", target_card)
         self.begin_resolving_effects(on_damage_effects, lambda :
-            self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation)
+            self.continue_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, art_info, continuation)
         )
 
     def restore_holomem_hp(self, target_player : PlayerState, target_card_id, amount, continuation):
@@ -2052,7 +2057,7 @@ class GameEngine:
         else:
             continuation()
 
-    def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_kill_effects, continuation):
+    def continue_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_info, continuation):
         if self.take_damage_state.added_damage:
             target_card["damage"] += self.take_damage_state.added_damage
             damage += self.take_damage_state.added_damage
@@ -2076,7 +2081,7 @@ class GameEngine:
 
         died = target_card["damage"] >= target_player.get_card_hp(target_card)
         if died:
-            self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_kill_effects, lambda :
+            self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_info, lambda :
                 self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation))
         else:
             self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation)
@@ -2116,9 +2121,12 @@ class GameEngine:
         self.after_damage_state = self.after_damage_state.nested_state
         continuation()
 
-    def begin_down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, arts_kill_effects, continuation):
+    def begin_down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, art_info, continuation):
         player_kill_effects = dealing_player.get_effects_at_timing("on_kill", dealing_card)
         down_effects = target_player.get_effects_at_timing("on_down", target_card)
+        arts_kill_effects = []
+        if art_info:
+            arts_kill_effects = art_info.get("art_kill_effects", [])
         all_death_effects = arts_kill_effects + player_kill_effects + down_effects
         down_info = DownHolomemState()
         down_info.nested_state = self.down_holomem_state
@@ -2551,7 +2559,8 @@ class GameEngine:
             case EffectType.EffectType_AddDamageTaken:
                 amount = effect["amount"]
                 self.take_damage_state.added_damage += amount
-                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_added", amount)
+                for_art = self.take_damage_state.art_info
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_added", amount, for_art)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -3113,7 +3122,7 @@ class GameEngine:
                 amount = effect["amount"]
                 special = effect["special"]
                 prevent_life_loss = effect["prevent_life_loss"]
-                self.deal_damage(source_player, target_player, source_holomem_card, target_card, amount, special, prevent_life_loss, [], self.continue_resolving_effects)
+                self.deal_damage(source_player, target_player, source_holomem_card, target_card, amount, special, prevent_life_loss, {}, self.continue_resolving_effects)
                 passed_on_continuation = True
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
@@ -3339,7 +3348,7 @@ class GameEngine:
                 amount *= multiplier
                 if amount != 0:
                     self.performance_artstatboosts.power += amount
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount, for_art=True)
             case EffectType.EffectType_PowerBoostPerAllFans:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3351,14 +3360,14 @@ class GameEngine:
                 total = per_amount * fan_count
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
                 total = per_amount * len(holomems_in_archive)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
                 limit = effect["limit"]
@@ -3368,14 +3377,14 @@ class GameEngine:
                 total = per_amount * multiplier
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerBackstage:
                 per_amount = effect["amount"]
                 backstage_mems = len(effect_player.backstage)
                 total = per_amount * backstage_mems
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerHolomem:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3384,7 +3393,7 @@ class GameEngine:
                 total = per_amount * len(holomems)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
@@ -3392,7 +3401,7 @@ class GameEngine:
                 total = per_amount * len(stacked_holomems)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
             case EffectType.EffectType_RecordUsedOncePerGameEffect:
@@ -3408,7 +3417,8 @@ class GameEngine:
                 else:
                     amount_num = amount
                 self.take_damage_state.prevented_damage += amount_num
-                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_prevented", amount)
+                from_art = self.take_damage_state.art_info
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_prevented", amount, from_art)
             case EffectType.EffectType_ReduceRequiredArchiveCount:
                 amount = effect["amount"]
                 self.archive_count_required -= amount
@@ -3952,12 +3962,13 @@ class GameEngine:
             self.broadcast_event(gameover_event)
             self.game_over_event = gameover_event
 
-    def send_boost_event(self, card_id, stat:str, amount:int):
+    def send_boost_event(self, card_id, stat:str, amount:int, for_art):
         boost_event = {
             "event_type": EventType.EventType_BoostStat,
             "card_id": card_id,
             "stat": stat,
             "amount": amount,
+            "for_art": for_art,
         }
         self.broadcast_event(boost_event)
 

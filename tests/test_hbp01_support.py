@@ -83,16 +83,16 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost art, perform, damage, end turn, start turn, 2 resets, draw, cheer
         self.assertEqual(len(events), 18)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "nunnun",
             "target_id": player2.center[0]["game_card_id"],
-            "power": 40,
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 10,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
@@ -205,16 +205,16 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost art, perform, damage, end turn, start turn, 2 resets, draw, cheer
         self.assertEqual(len(events), 18)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "imoffnow",
             "target_id": player2.center[0]["game_card_id"],
-            "power": 30,
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 10,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
@@ -485,16 +485,16 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost art, perform, damage, end turn, start turn, 2 resets, draw, cheer
         self.assertEqual(len(events), 18)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "imoffnow",
             "target_id": player2.center[0]["game_card_id"],
-            "power": 30,
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 10,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
@@ -1466,15 +1466,15 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost power, perform, kill send cheer to self, damage, send cheer for opponent
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "stat": "power",
-            "amount": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "suichanwaaaakyoumokawaii",
             "target_id": p2center["game_card_id"],
-            "power": 60,
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 10,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
@@ -1778,12 +1778,12 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events -perform, boost stat, damage, simultaneous choice
         self.assertEqual(len(events), 8)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "alona"
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 50,
@@ -1851,12 +1851,12 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events -perform, boost stat, damage, simultaneous choice
         self.assertEqual(len(events), 8)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "alona"
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 50,
@@ -1923,12 +1923,12 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events -perform, boost stat, damage, simultaneous choice
         self.assertEqual(len(events), 8)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "alona"
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "alona"
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 50,
@@ -1993,15 +1993,15 @@ class Test_hbp01_Support(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost 10, draw 1, perform, damage, perform step
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "didiluiveyouwaiting",
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 10
         })
-        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "didiluiveyouwaiting",
-            "power": 40,
+        validate_event(self, events[4], EventType.EventType_Draw, self.player1, {
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 40,
@@ -2371,16 +2371,20 @@ class Test_hbp01_Support(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - roll die, choice
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "konpeko",
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
         # events - archive nousagi, roll die, boost, perform, damage, perform step
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": p1center["game_card_id"],
@@ -2396,11 +2400,7 @@ class Test_hbp01_Support(unittest.TestCase):
             "stat": "power",
             "amount": 20,
         })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
-            "art_id": "konpeko",
-            "power": 40,
-        })
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 40,
             "special": False
         })
