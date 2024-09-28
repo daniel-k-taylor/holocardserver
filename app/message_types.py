@@ -33,6 +33,10 @@ class ObserveRoomMessage(Message):
     room_id: str
 
 @dataclass
+class ObserverGetEventsMessage(Message):
+    next_event_index : int
+
+@dataclass
 class JoinMatchmakingQueueMessage(Message):
     custom_game: bool
     queue_name: str
@@ -71,5 +75,7 @@ def parse_message(json_data: str) -> Message:
             return GameActionMessage(**data)
         case "observe_room":
             return ObserveRoomMessage(**data)
+        case "observer_get_events":
+            return ObserverGetEventsMessage(**data)
         case _:
             raise ValueError(f"Unknown message type: {json_data}")

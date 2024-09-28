@@ -74,6 +74,7 @@ class EffectType:
     EffectType_ReduceRequiredArchiveCount = "reduce_required_archive_count"
     EffectType_RepeatArt = "repeat_art"
     EffectType_RestoreHp = "restore_hp"
+    EffectType_RestoreHp_Internal = "restore_hp_INTERNAL"
     EffectType_ReturnHolomemToDebut = "return_holomem_to_debut"
     EffectType_RevealTopDeck = "reveal_top_deck"
     EffectType_RerollDie = "reroll_die"
@@ -119,6 +120,7 @@ class Condition:
     Condition_OshiIs = "oshi_is"
     Condition_PerformanceTargetHasDamageOverHp = "performance_target_has_damage_over_hp"
     Condition_PerformerIsCenter = "performer_is_center"
+    Condition_PerformerIsCollab = "performer_is_collab"
     Condition_PerformerIsColor = "performer_is_color"
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
@@ -169,6 +171,7 @@ class EventType:
     EventType_MoveAttachedCard = "move_attached_card"
     EventType_MulliganDecision = "mulligan_decision"
     EventType_MulliganReveal = "mulligan_reveal"
+    EventType_ObserverCaughtUp = "observer_caught_up"
     EventType_OshiSkillActivation = "oshi_skill_activation"
     EventType_PerformanceStepStart = "performance_step_start"
     EventType_PerformArt = "perform_art"
@@ -1428,6 +1431,7 @@ class GameEngine:
             self.send_event({
                 "event_player_id": player_id,
                 "event_type": EventType.EventType_GameStartInfo,
+                "event_number": -1,
                 "starting_player": self.starting_player_id,
                 "your_id": player_id,
                 "opponent_id": self.other_player(player_id).player_id,
@@ -1449,6 +1453,7 @@ class GameEngine:
         observer_events = [{
             "event_player_id": "observer",
             "event_type": EventType.EventType_GameStartInfo,
+            "event_number": -1,
             "starting_player": self.starting_player_id,
             "your_id": self.player_ids[0],
             "opponent_id": self.player_ids[1],
@@ -2530,6 +2535,10 @@ class GameEngine:
                 if len(self.performance_performing_player.center) == 0:
                     return False
                 return self.performance_performing_player.center[0]["game_card_id"] == self.performance_performer_card["game_card_id"]
+            case Condition.Condition_PerformerIsCollab:
+                if len(self.performance_performing_player.collab) == 0:
+                    return False
+                return self.performance_performing_player.collab[0]["game_card_id"] == self.performance_performer_card["game_card_id"]
             case Condition.Condition_PerformerIsColor:
                 condition_colors = condition["condition_colors"]
                 for color in self.performance_performer_card["colors"]:
@@ -3475,6 +3484,7 @@ class GameEngine:
                 amount = effect["amount"]
                 limitation = effect.get("limitation", "")
                 limitation_colors = effect.get("limitation_colors", [])
+                hit_all_targets = effect.get("hit_all_targets", False)
                 target_options = []
                 match target:
                     case "center":
@@ -3487,12 +3497,20 @@ class GameEngine:
                         target_options = ids_from_cards(holomems)
                     case "self":
                         target_options = [effect["source_card_id"]]
+                targets_allowed = 1
+                if hit_all_targets:
+                    targets_allowed = len(target_options)
                 if len(target_options) == 0:
                     pass
-                elif len(target_options) == 1:
-                    # 1 target, so just do the effect.
-                    self.restore_holomem_hp(effect_player, target_options[0], amount, self.continue_resolving_effects)
-                    passed_on_continuation = True
+                elif len(target_options) == targets_allowed:
+                    target_options.reverse()
+                    for i in range(targets_allowed):
+                        self.add_restore_holomem_hp_internal_effect(
+                            effect_player,
+                            target_options[i],
+                            effect["source_card_id"],
+                            amount
+                        )
                 else:
                     # Choose holomem for effect.
                     decision_event = {
@@ -3510,10 +3528,17 @@ class GameEngine:
                         "cards_can_choose": target_options,
                         "amount_min": 1,
                         "amount_max": 1,
+                        "source_card_id": effect["source_card_id"],
                         "effect_resolution": self.handle_restore_hp_for_holomem,
                         "effect_amount": amount,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_RestoreHp_Internal:
+                target_player = effect["target_player"]
+                target_card = effect["target_card"]
+                amount = effect["amount"]
+                self.restore_holomem_hp(target_player, target_card, amount, self.continue_resolving_effects)
+                passed_on_continuation = True
             case EffectType.EffectType_ReturnHolomemToDebut:
                 target_player = effect_player
                 if effect.get("opponent", False):
@@ -3795,6 +3820,7 @@ class GameEngine:
                         to_options = ids_from_cards(to_options)
                     case "this_holomem":
                         to_options = [effect["source_card_id"]]
+                        to_zone = "holomem"
                 if str(amount_min) == "all":
                     amount_min = len(from_options)
                 if str(amount_max) == "all":
@@ -3969,6 +3995,17 @@ class GameEngine:
         if "game_card_id" in source_holomem_card:
             source_id = source_holomem_card["game_card_id"]
         add_ids_to_effects(effects, source_player.player_id, source_id)
+        self.add_effects_to_front(effects)
+
+    def add_restore_holomem_hp_internal_effect(self, target_player : PlayerState, target_card, source_card_id, amount):
+        effects = [{
+            "effect_type": EffectType.EffectType_RestoreHp_Internal,
+            "target_player": target_player,
+            "target_card": target_card,
+            "amount": amount,
+            "internal_skip_simultaneous_choice": True,
+        }]
+        add_ids_to_effects(effects, target_player.player_id, source_card_id)
         self.add_effects_to_front(effects)
 
     def send_choice_to_player(self, effect_player_id, choice, simultaneous_resolution = False):
@@ -4861,7 +4898,9 @@ class GameEngine:
         effect_player = self.get_player(performing_player_id)
         holomem_target = card_ids[0]
         hp_to_restore = decision_info_copy["effect_amount"]
-        self.restore_holomem_hp(effect_player, holomem_target, hp_to_restore, continuation)
+        source_card_id = decision_info_copy["source_card_id"]
+        self.add_restore_holomem_hp_internal_effect(effect_player, holomem_target, source_card_id, hp_to_restore)
+        continuation()
 
     def handle_run_single_effect(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
         effect_player = self.get_player(performing_player_id)

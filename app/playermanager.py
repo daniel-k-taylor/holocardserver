@@ -68,6 +68,7 @@ class Player:
             "observing": observing,
             "game_room": game_room.get_room_name() if game_room else "Lobby",
             "queue": self.queue_name,
+            "oshi_id": self.oshi_id,
         }
 
     async def send_game_event(self, event):
