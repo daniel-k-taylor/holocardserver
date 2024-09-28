@@ -126,7 +126,11 @@ async def websocket_endpoint(websocket: WebSocket):
                         break
                 else:
                     await send_error_message(websocket, "invalid_room", f"ERROR: Match not found.")
-
+            elif isinstance(message, message_types.ObserverGetEventsMessage):
+                if not player.current_game_room:
+                    await send_error_message(websocket, "not_in_room", f"ERROR: Not in a game room.")
+                    break
+                await player.current_game_room.observer_request_next_events(player, message.next_event_index)
             elif isinstance(message, message_types.JoinMatchmakingQueueMessage):
                 # Ensure player is in a joinable state.
                 if not can_player_join_queue(player):

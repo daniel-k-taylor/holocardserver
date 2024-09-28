@@ -2,7 +2,7 @@ import json
 import os
 from typing import List
 from app.playermanager import Player
-from app.gameengine import GameEngine, GameAction
+from app.gameengine import GameEngine, GameAction, EventType
 from app.card_database import CardDatabase
 from app.aiplayer import AIPlayer, DefaultAIDeck
 from app.dbaccess import upload_match_to_blob_storage
@@ -123,9 +123,20 @@ class GameRoom:
         self.observers.append(player)
         player.current_game_room = self
 
+        await self.observer_request_next_events(player, 0)
+
+    async def observer_request_next_events(self, player: Player, starting_event_index):
         events = self.engine.get_observer_catchup_events()
-        for event in events:
+
+        # Only send the next 50 events.
+        ending_event_index = starting_event_index + 50
+        for event in events[starting_event_index:ending_event_index]:
             await player.send_game_event(event)
+
+        # If this is the end, send the catch up event.
+        if ending_event_index >= len(events):
+            await player.send_game_event({"event_type": EventType.EventType_ObserverCaughtUp})
+
 
     async def handle_player_quit(self, player: Player):
         await self.handle_game_message(player.player_id, GameAction.Resign, {})

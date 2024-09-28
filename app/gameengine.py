@@ -171,6 +171,7 @@ class EventType:
     EventType_MoveAttachedCard = "move_attached_card"
     EventType_MulliganDecision = "mulligan_decision"
     EventType_MulliganReveal = "mulligan_reveal"
+    EventType_ObserverCaughtUp = "observer_caught_up"
     EventType_OshiSkillActivation = "oshi_skill_activation"
     EventType_PerformanceStepStart = "performance_step_start"
     EventType_PerformArt = "perform_art"
@@ -1430,6 +1431,7 @@ class GameEngine:
             self.send_event({
                 "event_player_id": player_id,
                 "event_type": EventType.EventType_GameStartInfo,
+                "event_number": -1,
                 "starting_player": self.starting_player_id,
                 "your_id": player_id,
                 "opponent_id": self.other_player(player_id).player_id,
@@ -1451,6 +1453,7 @@ class GameEngine:
         observer_events = [{
             "event_player_id": "observer",
             "event_type": EventType.EventType_GameStartInfo,
+            "event_number": -1,
             "starting_player": self.starting_player_id,
             "your_id": self.player_ids[0],
             "opponent_id": self.player_ids[1],
@@ -3817,6 +3820,7 @@ class GameEngine:
                         to_options = ids_from_cards(to_options)
                     case "this_holomem":
                         to_options = [effect["source_card_id"]]
+                        to_zone = "holomem"
                 if str(amount_min) == "all":
                     amount_min = len(from_options)
                 if str(amount_max) == "all":
