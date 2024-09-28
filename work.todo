@@ -1,5 +1,4 @@
 Todo:
-    ☐ Add cheer pack oshis
     ☐ Reconnect logic -
         - Leave game room open,
         - give remaining player a button to kill the match after a minute
@@ -9,7 +8,7 @@ Todo:
 Revisit:
     ☐ Clean up observer mode game start so it's more clear what's going on
         - indicate whose turn it is with the spinner somehow
-        - Show the cards on screen
+        - Show the cards on screen facedown
     ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
     ☐ Collab add turn effects go away if you bloom over them?
