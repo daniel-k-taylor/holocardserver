@@ -391,6 +391,7 @@ class PlayerState:
                 generated_card["attached_support"] = []
                 generated_card["stacked_cards"] = []
                 generated_card["zone_when_downed"] = ""
+                generated_card["attached_when_downed"] = []
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
                 generated_card["rest_extra_turn"] = False
@@ -688,7 +689,10 @@ class PlayerState:
                 effects.extend(gift_effects)
 
         if card and card["card_type"] not in ["support", "oshi"]:
-            for attached_card in card["attached_support"]:
+            attachments_to_check = card["attached_support"]
+            if card["attached_when_downed"]:
+                attachments_to_check = card["attached_when_downed"]
+            for attached_card in attachments_to_check:
                 attached_effects = attached_card.get("attached_effects", [])
                 for attached_effect in attached_effects:
                     if attached_effect["timing"] == timing:
@@ -878,6 +882,8 @@ class PlayerState:
             card["resting"] = False
             card["rest_extra_turn"] = False
             card["used_art_this_turn"] = False
+            card["zone_when_downed"] = ""
+            card["attached_when_downed"] = []
 
     def active_resting_cards(self):
         # For each card in the center, backstage, and collab zones, check if they are resting.
@@ -1121,6 +1127,10 @@ class PlayerState:
         attached_support = card["attached_support"]
         stacked_cards = card["stacked_cards"]
         card["zone_when_downed"] = zone_name
+        card["attached_when_downed"] = attached_support.copy()
+        card["attached_cheer"] = []
+        card["attached_support"] = []
+        card["stacked_cards"] = []
 
         to_archive = attached_cheer + attached_support + stacked_cards
 
@@ -1151,12 +1161,9 @@ class PlayerState:
             self.archive.insert(0, card)
         for card in to_hand:
             self.hand.append(card)
+            self.reset_card_stats(card)
         archived_ids = ids_from_cards(to_archive)
         hand_ids = ids_from_cards(to_hand)
-
-        returning_card["attached_cheer"] = []
-        returning_card["attached_support"] = []
-        returning_card["stacked_cards"] = []
 
         return archived_ids, hand_ids
 
@@ -2083,10 +2090,11 @@ class GameEngine:
             self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, continuation)
 
     def begin_after_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, continuation):
+        after_effects = []
         if damage > 0:
             after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
-        else:
-            after_deal_damage_effects = []
+            after_take_damage_effects = target_player.get_effects_at_timing("after_take_damage", target_card)
+            after_effects = after_deal_damage_effects + after_take_damage_effects
         nested_state = None
         if self.after_damage_state:
             nested_state = self.after_damage_state
@@ -2100,7 +2108,7 @@ class GameEngine:
         self.after_damage_state.special = special
         self.after_damage_state.target_card_zone = target_player.get_holomem_zone(target_card)
 
-        self.begin_resolving_effects(after_deal_damage_effects, lambda :
+        self.begin_resolving_effects(after_effects, lambda :
             self.complete_after_deal_damage(continuation)
         )
 
@@ -2315,10 +2323,15 @@ class GameEngine:
                 owner_player = self.get_player(source_card["owner_id"])
                 holomems = owner_player.get_holomem_on_stage()
                 for holomem in holomems:
-                    if source_card_id in [card["game_card_id"] for card in holomem["attached_support"]]:
+                    if source_card_id in ids_from_cards(holomem["attached_support"]):
                         if required_member_name in holomem["card_names"]:
                             if not required_bloom_levels or holomem.get("bloom_level", -1) in required_bloom_levels:
                                 return True
+                # Check if there is an after damage state and if this the target card had this attached.
+                if self.after_damage_state and source_card_id in ids_from_cards(self.after_damage_state.target_card["attached_when_downed"]):
+                    if required_member_name in self.after_damage_state.target_card["card_names"]:
+                        if not required_bloom_levels or self.after_damage_state.target_card.get("bloom_level", -1) in required_bloom_levels:
+                            return True
                 return False
             case Condition.Condition_AttachedOwnerIsLocation:
                 required_location = condition["condition_location"]

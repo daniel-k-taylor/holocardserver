@@ -14,11 +14,6 @@ Revisit:
     ☐ Collab add turn effects go away if you bloom over them?
 
 Q&A Todos:
-    ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
-        - upao is a special deal damage after down process phase
-        - after_received_damage to go along with after_deal_damage effects?
-
-
     ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.
         - this is relevant for kobo multi damage.
         - don't want to let people put cheer on a member that is about to die.
