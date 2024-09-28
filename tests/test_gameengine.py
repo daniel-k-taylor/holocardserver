@@ -305,16 +305,16 @@ class TestGameEngine(unittest.TestCase):
         events = self.engine.grab_events()
         # Events = stat boost from effect, performance, damage, player 1's mem died, so distribute cheer decision.
         self.assertEqual(len(events), 10)
-        self.validate_event(events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player2.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 20,
-        })
-        self.validate_event(events[2], EventType.EventType_PerformArt, self.player1, {
+        self.validate_event(events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player2.center[0]["game_card_id"],
             "art_id": player2.center[0]["arts"][0]["art_id"],
             "target_id": p1_center_before_attack["game_card_id"],
-            "power": 50, # 30 art + 20 from collab
+            "power": 30, # 30 art
+        })
+        self.validate_event(events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player2.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 20,
         })
         self.validate_event(events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p1_center_before_attack["game_card_id"],

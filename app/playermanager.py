@@ -57,10 +57,16 @@ class Player:
         }
 
     def get_public_player_info(self):
+        game_room = self.current_game_room
+        observing = False
+        if game_room:
+            if self in game_room.observers:
+                observing = True
         return {
             "player_id": self.player_id,
             "username": self.username,
-            "game_room": self.current_game_room.get_room_name() if self.current_game_room else "Lobby",
+            "observing": observing,
+            "game_room": game_room.get_room_name() if game_room else "Lobby",
             "queue": self.queue_name,
         }
 
@@ -88,13 +94,25 @@ class PlayerManager:
     def get_players_info(self):
         return [player.get_public_player_info() for player in self.active_players.values()]
 
-    async def broadcast_server_info(self, queue_info):
+    async def broadcast_server_info(self, queue_info, game_rooms):
         players_info = self.get_players_info()
         failed_players = []
-        for player in self.active_players.values():
+        room_info = []
+        for room in game_rooms:
+            if not room.is_ai_game():
+                room_info.append(room.get_room_info())
+        player_ids = list(self.active_players.keys())
+        for player_id in player_ids:
+            if player_id not in self.active_players:
+                continue
+            player = self.active_players[player_id]
+            if not player.connected:
+                continue
+
             message = ServerInfoMessage(
                 message_type="server_info",
                 queue_info=queue_info,
+                room_info=room_info,
                 players_info=players_info,
                 your_id=player.player_id,
                 your_username=player.get_username()

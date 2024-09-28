@@ -189,13 +189,17 @@ class Test_hbp01_004(unittest.TestCase):
         })
         events = engine.grab_events()
         self.assertEqual(len(events), 10)
-        # Events - roll die, power boost, perform art, damage, perform step
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        # Events - perform art, roll die, power boost, damage, perform step
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "art_id": "konpeko",
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": True,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20
         })
@@ -209,14 +213,14 @@ class Test_hbp01_004(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - roll die, power boost, perform art, damage, send cheer
+        # Events - perform art, roll die, power boost, damage, send cheer
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": True,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20
         })

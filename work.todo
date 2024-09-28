@@ -1,8 +1,5 @@
-☐ Make mumei interaction have more info for the user for context when deciding to reduce damage
-
 Todo:
-    ☐ Investigate Mumei oshi and zeta interaction
-    ☐ Observer mode - Let observers join, they get full messages and play them all immediately but hidden stuff stripped from both players.
+    ☐ Add cheer pack oshis
     ☐ Reconnect logic -
         - Leave game room open,
         - give remaining player a button to kill the match after a minute
@@ -10,15 +7,15 @@ Todo:
             - pass this up when joining the server
             - if you need to reconnect, it automatically puts you back in the right room and sends you events to catch you up
 Revisit:
+    ☐ Clean up observer mode game start so it's more clear what's going on
+        - indicate whose turn it is with the spinner somehow
+        - Show the cards on screen
     ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
     ☐ Collab add turn effects go away if you bloom over them?
+    ☐ make on_take_damage simultaneous resolution if more complicated than Zeta's ability
 
 Q&A Todos:
-    ☐ Q108: Upao reflect damage triggers AFTER the holomem downed process. If you are at 1 life and an opponent downs your Kanata with an Upao attached, you will immediately lose life and go down to 0, and there is no window to inflict special damage via Upao's effect.
-        - upao is a special deal damage after down process phase
-
-
     ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.
         - this is relevant for kobo multi damage.
         - don't want to let people put cheer on a member that is about to die.

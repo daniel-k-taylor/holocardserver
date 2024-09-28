@@ -165,16 +165,16 @@ class TestStarterDeckCards(unittest.TestCase):
         events = engine.grab_events()
         # Events - power boost, use art, damage, killed their center
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": test_card["game_card_id"],
-            "stat": "power",
-            "amount": 50,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "sorazsympathy",
             "target_id": target,
-            "power": 110,
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": test_card["game_card_id"],
+            "stat": "power",
+            "amount": 50,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
@@ -327,22 +327,28 @@ class TestStarterDeckCards(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - no weakness boost, send_cheer from sora for any holomem
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "sorazgravity",
+            "target_id": target,
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "cheer_deck",
             "to_zone": "holomem",
         })
-        from_options = events[0]["from_options"]
-        to_options = events[0]["to_options"]
+        from_options = events[2]["from_options"]
+        to_options = events[2]["to_options"]
         cheer_placement = {
             from_options[0]: player1.backstage[0]["game_card_id"]
         }
         self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {"placements": cheer_placement })
         events = self.engine.grab_events()
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 8)
         # Events - move cheer, use art, damage, p2 distribute life
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
@@ -350,26 +356,20 @@ class TestStarterDeckCards(unittest.TestCase):
             "to_holomem_id": player1.backstage[0]["game_card_id"],
             "attached_id": top_cheer,
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "sorazgravity",
-            "target_id": target,
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 60,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": target,
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -415,21 +415,21 @@ class TestStarterDeckCards(unittest.TestCase):
         events = engine.grab_events()
         # Events - no weakness boost, roll die (1), power boost 100
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "destinysong",
+            "target_id": target,
+            "power": 100,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "card_id": test_card["game_card_id"],
             "stat": "power",
             "amount": 100,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "destinysong",
-            "target_id": target,
-            "power": 200,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
@@ -491,16 +491,16 @@ class TestStarterDeckCards(unittest.TestCase):
         # Events - weakness boost, art, damage, distribute
         self.assertEqual(len(events), 10)
         # Events - move cheer, use art, p2 distribute life
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": test_card["game_card_id"],
-            "stat": "power",
-            "amount": 50,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "sorazgravity",
             "target_id": target,
-            "power": 110,
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": test_card["game_card_id"],
+            "stat": "power",
+            "amount": 50,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
@@ -622,22 +622,22 @@ class TestStarterDeckCards(unittest.TestCase):
         events = engine.grab_events()
         # Events - roll die, send_cheer, use art, damage, end turn + 10
         self.assertEqual(len(events), 20)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
-            "effect_player_id": self.player1,
-            "die_result": 1,
-            "rigged": False,
-        })
-        validate_event(self, events[2], EventType.EventType_MoveAttachedCard, self.player1, {
-            "owning_player_id": self.player1,
-            "from_holomem_id": "cheer_deck",
-            "to_holomem_id": player1.center[0]["game_card_id"],
-            "attached_id": top_cheer,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "brighterfuture",
             "target_id": target,
             "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
+        })
+        validate_event(self, events[4], EventType.EventType_MoveAttachedCard, self.player1, {
+            "owning_player_id": self.player1,
+            "from_holomem_id": "cheer_deck",
+            "to_holomem_id": player1.center[0]["game_card_id"],
+            "attached_id": top_cheer,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,

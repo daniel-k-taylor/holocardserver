@@ -101,16 +101,16 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost stat, perform art, damage dealt, performance step
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "nunnun",
             "target_id": player2.center[0]["game_card_id"],
-            "power": 40,
+            "power": 30,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 10,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
@@ -173,21 +173,21 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost stat, perform art, damage dealt, performance step
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "card_id": player1.center[0]["game_card_id"],
-            "stat": "power",
-            "amount": 10,
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "imoffnow",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 20,
         })
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "card_id": player1.center[0]["game_card_id"],
             "stat": "power",
-            "amount": 20,
+            "amount": 10,
         })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "imoffnow",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 50,
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+            "card_id": player1.center[0]["game_card_id"],
+            "stat": "power",
+            "amount": 20,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
@@ -997,15 +997,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events -boost perform, damage, end turn etc.
         self.assertEqual(len(events), 18)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "stat": "power",
-            "amount": 20
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "ohhi",
             "target_id": p2center["game_card_id"],
-            "power": 30,
+            "power": 10,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 20
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
@@ -1106,10 +1106,16 @@ class Test_hbp01_holomems(unittest.TestCase):
         topdeckcardid = player1.deck[0]["game_card_id"]
         # Events - before choice
         self.assertEqual(len(player1.hand), 3)
-        self.assertEqual(len(events), 2)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "piecesofmemories",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 20,
+        })
         events = pick_choice(self, self.player1, 0)
         # Events - Reveal topdeck, still draw!, perform, damage, end turn etc.
-        self.assertEqual(len(events), 20)
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_RevealCards, self.player1, {
             "effect_player_id": self.player1,
             "source": "topdeck"
@@ -1118,19 +1124,13 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(card_ids), 1)
         self.assertEqual(topdeckcardid, card_ids[0])
         validate_event(self, events[2], EventType.EventType_Draw, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "piecesofmemories",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 20,
-        })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
         do_cheer_step_on_card(self, player2.center[0])
         self.assertEqual(len(player1.hand), 4)
 
@@ -1164,10 +1164,16 @@ class Test_hbp01_holomems(unittest.TestCase):
         topdeckcardid = supportcard["game_card_id"]
         # Events - before choice
         self.assertEqual(len(player1.hand), 3)
-        self.assertEqual(len(events), 2)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "piecesofmemories",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 20,
+        })
         events = pick_choice(self, self.player1, 0)
         # Events - Reveal topdeck, still draw!, perform, damage, end turn etc.
-        self.assertEqual(len(events), 20)
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_RevealCards, self.player1, {
             "effect_player_id": self.player1,
             "source": "topdeck"
@@ -1176,19 +1182,13 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(len(card_ids), 1)
         self.assertEqual(topdeckcardid, card_ids[0])
         validate_event(self, events[2], EventType.EventType_Draw, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "piecesofmemories",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 20,
-        })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
         do_cheer_step_on_card(self, player2.center[0])
         self.assertEqual(len(player1.hand), 4)
 
@@ -1221,10 +1221,16 @@ class Test_hbp01_holomems(unittest.TestCase):
         topdeckcardid = topdeck["game_card_id"]
         # Events - before choice
         self.assertEqual(len(player1.hand), 3)
-        self.assertEqual(len(events), 2)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "piecesofmemories",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 20,
+        })
         events = pick_choice(self, self.player1, 0)
         # Events - Reveal topdeck, boost, draw, perform, damage, end turn etc.
-        self.assertEqual(len(events), 22)
+        self.assertEqual(len(events), 20)
         validate_event(self, events[0], EventType.EventType_RevealCards, self.player1, {
             "effect_player_id": self.player1,
             "source": "topdeck"
@@ -1237,19 +1243,13 @@ class Test_hbp01_holomems(unittest.TestCase):
             "amount": 20
         })
         validate_event(self, events[4], EventType.EventType_Draw, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": test_card["game_card_id"],
-            "art_id": "piecesofmemories",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 40,
-        })
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 40,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[10], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
         do_cheer_step_on_card(self, player2.center[0])
         self.assertEqual(len(player1.hand), 4)
 
@@ -1364,11 +1364,11 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": p2collab["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - add turn, 40 boost, perform, deal damage, performance step
+        # Events - perform, add turn, 40 boost, deal damage, performance step
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_AddTurnEffect, self.player1, {
+        validate_event(self, events[2], EventType.EventType_AddTurnEffect, self.player1, {
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
         })
@@ -1386,8 +1386,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - boost 40, perform, damage, send cheer
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        # Events - perform, boost 40, damage, send cheer
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
         })
@@ -1455,16 +1455,16 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - (Roll die, perform, damage) x 3 then cheer
         self.assertEqual(len(events), 22)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
-            "effect_player_id": self.player1,
-            "die_result": 1,
-            "rigged": False,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
@@ -1472,17 +1472,16 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-
-        validate_event(self, events[6], EventType.EventType_RollDie, self.player1, {
-            "effect_player_id": self.player1,
-            "die_result": 1,
-            "rigged": False,
-        })
-        validate_event(self, events[8], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
+        })
+        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
         })
         validate_event(self, events[10], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
@@ -1490,17 +1489,16 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-
-        validate_event(self, events[12], EventType.EventType_RollDie, self.player1, {
-            "effect_player_id": self.player1,
-            "die_result": 1,
-            "rigged": False,
-        })
-        validate_event(self, events[14], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[12], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
+        })
+        validate_event(self, events[14], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
         })
         validate_event(self, events[16], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
@@ -1718,7 +1716,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost, perform, damage, cheer
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 60
         })
@@ -1941,51 +1939,52 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
+        p2center = player2.center[0]
+
         # Events - boost stat, punch self, art effect send cheer with tool
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "akirosefantasy",
+            "target_id": p2center["game_card_id"],
+            "power": 40,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20,
         })
-        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "cheer_deck",
             "to_zone": "holomem",
         })
-        p2center = player2.center[0]
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
-                events[2]["from_options"][0]: player1.center[0]["game_card_id"]
+                events[4]["from_options"][0]: player1.center[0]["game_card_id"]
             }
         })
         events = engine.grab_events()
-        # Events - move cheer, perform, damage, send cheer
-        self.assertEqual(len(events), 10)
+        # Events - move cheer,  damage, send cheer
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
             "to_holomem_id": player1.center[0]["game_card_id"],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "akirosefantasy",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "damage": 60,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1995,7 +1994,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         # Do the send cheer from life loss
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
-                events[8]["from_options"][0]: player2.backstage[0]["game_card_id"]
+                events[6]["from_options"][0]: player2.backstage[0]["game_card_id"]
             }
         })
         events = engine.grab_events()
@@ -2148,20 +2147,20 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - roll die, power boost, perform, damage, cheer
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "kitraaaa",
+            "target_id": p2center["game_card_id"],
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 4,
             "rigged": False,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "kitraaaa",
-            "target_id": p2center["game_card_id"],
-            "power": 90,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 90,
@@ -2213,38 +2212,38 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - (roll die, power boost)x 3, perform, damage, cheer
         self.assertEqual(len(events), 20)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "humanrabbitalityproject",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 4,
             "rigged": False,
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
         })
-        validate_event(self, events[4], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[6], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[8], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 10,
         })
-        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[10], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": False,
         })
-        validate_event(self, events[10], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[12], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 60,
-        })
-        validate_event(self, events[12], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "humanrabbitalityproject",
-            "target_id": p2center["game_card_id"],
-            "power": 170,
         })
         validate_event(self, events[14], EventType.EventType_DamageDealt, self.player1, {
             "damage": 170,
@@ -2481,15 +2480,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - send cheer
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "cheer_deck",
             "to_zone": "holomem",
         })
-        from_options = events[0]["from_options"]
-        to_options = events[0]["to_options"]
+        from_options = events[2]["from_options"]
+        to_options = events[2]["to_options"]
         self.assertTrue(test_card["game_card_id"] not in to_options)
         self.assertTrue(lui["game_card_id"] in to_options)
         self.assertTrue(lui2["game_card_id"] in to_options)
@@ -2501,10 +2500,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, perform, damage, performance step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {})
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {})
         actions = reset_performancestep(self)
         engine.handle_game_message(self.player1, GameAction.PerformanceStepEndTurn, {})
         do_cheer_step_on_card(self, player2.backstage[0])
@@ -2577,17 +2575,17 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - boost, perform, damage, down send cheer
+        # Events - perform, boost, damage, down send cheer
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
-            "stat": "power",
-            "amount": 100
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "bundleupyourcheers",
             "target_id": p2center["game_card_id"],
-            "power": 150,
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "stat": "power",
+            "amount": 100
         })
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 150
@@ -2669,10 +2667,11 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer between mems only to ID though.
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {})
-        to_options = events[0]["to_options"]
-        from_options = events[0]["from_options"]
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {})
+        to_options = events[2]["to_options"]
+        from_options = events[2]["from_options"]
         self.assertEqual(len(to_options), 2)
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
@@ -2681,10 +2680,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, perform, damage, perform step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {})
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {})
         reset_performancestep(self)
         self.assertEqual(otherid["attached_cheer"][0]["game_card_id"], from_options[0])
 
@@ -2759,11 +2757,11 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost, perform, damage, down, send cheer
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 50
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 150,
         })
@@ -3022,12 +3020,13 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {})
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
         # Events - always archives the top stacked card.
         # Events - move card to archive, deal damage to collab, perform, damage, next perf
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": test_card["game_card_id"],
@@ -3040,8 +3039,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "special": True,
             "target_id": p2collab["game_card_id"],
         })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 40,
             "special": False
         })
@@ -3089,16 +3087,17 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - power boost per archived, choose cards to shuffle
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20
         })
-        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
             "amount_min": 2,
             "amount_max": 2
         })
-        cards_can_choose = events[2]["cards_can_choose"]
+        cards_can_choose = events[4]["cards_can_choose"]
         self.assertEqual(len(cards_can_choose), 2)
         self.assertTrue(stack1["game_card_id"] in cards_can_choose)
         self.assertTrue(stack2["game_card_id"] in cards_can_choose)
@@ -3106,8 +3105,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_ids": cards_can_choose
         })
         events = engine.grab_events()
-        # Events - move card to deck x 2, shuffle, perform, damage, down, cheer
-        self.assertEqual(len(events), 14)
+        # Events - move card to deck x 2, shuffle,  damage, down, cheer
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "archive",
@@ -3121,13 +3120,12 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": cards_can_choose[1],
         })
         validate_event(self, events[4], EventType.EventType_ShuffleDeck, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {})
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 100,
             "special": False
         })
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
         self.assertTrue(junk1["game_card_id"] in ids_from_cards(player1.archive))
         self.assertTrue(junk2["game_card_id"] in ids_from_cards(player1.archive))
         self.assertTrue(junk3["game_card_id"] in ids_from_cards(player1.archive))
@@ -3224,15 +3222,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - boost, boost, perform, damage, down, cheer
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 10 # Upao
         })
-        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 80 # 4 fans in play
         })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 140
         })
@@ -3317,22 +3315,22 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # roll die, deal damage to collab, perform, damage, performance step
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
-            "effect_player_id": self.player1,
-            "die_result": 1,
-            "rigged": False,
-        })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": p2collab["game_card_id"],
-            "damage": 20,
-            "target_player": self.player2,
-            "special": True,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "wazzup",
             "target_id": p2center["game_card_id"],
             "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 1,
+            "rigged": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p2collab["game_card_id"],
+            "damage": 20,
+            "target_player": self.player2,
+            "special": True,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
@@ -3677,11 +3675,17 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - before art back snipe
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
             "effect_player_id": self.player1,
         })
-        cards_can_choose = events[0]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         backstage_options = [card["game_card_id"] for card in player2.backstage]
         self.assertListEqual(cards_can_choose, backstage_options)
 
@@ -3690,18 +3694,12 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, perform, damage, end turn
-        self.assertEqual(len(events), 18)
+        self.assertEqual(len(events), 16)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[1]["game_card_id"],
             "damage": 10,
             "target_player": self.player2,
             "special": True,
-        })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "diamondintherough",
-            "target_id": p2center["game_card_id"],
-            "power": 20,
         })
         do_cheer_step_on_card(self, player2.center[0])
         actions = reset_mainstep(self)
@@ -3769,11 +3767,17 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - before art back snipe
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
             "effect_player_id": self.player1,
         })
-        cards_can_choose = events[0]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         backstage_options = [card["game_card_id"] for card in player2.backstage]
         self.assertListEqual(cards_can_choose, backstage_options)
 
@@ -3784,7 +3788,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, perform art, turn etc. (no cheer because no life loss)
-        self.assertEqual(len(events), 20)
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": sniped["game_card_id"],
             "damage": 10,
@@ -3797,12 +3801,6 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "life_lost": 0,
             "life_loss_prevented": True,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "diamondintherough",
-            "target_id": p2center["game_card_id"],
-            "power": 20,
         })
         do_cheer_step_on_card(self, player2.center[0])
         actions = reset_mainstep(self)
@@ -4189,33 +4187,33 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - archive 2 cheers
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "power": 60
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "from_zone": "holomem",
             "to_zone": "archive",
         })
-        cards_can_choose = events[0]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         self.assertListEqual(cards_can_choose, [b1["game_card_id"], b2["game_card_id"], b3["game_card_id"]])
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [b1["game_card_id"], b2["game_card_id"]]
         })
         events = engine.grab_events()
         # Events - power boost, perform, damage, down, send cheer
-        self.assertEqual(len(events), 14)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 120
         })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
-            "power": 180
-        })
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 180
         })
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_081_shiningcomet_center_target_choice(self):
@@ -4252,7 +4250,10 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice
-        self.assertEqual(len(events), 2)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "power": 60
+        })
         events = pick_choice(self, self.player1, 0)
         # Events - archive 2 cheers
         self.assertEqual(len(events), 2)
@@ -4267,21 +4268,18 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - power boost, perform, damage, down, send cheer
-        self.assertEqual(len(events), 14)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 120
         })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
-            "power": 180
-        })
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 180
         })
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_081_shiningcomet_center_target_choice_pass(self):
@@ -4318,18 +4316,18 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice
-        self.assertEqual(len(events), 2)
-        events = pick_choice(self, self.player1, 1)
-        # Events - perform, damage, down, send cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "power": 60
         })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+        events = pick_choice(self, self.player1, 1)
+        # Events - perform, damage, down, send cheer
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "damage": 60
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_085_damage_multiple_less_than_allowed(self):
@@ -4368,21 +4366,21 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - deal damage to 3 backstage, only 2 so 2 just happen, then perform, damage, perform step.
         self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[0]["game_card_id"],
-            "special": True,
-            "damage": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[1]["game_card_id"],
-            "special": True,
-            "damage": 10,
-        })
-        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": p1center["game_card_id"],
             "art_id": "raindrops",
             "target_id": p2center["game_card_id"],
             "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "special": True,
+            "damage": 10,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[1]["game_card_id"],
+            "special": True,
+            "damage": 10,
         })
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
@@ -4428,26 +4426,26 @@ class Test_hbp01_holomems(unittest.TestCase):
         events = engine.grab_events()
         # Events - deal damage to 3 backstage, only 2 so 2 just happen, then perform, damage, perform step.
         self.assertEqual(len(events), 12)
-        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[0]["game_card_id"],
-            "special": True,
-            "damage": 10,
-        })
-        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[1]["game_card_id"],
-            "special": True,
-            "damage": 10,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[2]["game_card_id"],
-            "special": True,
-            "damage": 10,
-        })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": p1center["game_card_id"],
             "art_id": "raindrops",
             "target_id": p2center["game_card_id"],
             "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[0]["game_card_id"],
+            "special": True,
+            "damage": 10,
+        })
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[1]["game_card_id"],
+            "special": True,
+            "damage": 10,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.backstage[2]["game_card_id"],
+            "special": True,
+            "damage": 10,
         })
         validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
@@ -4487,19 +4485,25 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage choose cards
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "raindrops",
+            "target_id": p2center["game_card_id"],
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
             "amount_min": 3,
             "amount_max": 3,
         })
-        cards_can_choose = events[0]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         self.assertListEqual(cards_can_choose, ids_from_cards(player2.backstage))
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [player2.backstage[3]["game_card_id"], player2.backstage[1]["game_card_id"], player2.backstage[2]["game_card_id"]]
         })
         events = engine.grab_events()
         # Events - deal damage to 3 backstage, only 2 so 2 just happen, then perform, damage, perform step.
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[3]["game_card_id"],
             "special": True,
@@ -4515,13 +4519,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "special": True,
             "damage": 10,
         })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "raindrops",
-            "target_id": p2center["game_card_id"],
-            "power": 50,
-        })
-        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
             "special": False,
             "damage": 50,
@@ -4781,6 +4779,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Choice
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "power": 40,
+        })
         events = pick_choice(self, self.player1, 0)
         # Events - choose cheer cards to discard.
         validate_event(self, events[0], EventType.EventType_Decision_ChooseCards, self.player1, {
@@ -4794,7 +4795,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, deal damage to all backstage, perform, damage, perform step.
-        self.assertEqual(len(events), 18)
+        self.assertEqual(len(events), 16)
         # Move cheer first
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
@@ -4828,10 +4829,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "special": True,
             "damage": 20,
         })
-        validate_event(self, events[12], EventType.EventType_PerformArt, self.player1, {
-            "power": 40,
-        })
-        validate_event(self, events[14], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[12], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
             "special": False,
             "damage": 40,
@@ -5016,6 +5014,12 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": p2center["game_card_id"],
         })
         events = engine.grab_events()
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": player1.center[0]["game_card_id"],
+            "art_id": "moonnightdiva",
+            "target_id": p2center["game_card_id"],
+            "power": 80,
+        })
         # Choice to use ability, do it.
         events = pick_choice(self, self.player1, 0)
         # Events - before archive cheer
@@ -5048,32 +5052,26 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - bonus damage, perform, damage, down, send cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[2]["game_card_id"],
             "damage": 30,
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": player1.center[0]["game_card_id"],
-            "art_id": "moonnightdiva",
-            "target_id": p2center["game_card_id"],
-            "power": 80,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
             "damage": 80,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_092_sendcheer_self_nootherpromise(self):
@@ -5152,17 +5150,23 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - send cheer effect, 2 cheer 1 target
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "kronichiwa",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 10,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 0,
             "amount_max": 1,
             "from_zone": "holomem",
             "to_zone": "holomem",
         })
-        from_options = events[0]["from_options"]
+        from_options = events[2]["from_options"]
         self.assertEqual(len(from_options), 2)
-        to_options = events[0]["to_options"]
+        to_options = events[2]["to_options"]
         self.assertEqual(len(to_options), 1)
 
         placements = {}
@@ -5172,20 +5176,14 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, perform, damage, perform step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": player1.center[0]["game_card_id"],
             "to_holomem_id": testcard2["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "kronichiwa",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 10,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 10,
             "target_player": self.player2,
@@ -5226,17 +5224,23 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - send cheer effect, 2 cheer 1 target
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "kronichiwa",
+            "target_id": player2.center[0]["game_card_id"],
+            "power": 10,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 0,
             "amount_max": 1,
             "from_zone": "holomem",
             "to_zone": "holomem",
         })
-        from_options = events[0]["from_options"]
+        from_options = events[2]["from_options"]
         self.assertEqual(len(from_options), 2)
-        to_options = events[0]["to_options"]
+        to_options = events[2]["to_options"]
         self.assertEqual(len(to_options), 2)
 
         placements = {}
@@ -5246,20 +5250,14 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, perform, damage, perform step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": player1.center[0]["game_card_id"],
             "to_holomem_id": testcard3["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, self.player1, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "kronichiwa",
-            "target_id": player2.center[0]["game_card_id"],
-            "power": 10,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 10,
             "target_player": self.player2,

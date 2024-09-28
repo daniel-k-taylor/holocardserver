@@ -82,8 +82,7 @@ matchmaking : Matchmaking = Matchmaking()
 card_db : CardDatabase = CardDatabase()
 
 async def broadcast_server_info():
-    await player_manager.broadcast_server_info(matchmaking.get_queue_info())
-    #await manager.broadcast(message)
+    await player_manager.broadcast_server_info(matchmaking.get_queue_info(), game_rooms)
 
 async def send_error_message(websocket: WebSocket, error_id, error_str : str):
     message = message_types.ErrorMessage(
@@ -116,6 +115,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if isinstance(message, message_types.JoinServerMessage):
                 await broadcast_server_info()
+
+            elif isinstance(message, message_types.ObserveRoomMessage):
+                room_id = message.room_id
+                for room in game_rooms:
+                    if room.room_id == room_id:
+                        player.current_game_room = room
+                        await room.join_as_observer(player)
+                        await broadcast_server_info()
+                        break
+                else:
+                    await send_error_message(websocket, "invalid_room", f"ERROR: Match not found.")
 
             elif isinstance(message, message_types.JoinMatchmakingQueueMessage):
                 # Ensure player is in a joinable state.
@@ -183,7 +193,7 @@ async def websocket_endpoint(websocket: WebSocket):
         player.connected = False
         matchmaking.remove_player_from_queue(player)
         for room in game_rooms:
-            if player in room.players:
+            if player in room.players or player in room.observers:
                 await room.handle_player_disconnect(player)
                 check_cleanup_room(room)
                 break
@@ -198,6 +208,8 @@ def check_cleanup_room(room: GameRoom):
         game_rooms.remove(room)
         for player in room.players:
             player.current_game_room = None
+        for observer in room.observers:
+            observer.current_game_room = None
 
 def can_player_join_queue(player: Player):
     # If the player is in a queue or in a game room, then they can't join another queue.

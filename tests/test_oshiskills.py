@@ -245,18 +245,18 @@ class TestOshiSkills(unittest.TestCase):
         # Events - power boost, perform art, damage_dealt, distribute cheer
         self.assertEqual(len(events), 10)
         self.assertEqual(art_target["damage"], 80)
-        validate_event(self, events[1], EventType.EventType_BoostStat, self.player2, {
-            "card_id": performer["game_card_id"],
-            "stat": "power",
-            "amount": 50,
-        })
-        validate_event(self, events[3], EventType.EventType_PerformArt, self.player2, {
+        validate_event(self, events[1], EventType.EventType_PerformArt, self.player2, {
             "active_player": self.player2,
             "performer_id": performer["game_card_id"],
             "art_id": "nunnun",
             "target_id": art_target["game_card_id"],
             "target_player": self.player1,
-            "power": 80,
+            "power": 30,
+        })
+        validate_event(self, events[3], EventType.EventType_BoostStat, self.player2, {
+            "card_id": performer["game_card_id"],
+            "stat": "power",
+            "amount": 50,
         })
         validate_event(self, events[5], EventType.EventType_DamageDealt, self.player2, {
             "target_player": self.player1,

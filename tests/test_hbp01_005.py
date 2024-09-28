@@ -233,9 +233,15 @@ class Test_hbp01_005(unittest.TestCase):
             "target_id": p2center["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - choice
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        # Events - perform, choice
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "luisparty",
+            "target_id": p2center["game_card_id"],
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
         # Use the ability
@@ -280,8 +286,8 @@ class Test_hbp01_005(unittest.TestCase):
             "card_ids": [gain_card_choices[0]],
         })
         events = engine.grab_events()
-        # Events - move to hand, perform, etc.
-        self.assertEqual(len(events), 20)
+        # Events - move to hand, etc.
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_MoveCard, player1.player_id, {
             "card_id": gain_card_choices[0],
             "from_zone": "deck",
@@ -289,12 +295,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         validate_event(self, events[2], EventType.EventType_ShuffleDeck, player1.player_id, {})
         self.assertEqual(player1.hand[-1]["game_card_id"], gain_card_choices[0])
-        validate_event(self, events[4], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "luisparty",
-            "target_id": p2center["game_card_id"],
-            "power": 50,
-        })
+
         do_cheer_step_on_card(self, player2.center[0])
         end_turn(self)
 
@@ -328,8 +329,14 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "luisparty",
+            "target_id": p2center["game_card_id"],
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
         # Use the ability
@@ -380,8 +387,8 @@ class Test_hbp01_005(unittest.TestCase):
             "card_ids": [gain_card_choices[0]],
         })
         events = engine.grab_events()
-        # Events - move to hand, perform, etc.
-        self.assertEqual(len(events), 20)
+        # Events - move to hand, etc.
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_MoveCard, player1.player_id, {
             "card_id": gain_card_choices[0],
             "from_zone": "deck",
@@ -389,12 +396,6 @@ class Test_hbp01_005(unittest.TestCase):
         })
         validate_event(self, events[2], EventType.EventType_ShuffleDeck, player1.player_id, {})
         self.assertEqual(player1.hand[-1]["game_card_id"], gain_card_choices[0])
-        validate_event(self, events[4], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "luisparty",
-            "target_id": p2center["game_card_id"],
-            "power": 50,
-        })
         do_cheer_step_on_card(self, player2.center[0])
         end_turn(self)
 
@@ -429,8 +430,14 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "luisparty",
+            "target_id": p2center["game_card_id"],
+            "power": 50,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
         # Use the ability
@@ -471,8 +478,8 @@ class Test_hbp01_005(unittest.TestCase):
             "card_ids": [gain_card_choices[0]],
         })
         events = engine.grab_events()
-        # Events - move to hand, perform, etc.
-        self.assertEqual(len(events), 20)
+        # Events - move to hand,  etc.
+        self.assertEqual(len(events), 18)
         validate_event(self, events[0], EventType.EventType_MoveCard, player1.player_id, {
             "card_id": gain_card_choices[0],
             "from_zone": "deck",
@@ -480,12 +487,6 @@ class Test_hbp01_005(unittest.TestCase):
         })
         validate_event(self, events[2], EventType.EventType_ShuffleDeck, player1.player_id, {})
         self.assertEqual(player1.hand[-1]["game_card_id"], gain_card_choices[0])
-        validate_event(self, events[4], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "luisparty",
-            "target_id": p2center["game_card_id"],
-            "power": 50,
-        })
         do_cheer_step_on_card(self, player2.center[0])
         end_turn(self)
 
@@ -581,11 +582,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 4 choices (1,2,3, and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[3]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 2, should be 3 cards archive and deal 60 damage.
@@ -644,21 +651,15 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, skip damage because dead, go to next turn
-        self.assertEqual(len(events), 14)
+        # Events - move the cheer, skip damage because dead, go to next turn
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2collab["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_EndTurn, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_EndTurn, player1.player_id, {
             "ending_player_id": self.player1,
         })
         validate_event(self, events[-2], EventType.EventType_ResetStepChooseNewCenter, player1.player_id, {
@@ -703,11 +704,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 6 choices (1,2,3,4,5 and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[5]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 4, should be 5 cards archive and deal 100 damage.
@@ -778,30 +785,24 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 10)
+        # Events - move the cheer, deal damage, send cheer again since center is now dead
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2center["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -845,11 +846,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 6 choices (1,2,3,4,5 and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[5]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 4, should be 5 cards archive and deal 100 damage.
@@ -938,30 +945,24 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 10)
+        # Events - move the cheer, deal damage, send cheer again since center is now dead
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2center["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1005,11 +1006,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 6 choices (1,2,3,4,5 and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[5]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 4, should be 5 cards archive and deal 100 damage.
@@ -1091,30 +1098,24 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 10)
+        # Events - move the cheer, deal damage, send cheer again since center is now dead
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2center["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1161,11 +1162,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 6 choices (1,2,3,4,5 and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[5]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 4, should be 5 cards archive and deal 100 damage.
@@ -1246,30 +1253,24 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 10)
+        # Events - move the cheer, deal damage, send cheer again since center is now dead
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2center["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1314,11 +1315,17 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - choice for variable archive, should be 6 choices (1,2,3,4,5 and pass)
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, player1.player_id, {
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
+            "performer_id": p1center["game_card_id"],
+            "art_id": "hawkrave",
+            "target_id": p2center["game_card_id"],
+            "power": 60,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {
             "effect_player_id": self.player1,
         })
-        choice = events[0]["choice"]
+        choice = events[2]["choice"]
         self.assertEqual(choice[5]["effect_type"], EffectType.EffectType_Pass)
 
         # Pick choice 4, should be 5 cards archive and deal 100 damage.
@@ -1389,30 +1396,24 @@ class Test_hbp01_005(unittest.TestCase):
             "placements": placements
         })
         events = engine.grab_events()
-        # Events - move the cheer, perform, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 10)
+        # Events - move the cheer, deal damage, send cheer again since center is now dead
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
             "to_holomem_id": p2center["game_card_id"],
             "attached_id": from_options[0],
         })
-        validate_event(self, events[2], EventType.EventType_PerformArt, player1.player_id, {
-            "performer_id": p1center["game_card_id"],
-            "art_id": "hawkrave",
-            "target_id": p2center["game_card_id"],
-            "power": 60,
-        })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
