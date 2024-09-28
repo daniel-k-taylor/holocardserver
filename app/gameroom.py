@@ -14,6 +14,7 @@ class GameRoom:
         self.room_id = room_id
         self.room_name = room_name
         self.players = players
+        self.observers : List[Player] = []
         self.ai_player = None
         self.game_type = game_type
         self.queue_name = queue_name
@@ -26,6 +27,15 @@ class GameRoom:
 
     def get_room_name(self):
         return self.room_name
+
+    def get_room_info(self):
+        return {
+            "room_id": self.room_id,
+            "room_name": self.room_name,
+            "queue_name": self.queue_name,
+            "game_type": self.game_type,
+            "players": [player.get_public_player_info() for player in self.players],
+        }
 
     async def start(self, card_db: CardDatabase):
         logger.info("GAME: Starting game!")
@@ -44,6 +54,8 @@ class GameRoom:
         self.engine.begin_game()
         events = self.engine.grab_events()
         await self.send_events(events)
+        observer_events = self.engine.grab_observer_events()
+        await self.send_observer_events(observer_events)
 
         if self.is_ai_game():
             # In case the AI has to mulligan first!
@@ -62,12 +74,27 @@ class GameRoom:
                 if player.connected and player.player_id == event["event_player_id"]:
                     await player.send_game_event(event)
 
+    async def send_observer_events(self, events):
+        for event in events:
+            for player in self.observers:
+                if player.connected:
+                    await player.send_game_event(event)
+
     async def handle_game_message(self, player_id: str, action_type:str, action_data: dict):
+        for observer in self.observers:
+            if player_id == observer.player_id:
+                # Assume any message from an observer is them leaving.
+                observer.current_game_room = None
+                self.observers.remove(observer)
+                return
+
         done_processing = False
         while not done_processing:
             self.engine.handle_game_message(player_id, action_type, action_data)
             events = self.engine.grab_events()
             await self.send_events(events)
+            observer_events = self.engine.grab_observer_events()
+            await self.send_observer_events(observer_events)
             if self.is_ai_game():
                 ai_performing_action, ai_action = self.ai_player.ai_process_events(events)
                 #logger.info("AI Action: %s %s" % (ai_performing_action, ai_action))
@@ -91,6 +118,14 @@ class GameRoom:
 
     def is_ready_for_cleanup(self):
         return self.cleanup_room
+
+    async def join_as_observer(self, player: Player):
+        self.observers.append(player)
+        player.current_game_room = self
+
+        events = self.engine.get_observer_catchup_events()
+        for event in events:
+            await player.send_game_event(event)
 
     async def handle_player_quit(self, player: Player):
         await self.handle_game_message(player.player_id, GameAction.Resign, {})

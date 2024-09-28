@@ -1290,6 +1290,7 @@ class GameEngine:
         self.game_first_turn = True
         self.card_db = card_db
         self.latest_events = []
+        self.latest_observer_events = []
         self.all_game_messages = []
         self.all_events = []
         self.game_over_event = {}
@@ -1360,6 +1361,11 @@ class GameEngine:
     def grab_events(self):
         events = self.latest_events
         self.latest_events = []
+        return events
+
+    def grab_observer_events(self):
+        events = self.latest_observer_events
+        self.latest_observer_events = []
         return events
 
     def get_player(self, player_id:str):
@@ -1439,6 +1445,42 @@ class GameEngine:
 
         self.handle_mulligan_phase()
 
+    def get_observer_catchup_events(self):
+        observer_events = [{
+            "event_player_id": "observer",
+            "event_type": EventType.EventType_GameStartInfo,
+            "starting_player": self.starting_player_id,
+            "your_id": self.player_ids[0],
+            "opponent_id": self.player_ids[1],
+            "your_username": self.player_states[0].username,
+            "opponent_username": self.player_states[1].username,
+            "game_card_map": self.all_game_cards_map,
+        }]
+        for i in range(len(self.all_events)):
+            event = self.all_events[i]
+            observer_events.append(self.create_observer_event(event))
+        return observer_events
+
+    def create_observer_event(self, event):
+        event_copy = event.copy()
+        event_copy["event_player_id"] = "observer"
+        event_copy["your_clock_used"] = self.player_states[0].clock_time_used
+        event_copy["opponent_clock_used"] = self.player_states[1].clock_time_used
+        # Always sanitize.
+        hidden_fields = event.get("hidden_info_fields", [])
+        hidden_erase = event.get("hidden_info_erase", [])
+        for field in hidden_fields:
+            if field in hidden_erase:
+                event_copy[field] = None
+            else:
+                # If the field is a single id, replace it.
+                # If it is a list, replace them all.
+                if isinstance(event_copy[field], str):
+                    event_copy[field] = UNKNOWN_CARD_ID
+                elif isinstance(event_copy[field], list):
+                    event_copy[field] = [UNKNOWN_CARD_ID] * len(event_copy[field])
+        return event_copy
+
     def handle_mulligan_phase(self):
         # Are both players done mulliganing?
         # If so, move on to the next phase.
@@ -1466,6 +1508,7 @@ class GameEngine:
     def broadcast_event(self, event):
         event["event_number"] = len(self.all_events)
         event["last_game_message_number"] = len(self.all_game_messages) - 1
+        self.latest_observer_events.append(self.create_observer_event(event))
         self.all_events.append(event)
         hidden_fields = event.get("hidden_info_fields", [])
         hidden_erase = event.get("hidden_info_erase", [])

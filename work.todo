@@ -1,5 +1,5 @@
 Todo:
-    ☐ Observer mode - Let observers join, they get full messages and play them all immediately but hidden stuff stripped from both players.
+    ☐ Add cheer pack oshis
     ☐ Reconnect logic -
         - Leave game room open,
         - give remaining player a button to kill the match after a minute
@@ -7,6 +7,9 @@ Todo:
             - pass this up when joining the server
             - if you need to reconnect, it automatically puts you back in the right room and sends you events to catch you up
 Revisit:
+    ☐ Clean up observer mode game start so it's more clear what's going on
+        - indicate whose turn it is with the spinner somehow
+        - Show the cards on screen
     ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
     ☐ Collab add turn effects go away if you bloom over them?

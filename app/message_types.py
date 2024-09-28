@@ -13,6 +13,7 @@ class Message:
 @dataclass
 class ServerInfoMessage(Message):
     queue_info: Dict[str, Any]
+    room_info: List[Dict]
     players_info: List[Dict]
     your_id : str
     your_username : str
@@ -26,6 +27,10 @@ class ErrorMessage(Message):
 @dataclass
 class JoinServerMessage(Message):
     pass
+
+@dataclass
+class ObserveRoomMessage(Message):
+    room_id: str
 
 @dataclass
 class JoinMatchmakingQueueMessage(Message):
@@ -64,5 +69,7 @@ def parse_message(json_data: str) -> Message:
             return LeaveGameMessage(**data)
         case "game_action":
             return GameActionMessage(**data)
+        case "observe_room":
+            return ObserveRoomMessage(**data)
         case _:
             raise ValueError(f"Unknown message type: {json_data}")
