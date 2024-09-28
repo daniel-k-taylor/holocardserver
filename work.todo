@@ -1,5 +1,4 @@
 Todo:
-    ☐ Investigate Mumei oshi and zeta interaction
     ☐ Observer mode - Let observers join, they get full messages and play them all immediately but hidden stuff stripped from both players.
     ☐ Reconnect logic -
         - Leave game room open,
@@ -11,6 +10,7 @@ Revisit:
     ☐ Rework timing states to gather all effects and then play them out after resolution of that timing state
     - London Mulligan?
     ☐ Collab add turn effects go away if you bloom over them?
+    ☐ make on_take_damage simultaneous resolution if more complicated than Zeta's ability
 
 Q&A Todos:
     ☐ Q160: When two holomems you control are downed at the same time, resolve all of the downed process first, then do the life loss process one at a time.

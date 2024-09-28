@@ -672,22 +672,25 @@ class PlayerState:
             effects.extend(self.performance_cleanup_effects_pending)
             self.performance_cleanup_effects_pending = []
 
-        for oshi_effect in self.oshi_card.get("effects", []):
-            if oshi_effect["timing"] == timing:
-                if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
-                    continue
-                effects.append(oshi_effect)
-        add_ids_to_effects(effects, self.player_id, "oshi")
-
-        turn_effects = filter_effects_at_timing(self.turn_effects, timing)
-        add_ids_to_effects(turn_effects, self.player_id, "")
-        effects.extend(turn_effects)
-
+        # For now, prioritize Gift effects before oshi effects
+        # due to zeta's reduce damage gift that can fail which wants to go first.
+        # If needed, on_take_damage will have to become a simultaneous decision resolution.
         for holomem in self.get_holomem_on_stage():
             if "gift_effects" in holomem:
                 gift_effects = filter_effects_at_timing(holomem["gift_effects"], timing)
                 add_ids_to_effects(gift_effects, self.player_id, holomem["game_card_id"])
                 effects.extend(gift_effects)
+
+        for oshi_effect in self.oshi_card.get("effects", []):
+            if oshi_effect["timing"] == timing:
+                if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
+                    continue
+                add_ids_to_effects([oshi_effect], self.player_id, "oshi")
+                effects.append(oshi_effect)
+
+        turn_effects = filter_effects_at_timing(self.turn_effects, timing)
+        add_ids_to_effects(turn_effects, self.player_id, "")
+        effects.extend(turn_effects)
 
         if card and card["card_type"] not in ["support", "oshi"]:
             attachments_to_check = card["attached_support"]
