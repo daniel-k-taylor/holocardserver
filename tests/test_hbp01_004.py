@@ -54,8 +54,9 @@ class Test_hbp01_004(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform art, damage, down (no holo), send cheer
-        self.assertEqual(len(events), 8)
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -99,13 +100,14 @@ class Test_hbp01_004(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform art, damage, on down choice to use nousagis
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "damage": 30,
             "target_player": self.player1,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
         })
         # Use it
@@ -214,7 +216,7 @@ class Test_hbp01_004(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform art, roll die, power boost, damage, send cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
@@ -230,7 +232,8 @@ class Test_hbp01_004(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,

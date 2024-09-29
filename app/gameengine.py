@@ -2185,12 +2185,12 @@ class GameEngine:
         self.down_holomem_state = down_info
         self.down_holomem_state.holomem_card = target_card
 
-        # pre_down_event = {
-        #     "event_type": EventType.EventType_DownedHolomem_Before,
-        #     "target_id": target_card["game_card_id"],
-        #     "target_player": target_player.player_id,
-        # }
-        # self.broadcast_event(pre_down_event)
+        pre_down_event = {
+            "event_type": EventType.EventType_DownedHolomem_Before,
+            "target_id": target_card["game_card_id"],
+            "target_player": target_player.player_id,
+        }
+        self.broadcast_event(pre_down_event)
         self.begin_resolving_effects(all_death_effects, continuation)
 
     def down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, prevent_life_loss, continuation):

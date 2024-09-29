@@ -152,7 +152,7 @@ class Test_hbp01_008(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - archive the 2 cheer so move 2 cards, then continue the art
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "to_zone": "archive",
@@ -172,13 +172,14 @@ class Test_hbp01_008(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -186,8 +187,8 @@ class Test_hbp01_008(unittest.TestCase):
             "to_zone": "holomem",
         })
         # Send cheer from life
-        from_options = events[10]["from_options"]
-        to_options = events[10]["to_options"]
+        from_options = events[12]["from_options"]
+        to_options = events[12]["to_options"]
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
                 from_options[0]: player2.backstage[0]["game_card_id"],
