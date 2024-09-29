@@ -218,25 +218,26 @@ class Test_hbp01_007(unittest.TestCase):
         })
         events = engine.grab_events()
         # Comet damage, we killed somebody
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": backstage_options[2],
             "damage": 50, # comet
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": backstage_options[2],
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
           "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         placements = {
             from_options[0]: p2center["game_card_id"],
         }
@@ -519,7 +520,7 @@ class Test_hbp01_007(unittest.TestCase):
         })
         # Use comet
         events = pick_choice(self, self.player1, 0)
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         # Events - 2x move card, oshi activation, only 1 back so deal damage, down, send cheer
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
             "oshi_player_id": self.player1,
@@ -529,15 +530,16 @@ class Test_hbp01_007(unittest.TestCase):
             "target_id": p2back["game_card_id"],
             "damage": 50, # Comet damage
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 2,
             "amount_max": 2,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[10]["from_options"]
+        from_options = events[12]["from_options"]
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
                 from_options[0]: p2center["game_card_id"],
@@ -608,7 +610,7 @@ class Test_hbp01_007(unittest.TestCase):
         events = engine.grab_events()
         # Events - move 2 archive cards, boost power by 120 since 2 stacked
         # So perform art then damage, downed, send cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 120,
@@ -618,12 +620,13 @@ class Test_hbp01_007(unittest.TestCase):
             "damage": 180, # Arts damage
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
-        from_options = events[10]["from_options"]
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        from_options = events[12]["from_options"]
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
                 from_options[0]: player2.backstage[0]["game_card_id"],
@@ -651,18 +654,19 @@ class Test_hbp01_007(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, down, send cheer
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target["game_card_id"],
             "damage": 180, # Shooting star damage equals the art damage
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": target["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {})
-        from_options = events[4]["from_options"]
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+        from_options = events[6]["from_options"]
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
                 from_options[0]: player2.backstage[0]["game_card_id"], # New backstage 0

@@ -1,3 +1,5 @@
+☐ Add a "pre-down" event so UI can label unit being downed
+
 Todo:
     ☐ Reconnect logic -
         - Leave game room open,

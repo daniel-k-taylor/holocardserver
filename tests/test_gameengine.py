@@ -304,7 +304,7 @@ class TestGameEngine(unittest.TestCase):
         })
         events = self.engine.grab_events()
         # Events = stat boost from effect, performance, damage, player 1's mem died, so distribute cheer decision.
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         self.validate_event(events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player2.center[0]["game_card_id"],
             "art_id": player2.center[0]["arts"][0]["art_id"],
@@ -322,21 +322,22 @@ class TestGameEngine(unittest.TestCase):
             "target_player": self.player1,
             "special": False,
         })
-        self.validate_event(events[6], EventType.EventType_DownedHolomem, self.player1, {
+        self.validate_event(events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        self.validate_event(events[8], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p1_center_before_attack["game_card_id"],
             "game_over": False,
             "target_player": self.player1,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        self.validate_event(events[9], EventType.EventType_Decision_SendCheer, self.player2, {
+        self.validate_event(events[11], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
         })
-        available_cheer = events[9]["from_options"]
-        available_targets = events[9]["to_options"]
+        available_cheer = events[11]["from_options"]
+        available_targets = events[11]["to_options"]
         self.assertEqual(len(available_cheer), 1)
         self.assertEqual(available_cheer[0], top_p1_life_before_attack)
         self.assertEqual(len(available_targets), 1)

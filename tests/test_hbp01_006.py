@@ -133,12 +133,13 @@ class Test_hbp01_006(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, on kill effect choice
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": b3["game_card_id"],
             "damage": 30,
             "special": False,
         })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
 
         # Before doing this, let's get an empty hand.
         player1.hand = []

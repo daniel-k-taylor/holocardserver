@@ -523,7 +523,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, send cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_PerformArt, player1.player_id, {
             "performer_id": p1center["game_card_id"],
             "art_id": "hawkrave",
@@ -534,11 +534,12 @@ class Test_hbp01_005(unittest.TestCase):
             "target_id": p2center["game_card_id"],
             "damage": 60,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -625,24 +626,25 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "damage": 60,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2collab["game_card_id"],
@@ -759,24 +761,25 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "damage": 100,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2center["game_card_id"],
@@ -786,7 +789,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move the cheer, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
@@ -798,11 +801,12 @@ class Test_hbp01_005(unittest.TestCase):
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -919,24 +923,25 @@ class Test_hbp01_005(unittest.TestCase):
         self.assertEqual(len(player1.hand), 1)
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "damage": 100,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2center["game_card_id"],
@@ -946,7 +951,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move the cheer, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
@@ -958,11 +963,12 @@ class Test_hbp01_005(unittest.TestCase):
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1072,24 +1078,25 @@ class Test_hbp01_005(unittest.TestCase):
         self.assertEqual(len(player1.hand), 3)
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "damage": 100,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2center["game_card_id"],
@@ -1099,7 +1106,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move the cheer, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
@@ -1111,11 +1118,12 @@ class Test_hbp01_005(unittest.TestCase):
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1227,24 +1235,25 @@ class Test_hbp01_005(unittest.TestCase):
         self.assertEqual(len(player1.hand), 6)
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "damage": 100,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2center["game_card_id"],
@@ -1254,7 +1263,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move the cheer, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
@@ -1266,11 +1275,12 @@ class Test_hbp01_005(unittest.TestCase):
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1370,24 +1380,25 @@ class Test_hbp01_005(unittest.TestCase):
         self.assertEqual(len(player1.hand), 0)
         events = engine.grab_events()
         # Events - deal damage, send cheer because kill
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "damage": 100,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2collab["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[4]["from_options"]
+        from_options = events[6]["from_options"]
         self.assertEqual(len(from_options), 1)
         placements = {
             from_options[0]: p2center["game_card_id"],
@@ -1397,7 +1408,7 @@ class Test_hbp01_005(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move the cheer, deal damage, send cheer again since center is now dead
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player2,
             "from_holomem_id": "life",
@@ -1409,11 +1420,12 @@ class Test_hbp01_005(unittest.TestCase):
             "damage": 60,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, player1.player_id, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, player1.player_id, {
             "target_id": p2center["game_card_id"],
             "life_lost": 1
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,

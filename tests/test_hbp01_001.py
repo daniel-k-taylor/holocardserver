@@ -165,7 +165,7 @@ class Test_hbp01_001(unittest.TestCase):
             "target_id": p2target["game_card_id"]
         })
         events = engine.grab_events()
-        self.assertEqual(len(events), 12) # 2 stat boosts, Use art, damage dealt, distribute cheer
+        self.assertEqual(len(events), 14) # 2 stat boosts, Use art, damage dealt, distribute cheer
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "nunnun",
@@ -188,14 +188,15 @@ class Test_hbp01_001(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2target["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -286,7 +287,7 @@ class Test_hbp01_001(unittest.TestCase):
             "target_id": p2target["game_card_id"]
         })
         events = engine.grab_events()
-        self.assertEqual(len(events), 10) # 1 stat boosts, Use art, damage, distribute cheer
+        self.assertEqual(len(events), 12) # 1 stat boosts, Use art, damage, distribute cheer
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "keepworkinghard",
@@ -304,14 +305,15 @@ class Test_hbp01_001(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2target["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,

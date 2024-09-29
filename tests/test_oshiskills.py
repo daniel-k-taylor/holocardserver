@@ -243,7 +243,7 @@ class TestOshiSkills(unittest.TestCase):
         events = self.engine.grab_events()
         validate_last_event_not_error(self, events)
         # Events - power boost, perform art, damage_dealt, distribute cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         self.assertEqual(art_target["damage"], 80)
         validate_event(self, events[1], EventType.EventType_PerformArt, self.player2, {
             "active_player": self.player2,
@@ -264,14 +264,15 @@ class TestOshiSkills(unittest.TestCase):
             "damage": 80,
             "special": False,
         })
-        validate_event(self, events[7], EventType.EventType_DownedHolomem, self.player2, {
+        validate_event(self, events[7], EventType.EventType_DownedHolomem_Before, self.player2, {})
+        validate_event(self, events[9], EventType.EventType_DownedHolomem, self.player2, {
             "target_player": self.player1,
             "target_id": art_target["game_card_id"],
             "life_lost": 1,
             "life_loss_prevented": False,
             "game_over": False,
         })
-        validate_event(self, events[9], EventType.EventType_Decision_SendCheer, self.player2, {
+        validate_event(self, events[11], EventType.EventType_Decision_SendCheer, self.player2, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,

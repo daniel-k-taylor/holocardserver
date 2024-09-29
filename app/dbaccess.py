@@ -112,3 +112,31 @@ async def download_and_extract_game_package(destination_path):
             zip_ref.extractall(destination_path)
     except Exception as e:
         logger.error(f"Error download static files: {e}")
+
+
+def download_blobs_between_dates(start_date, end_date, download_path):
+    try:
+        container_client = _get_azure_container_client(MATCH_LOG_CONTAINER)
+        if not container_client:
+            return
+
+        # Create the download directory if it doesn't exist
+        if not os.path.exists(download_path):
+            os.makedirs(download_path)
+
+        # List all blobs in the container
+        blobs = container_client.list_blobs()
+
+        # Filter and download blobs within the specified date range
+        for blob in blobs:
+            if start_date <= blob.last_modified <= end_date:
+                blob_client = container_client.get_blob_client(blob)
+                download_file_path = os.path.join(download_path, blob.name)
+
+                print(f"Downloading blob: {blob.name}")
+                with open(download_file_path, "wb") as file:
+                    file.write(blob_client.download_blob().readall())
+
+    except Exception as e:
+        logger.error(f"Error downloading files: {e}")
+    print("Download complete.")

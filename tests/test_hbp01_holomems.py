@@ -601,7 +601,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - bloom, deal damage, main step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
@@ -613,13 +613,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 0,
             "life_loss_prevented": True,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        validate_event(self, events[8], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
         self.assertEqual(len(player2.life), 5)
         self.assertEqual(p2center["damage"], 80)
         actions = reset_mainstep(self)
@@ -692,7 +693,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - collab, deal damage, send cheer cause kill
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
@@ -703,21 +704,22 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[6]["from_options"]
-        to_options = events[6]["to_options"]
+        from_options = events[8]["from_options"]
+        to_options = events[8]["to_options"]
         p2backstage_ids = ids_from_cards(player2.backstage)
         self.assertListEqual(to_options, p2backstage_ids)
         self.assertEqual(p2center["damage"], 100)
@@ -767,7 +769,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - collab, deal damage, Game over
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
@@ -778,13 +780,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": True,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_GameOver, self.player1, {
+        validate_event(self, events[8], EventType.EventType_GameOver, self.player1, {
             "loser_id": self.player2,
             "reason_id": GameOverReason.GameOverReason_NoHolomemsLeft,
         })
@@ -822,7 +825,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, send cheer from kill
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "jetblackwings",
@@ -835,14 +838,15 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2center["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -885,7 +889,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, send cheer from kill
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "jetblackwings",
@@ -898,14 +902,15 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2center["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 2,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 2,
             "amount_max": 2,
@@ -1396,7 +1401,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
@@ -1454,7 +1460,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - (Roll die, perform, damage) x 3 then cheer
-        self.assertEqual(len(events), 22)
+        self.assertEqual(len(events), 24)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
@@ -1506,21 +1512,22 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[18], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[18], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[20], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2collab["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 2,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[20], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[22], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 2,
             "amount_max": 2,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[20]["from_options"]
+        from_options = events[22]["from_options"]
         # Send that cheer to center
         placements = {}
         placements[from_options[0]] = player2.center[0]["game_card_id"]
@@ -1602,9 +1609,10 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = pick_choice(self, self.player1, 1)
         # Events - damage, send cheer cause dead
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         self.assertEqual(p1center["damage"], 60)
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 1,
@@ -1715,7 +1723,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost, perform, damage, cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 60
@@ -1725,13 +1733,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1967,7 +1976,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer,  damage, send cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
@@ -1978,13 +1987,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -1994,7 +2004,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         # Do the send cheer from life loss
         engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
-                events[6]["from_options"][0]: player2.backstage[0]["game_card_id"]
+                events[8]["from_options"][0]: player2.backstage[0]["game_card_id"]
             }
         })
         events = engine.grab_events()
@@ -2146,7 +2156,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - roll die, power boost, perform, damage, cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "kitraaaa",
@@ -2167,13 +2177,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -2211,7 +2222,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - (roll die, power boost)x 3, perform, damage, cheer
-        self.assertEqual(len(events), 20)
+        self.assertEqual(len(events), 22)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "humanrabbitalityproject",
@@ -2250,13 +2261,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[16], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[16], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[18], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[18], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[20], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -2377,7 +2389,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "amount_min": 1,
             "amount_max": 3,
             "from_zone": "archive",
-            "to_zone": "this_holomem",
+            "to_zone": "holomem",
         })
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
@@ -2526,14 +2538,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, down, cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
-                events[6]["from_options"][0]: player1.center[0]["game_card_id"]
+                events[8]["from_options"][0]: player1.center[0]["game_card_id"]
             }
         })
         events = engine.grab_events()
@@ -2543,6 +2556,40 @@ class Test_hbp01_holomems(unittest.TestCase):
         actions = reset_performancestep(self)
         self.assertEqual(len(actions), 2) # 1 attack to center now that iroha is dead and end turn.
         self.assertListEqual(actions[0]["valid_targets"], [player1.center[0]["game_card_id"]])
+
+
+    def test_hBP01_050_bodyguard_vs_kanata(self):
+        p1deck = generate_deck_with([], {"hBP01-050": 3, "hBP01-057": 3 }, [])
+        p2deck = generate_deck_with([], {"hBP01-009": 3,}, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        test_card = put_card_in_play(self, player1, "hBP01-050", player1.collab)
+        player1.backstage = player1.backstage[1:]
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.backstage[0])
+        player2.center = []
+        kanata = put_card_in_play(self, player2, "hBP01-009", player2.center)
+        w1 = spawn_cheer_on_card(self, player2, kanata["game_card_id"], "green", "g1")
+        w2 = spawn_cheer_on_card(self, player2, kanata["game_card_id"], "white", "w2")
+        actions = reset_mainstep(self)
+        self.engine.handle_game_message(self.player2, GameAction.MainStepBeginPerformance, {})
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[0], EventType.EventType_PerformanceStepStart, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_TurnStart, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_ResetStepActivate, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_ResetStepCollab, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Draw, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_CheerStep, self.player1, {})
 
 
     def test_hBP01_051_powerboost_per_attached_cheer_collab(self):
@@ -2576,7 +2623,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, boost, damage, down send cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "bundleupyourcheers",
@@ -2590,8 +2637,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 150
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
 
     def test_hBP01_051_powerboost_per_attached_cheer_nocollab_noboost(self):
         p1deck = generate_deck_with([], {"hBP01-051": 3, }, [])
@@ -2717,13 +2765,14 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - perform, damage, down, send cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "damage": 100,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
 
     def test_hBP01_055_exclude_powerboost_has_non_airani_id(self):
         p1deck = generate_deck_with([], {"hBP01-052": 2,"hBP01-055": 2, "hBP01-088": 2}, [])
@@ -2756,7 +2805,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost, perform, damage, down, send cheer
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
@@ -2765,8 +2814,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 150,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_055_sendcheer_archive_onepermember_limit(self):
@@ -3106,7 +3156,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move card to deck x 2, shuffle,  damage, down, cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
             "from_zone": "archive",
@@ -3124,8 +3174,9 @@ class Test_hbp01_holomems(unittest.TestCase):
             "damage": 100,
             "special": False
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
         self.assertTrue(junk1["game_card_id"] in ids_from_cards(player1.archive))
         self.assertTrue(junk2["game_card_id"] in ids_from_cards(player1.archive))
         self.assertTrue(junk3["game_card_id"] in ids_from_cards(player1.archive))
@@ -3221,7 +3272,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - boost, boost, perform, damage, down, cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
         validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
@@ -3234,8 +3285,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 140
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_072_self_has_cheer_color_failed(self):
@@ -3788,14 +3840,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, perform art, turn etc. (no cheer because no life loss)
-        self.assertEqual(len(events), 18)
+        self.assertEqual(len(events), 20)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": sniped["game_card_id"],
             "damage": 10,
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": sniped["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
@@ -3995,14 +4048,15 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - deal damage, main step
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": sniped["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": sniped["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
@@ -4036,7 +4090,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - collab, roll die, automatic since only 1 so down them, no cheer since prevented, so main step
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
@@ -4047,7 +4101,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "die_result": 5,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2target["game_card_id"],
             "target_player": self.player2,
             "life_lost": 0,
@@ -4101,8 +4156,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - down, no cheer, main step
-        self.assertEqual(len(events), 4)
-        validate_event(self, events[0], EventType.EventType_DownedHolomem, self.player1, {
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[0], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2target["game_card_id"],
             "target_player": self.player2,
             "life_lost": 0,
@@ -4202,7 +4258,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - power boost, perform, damage, down, send cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
@@ -4212,8 +4268,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 180
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_081_shiningcomet_center_target_choice(self):
@@ -4268,7 +4325,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - power boost, perform, damage, down, send cheer
-        self.assertEqual(len(events), 12)
+        self.assertEqual(len(events), 14)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[2], EventType.EventType_MoveCard, self.player1, {})
         validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
@@ -4278,8 +4335,9 @@ class Test_hbp01_holomems(unittest.TestCase):
         validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "damage": 180
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_081_shiningcomet_center_target_choice_pass(self):
@@ -4322,12 +4380,13 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = pick_choice(self, self.player1, 1)
         # Events - perform, damage, down, send cheer
-        self.assertEqual(len(events), 6)
+        self.assertEqual(len(events), 8)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "damage": 60
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_085_damage_multiple_less_than_allowed(self):
@@ -4887,7 +4946,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - move cheer, deal damage to all backstage, perform, damage, perform step.
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 12)
         # Move cheer first
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
@@ -4908,9 +4967,10 @@ class Test_hbp01_holomems(unittest.TestCase):
             "special": True,
             "damage": 70,
         })
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
         })
-        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_090_bloom_choosecards_requirement_colors(self):
@@ -5052,7 +5112,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - bonus damage, perform, damage, down, send cheer
-        self.assertEqual(len(events), 8)
+        self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.backstage[2]["game_card_id"],
             "damage": 30,
@@ -5065,13 +5125,14 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {})
 
 
     def test_hBP01_092_sendcheer_self_nootherpromise(self):
