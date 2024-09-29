@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 
 **/test_match_logs/
+**/match_logs/
