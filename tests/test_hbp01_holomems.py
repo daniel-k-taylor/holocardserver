@@ -2377,7 +2377,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "amount_min": 1,
             "amount_max": 3,
             "from_zone": "archive",
-            "to_zone": "this_holomem",
+            "to_zone": "holomem",
         })
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {

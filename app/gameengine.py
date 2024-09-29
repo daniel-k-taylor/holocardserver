@@ -3344,7 +3344,7 @@ class GameEngine:
                         available_targets = [holomem for holomem in available_targets if any(tag in holomem["tags"] for tag in to_limitation_tags)]
                 available_targets = ids_from_cards(available_targets)
                 cheer_on_each_mem = effect_player.get_cheer_on_each_holomem()
-                if len(available_targets) > 0:
+                if len(available_targets) > 1:
                     decision_event = {
                         "event_type": EventType.EventType_Decision_SendCheer,
                         "desired_response": GameAction.EffectResolution_MoveCheerBetweenHolomems,
