@@ -2545,6 +2545,40 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertListEqual(actions[0]["valid_targets"], [player1.center[0]["game_card_id"]])
 
 
+    def test_hBP01_050_bodyguard_vs_kanata(self):
+        p1deck = generate_deck_with([], {"hBP01-050": 3, "hBP01-057": 3 }, [])
+        p2deck = generate_deck_with([], {"hBP01-009": 3,}, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        test_card = put_card_in_play(self, player1, "hBP01-050", player1.collab)
+        player1.backstage = player1.backstage[1:]
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.backstage[0])
+        player2.center = []
+        kanata = put_card_in_play(self, player2, "hBP01-009", player2.center)
+        w1 = spawn_cheer_on_card(self, player2, kanata["game_card_id"], "green", "g1")
+        w2 = spawn_cheer_on_card(self, player2, kanata["game_card_id"], "white", "w2")
+        actions = reset_mainstep(self)
+        self.engine.handle_game_message(self.player2, GameAction.MainStepBeginPerformance, {})
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 14)
+        validate_event(self, events[0], EventType.EventType_PerformanceStepStart, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_TurnStart, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_ResetStepActivate, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_ResetStepCollab, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_Draw, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_CheerStep, self.player1, {})
+
+
     def test_hBP01_051_powerboost_per_attached_cheer_collab(self):
         p1deck = generate_deck_with([], {"hBP01-051": 3, }, [])
         initialize_game_to_third_turn(self, p1deck)

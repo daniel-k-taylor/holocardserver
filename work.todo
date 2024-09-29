@@ -1,5 +1,4 @@
-Test:
-    ☐ iofi 52 - selamat pagi only card on field, any issues?
+☐ Add a "pre-down" event so UI can label unit being downed
 
 Todo:
     ☐ Reconnect logic -

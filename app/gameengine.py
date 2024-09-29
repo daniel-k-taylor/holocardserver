@@ -154,6 +154,7 @@ class EventType:
     EventType_Decision_PerformanceStep = "decision_performance_step"
     EventType_Decision_SendCheer = "decision_send_cheer"
     EventType_Decision_SwapHolomemToCenter = "decision_choose_holomem_swap_to_center"
+    EventType_DownedHolomem_Before = "downed_holomem_before"
     EventType_DownedHolomem = "downed_holomem"
     EventType_Draw = "draw"
     EventType_EndTurn = "end_turn"
@@ -1974,7 +1975,7 @@ class GameEngine:
                                 if self.are_conditions_met(active_player, performer["game_card_id"], conditions):
                                     valid_targets = ids_from_cards(opponent.get_holomem_on_stage(only_performers=False, only_collab=target_can_only_be_collab))
                             case "center_only":
-                                valid_targets = ids_from_cards(self.other_player(self.active_player_id).center)
+                                valid_targets = ids_from_cards([target for target in opponent_performers if opponent.is_center_holomem(target["game_card_id"])])
 
 
                     if len(valid_targets) > 0:
@@ -2183,6 +2184,13 @@ class GameEngine:
         down_info.nested_state = self.down_holomem_state
         self.down_holomem_state = down_info
         self.down_holomem_state.holomem_card = target_card
+
+        # pre_down_event = {
+        #     "event_type": EventType.EventType_DownedHolomem_Before,
+        #     "target_id": target_card["game_card_id"],
+        #     "target_player": target_player.player_id,
+        # }
+        # self.broadcast_event(pre_down_event)
         self.begin_resolving_effects(all_death_effects, continuation)
 
     def down_holomem(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, prevent_life_loss, continuation):
