@@ -3700,7 +3700,7 @@
         "rarity": "c",
         "colors": ["red"],
         "hp": 130,
-        "baton_cost": 1,
+        "baton_cost": 0,
         "tags": [
             "#EN",
             "#Myth",
