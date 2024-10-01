@@ -20,7 +20,7 @@ class Test_hbp01_006(unittest.TestCase):
         pass
 
     def test_hbp01_006_phoenixtail(self):
-        p1deck = generate_deck_with("hBP01-006", {"hBP01-059": 4, "hBP01-103": 3 }, [])
+        p1deck = generate_deck_with("hBP01-006", {"hBP01-059": 4,"hBP01-103": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
         player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
@@ -176,6 +176,91 @@ class Test_hbp01_006(unittest.TestCase):
         self.assertTrue(test1["game_card_id"] in inhand)
         self.assertEqual(len(player1.hand), 4)
         self.assertEqual(len(player1.life), 1)
+
+
+    def test_hbp01_006_risefromtheashes_buzz_last2life(self):
+        p1deck = generate_deck_with("hBP01-006", {"hBP01-071": 2,   }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player1.center = []
+        test1 = put_card_in_play(self, player1, "hBP01-071", player1.center)
+        actions = reset_mainstep(self)
+
+        player1.life = player1.life[:2]
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        # Set p1's center to almost dead
+        player1.center[0]["damage"] = player1.center[0]["hp"] - 10
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": player2.center[0]["game_card_id"],
+            "art_id": "nunnun",
+            "target_id": test1["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - perform, damage, begin down, on kill effect choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": test1["game_card_id"],
+            "damage": 30,
+            "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+
+        # Before doing this, let's get an empty hand.
+        player1.hand = []
+        events = pick_choice(self, self.player1, 0)
+        # Events - 2 holopower, oshi, down only lose 1 life, send cheer
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
+            "oshi_player_id": self.player1,
+            "skill_id": "risefromtheashes",
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": test1["game_card_id"],
+            "life_lost": 1
+        })
+        archived_ids = events[6]["archived_ids"]
+        hand_ids = events[6]["hand_ids"]
+        self.assertListEqual(archived_ids, cheer_on_p1)
+        self.assertTrue(test1["game_card_id"] in hand_ids)
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
+            "effect_player_id": self.player1,
+            "amount_min": 1,
+            "amount_max": 1,
+            "from_zone": "life",
+            "to_zone": "holomem",
+        })
+        from_options = events[8]["from_options"]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: player1.backstage[0]["game_card_id"]
+            }
+        })
+        events = engine.grab_events()
+        # Events - move cheer, end turn etc.
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, {})
+
+        validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, self.player1, {
+            "active_player": self.player1
+        })
+        inhand = ids_from_cards(player1.hand)
+        self.assertTrue(test1["game_card_id"] in inhand)
+        self.assertEqual(len(player1.hand), 1)
+        self.assertEqual(len(player1.life), 1)
+
 
 
 if __name__ == '__main__':
