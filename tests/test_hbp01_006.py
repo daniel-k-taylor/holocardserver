@@ -88,6 +88,9 @@ class Test_hbp01_006(unittest.TestCase):
         b2 = add_card_to_hand(self, player1, "hBP01-059")
         b3 = add_card_to_hand(self, player1, "hBP01-059")
         actions = reset_mainstep(self)
+
+        player1.life = player1.life[:1]
+        self.assertEqual(len(player1.life), 1)
         engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
             "card_id": b1["game_card_id"],
             "target_id": test1["game_card_id"]
@@ -172,6 +175,7 @@ class Test_hbp01_006(unittest.TestCase):
         self.assertTrue(b3["game_card_id"] in inhand)
         self.assertTrue(test1["game_card_id"] in inhand)
         self.assertEqual(len(player1.hand), 4)
+        self.assertEqual(len(player1.life), 1)
 
 
 if __name__ == '__main__':
