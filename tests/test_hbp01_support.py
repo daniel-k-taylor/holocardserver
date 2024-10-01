@@ -1360,7 +1360,7 @@ class Test_hbp01_Support(unittest.TestCase):
         self.assertEqual(from_options[1], player2.backstage[1]["attached_cheer"][0]["game_card_id"])
 
 
-    def test_hbp01_115_stone_axe_restorehp(self):
+    def test_hbp01_114_stone_axe_restorehp(self):
         p1deck = generate_deck_with("hBP01-003", {"hBP01-035": 4, "hBP01-114": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -1434,6 +1434,51 @@ class Test_hbp01_Support(unittest.TestCase):
         })
         actions = reset_mainstep(self)
         self.assertEqual(len(player1.hand), 0)
+
+    def test_hbp01_114_stone_axe_doesnt_count_as_suisei(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-076": 4, "hBP01-114": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player1.collab = player1.center
+        player1.center = []
+        player1.backstage = player1.backstage[1:]
+        player2.backstage = player2.backstage[:1]
+        test_card = put_card_in_play(self, player1, "hBP01-076", player1.center)
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        axe = add_card_to_hand(self, player1, "hBP01-114")
+        test_card["attached_support"] = [axe]
+        player1.hand = []
+        actions = reset_mainstep(self)
+        begin_performance(self)
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": player2.center[0]["game_card_id"],
+        })
+        events = engine.grab_events()
+        # Events - perform, boost, damage from backstage, comet choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player1, 1) # Don't use comet.
+        # Events - damage from art, shooting star choice.
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "damage": 40,
+        })
+        events = pick_choice(self, self.player1, 1) # Shooting star, dont' use it.
+        # Events - self damage from axe, performance step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_PerformanceStep, self.player1, {})
 
 
     def test_hbp01_115_suisei_mic_kill(self):

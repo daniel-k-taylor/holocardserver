@@ -689,7 +689,7 @@ class PlayerState:
             if oshi_effect["timing"] == timing:
                 if "timing_source_requirement" in oshi_effect and oshi_effect["timing_source_requirement"] != timing_source_requirement:
                     continue
-                add_ids_to_effects([oshi_effect], self.player_id, "oshi")
+                add_ids_to_effects([oshi_effect], self.player_id, self.oshi_card["game_card_id"])
                 effects.append(oshi_effect)
 
         turn_effects = filter_effects_at_timing(self.turn_effects, timing)
@@ -818,8 +818,18 @@ class PlayerState:
         for card in self.engine.floating_cards:
             if card["game_card_id"] == card_id:
                 return card, self.engine.floating_cards, "floating"
+        if self.oshi_card["game_card_id"] == card_id:
+            return self.oshi_card, None, "oshi"
         # Card, Zone, Zone Name
         return None, None, None
+
+    def find_attachment(self, attachment_id):
+        # Assume this is an attachment, find it on the holomem.
+        for holomem in self.get_holomem_on_stage():
+            for attachment in holomem["attached_support"]:
+                if attachment["game_card_id"] == attachment_id:
+                    return attachment
+        return None
 
     def find_and_remove_card(self, card_id):
         card, zone, zone_name = self.find_card(card_id)
@@ -2469,12 +2479,7 @@ class GameEngine:
                 condition_color = condition["condition_color"]
                 include_oshi_ability = condition.get("include_oshi_ability", False)
                 damage_source = self.after_damage_state.source_card
-                if damage_source["card_type"] == "support":
-                    # Find the owner card.
-                    holomems = self.after_damage_state.source_player.get_holomems_with_attachment(damage_source["game_card_id"])
-                    if holomems:
-                        damage_source = holomems[0]
-                elif damage_source["card_type"] == "oshi":
+                if damage_source["card_type"] == "oshi":
                     return include_oshi_ability
                 return condition_color in damage_source["colors"]
             case Condition.Condition_DamagedHolomemIsBackstage:
@@ -3095,9 +3100,7 @@ class GameEngine:
                 if opponent:
                     target_player = self.other_player(effect_player_id)
                 source_holomem_card, _, _ = source_player.find_card(effect["source_card_id"])
-                if effect["source_card_id"] == "oshi":
-                    source_holomem_card = source_player.oshi_card
-                elif not source_holomem_card:
+                if not source_holomem_card:
                     # Assume this is an attachment, find it on the holomem.
                     for holomem in source_player.get_holomem_on_stage():
                         for attachment in holomem["attached_support"]:
@@ -3144,7 +3147,7 @@ class GameEngine:
                         self.add_deal_damage_internal_effect(
                             source_player,
                             target_player,
-                            source_holomem_card,
+                            effect["source_card_id"],
                             target_cards[i],
                             amount,
                             special,
@@ -3173,19 +3176,22 @@ class GameEngine:
                         "amount_max": targets_allowed,
                         "effect_resolution": self.handle_deal_damage_to_holomem,
                         "effect": effect,
-                        "source_card": source_holomem_card,
+                        "source_card_id": effect["source_card_id"],
                         "target_player": target_player,
                         "continuation": self.continue_resolving_effects,
                     })
             case EffectType.EffectType_DealDamage_Internal:
-                source_player = effect["source_player"]
+                source_player : PlayerState = effect["source_player"]
                 target_player = effect["target_player"]
-                source_holomem_card = effect["source_holomem_card"]
+                source_card_id = effect["source_card_id"]
+                dealing_card, _, _ = source_player.find_card(source_card_id)
+                if not dealing_card:
+                    dealing_card = source_player.find_attachment(source_card_id)
                 target_card = effect["target_card"]
                 amount = effect["amount"]
                 special = effect["special"]
                 prevent_life_loss = effect["prevent_life_loss"]
-                self.deal_damage(source_player, target_player, source_holomem_card, target_card, amount, special, prevent_life_loss, {}, self.continue_resolving_effects)
+                self.deal_damage(source_player, target_player, dealing_card, target_card, amount, special, prevent_life_loss, {}, self.continue_resolving_effects)
                 passed_on_continuation = True
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
@@ -3193,16 +3199,10 @@ class GameEngine:
                 prevent_life_loss = effect.get("prevent_life_loss", False)
                 source_player = self.get_player(effect_player_id)
                 target_player = self.other_player(effect_player_id)
-                source_holomem_card, _, _ = source_player.find_card(effect["source_card_id"])
-                if effect["source_card_id"] == "oshi":
-                    source_holomem_card = source_player.oshi_card
-                elif not source_holomem_card:
+                source_card, _, _ = source_player.find_card(effect["source_card_id"])
+                if not source_card:
                     # Assume this is an attachment, find it on the holomem.
-                    for holomem in source_player.get_holomem_on_stage():
-                        for attachment in holomem["attached_support"]:
-                            if attachment["game_card_id"] == effect["source_card_id"]:
-                                source_holomem_card = holomem
-                                break
+                    source_card = source_player.find_attachment(effect["source_card_id"])
 
                 target_cards = []
                 match target:
@@ -3223,7 +3223,7 @@ class GameEngine:
                 if len(target_cards) == 0:
                     pass
                 elif len(target_cards) == 1:
-                    self.down_holomem(source_player, target_player, source_holomem_card, target_cards[0], prevent_life_loss, self.continue_resolving_effects)
+                    self.down_holomem(source_player, target_player, source_card, target_cards[0], prevent_life_loss, self.continue_resolving_effects)
                     passed_on_continuation = True
                 else:
                     # Player gets to choose.
@@ -3246,7 +3246,7 @@ class GameEngine:
                         "amount_max": 1,
                         "effect_resolution": self.handle_down_holomem,
                         "effect": effect,
-                        "source_card": source_holomem_card,
+                        "source_card_id": effect["source_card_id"],
                         "target_player": target_player,
                         "continuation": self.continue_resolving_effects,
                     })
@@ -3987,22 +3987,18 @@ class GameEngine:
     def add_effects_to_rear(self, new_effects):
         self.effect_resolution_state.effects_to_resolve = self.effect_resolution_state.effects_to_resolve + new_effects
 
-    def add_deal_damage_internal_effect(self, source_player : PlayerState, target_player : PlayerState, source_holomem_card, target_card, amount, special, prevent_life_loss):
+    def add_deal_damage_internal_effect(self, source_player : PlayerState, target_player : PlayerState, source_card_id, target_card, amount, special, prevent_life_loss):
         effects = [{
             "effect_type": EffectType.EffectType_DealDamage_Internal,
             "source_player": source_player,
             "target_player": target_player,
-            "source_holomem_card": source_holomem_card,
             "target_card": target_card,
             "amount": amount,
             "special": special,
             "prevent_life_loss": prevent_life_loss,
             "internal_skip_simultaneous_choice": True,
         }]
-        source_id = "oshi"
-        if "game_card_id" in source_holomem_card:
-            source_id = source_holomem_card["game_card_id"]
-        add_ids_to_effects(effects, source_player.player_id, source_id)
+        add_ids_to_effects(effects, source_player.player_id, source_card_id)
         self.add_effects_to_front(effects)
 
     def add_restore_holomem_hp_internal_effect(self, target_player : PlayerState, target_card, source_card_id, amount):
@@ -4480,7 +4476,7 @@ class GameEngine:
         skill_id = action_data["skill_id"]
 
         action_effects = player.get_oshi_action_effects(skill_id)
-        add_ids_to_effects(action_effects, player_id, "oshi")
+        add_ids_to_effects(action_effects, player_id, player.oshi_card["game_card_id"])
         self.begin_resolving_effects(action_effects, continuation)
 
         return True
@@ -4876,7 +4872,7 @@ class GameEngine:
     def handle_deal_damage_to_holomem(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
         effect = decision_info_copy["effect"]
         source_player = self.get_player(performing_player_id)
-        source_card = decision_info_copy["source_card"]
+        source_card_id = decision_info_copy["source_card_id"]
         target_player = decision_info_copy["target_player"]
         card_ids.reverse()
         for card_id in card_ids:
@@ -4884,7 +4880,7 @@ class GameEngine:
             self.add_deal_damage_internal_effect(
                 source_player,
                 target_player,
-                source_card,
+                source_card_id,
                 target_card,
                 effect["amount"],
                 effect.get("special", False),
@@ -4895,7 +4891,10 @@ class GameEngine:
     def handle_down_holomem(self, decision_info_copy, performing_player_id:str, card_ids:List[str], continuation):
         effect = decision_info_copy["effect"]
         source_player = self.get_player(performing_player_id)
-        source_card = decision_info_copy["source_card"]
+        source_card_id = decision_info_copy["source_card_id"]
+        source_card, _, _ = source_player.find_card(source_card_id)
+        if not source_card:
+            source_card = source_player.find_attachment(source_card_id)
         target_player = decision_info_copy["target_player"]
         target_card, _, _ = target_player.find_card(card_ids[0])
         self.down_holomem(source_player, target_player, source_card, target_card,
