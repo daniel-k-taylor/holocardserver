@@ -10,7 +10,7 @@ load_dotenv()
 
 
 # Define date range for filtering blobs (UTC time)
-START_DATE = datetime(2024, 9, 1, tzinfo=timezone.utc)  # Change to your start date
+START_DATE = datetime(2024, 9, 28, tzinfo=timezone.utc)  # Change to your start date
 END_DATE = datetime(2024, 10, 30, tzinfo=timezone.utc)   # Change to your end date
 
 # Make the directory to download this dir + tests\match_logs
