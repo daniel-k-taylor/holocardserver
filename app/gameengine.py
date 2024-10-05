@@ -52,6 +52,7 @@ class EffectType:
     EffectType_ForceDieResult = "force_die_result"
     EffectType_GenerateChoiceTemplate = "generate_choice_template"
     EffectType_GenerateHolopower = "generate_holopower"
+    EffectType_GoFirst = "go_first"
     EffectType_OshiActivation = "oshi_activation"
     EffectType_ModifyNextLifeLoss = "modify_next_life_loss"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
@@ -229,6 +230,7 @@ class AfterDamageState:
         self.damage_dealt = 0
         self.special = False
         self.target_card_zone = ""
+        self.target_still_on_stage = False
 
         self.nested_state = None
 
@@ -306,6 +308,9 @@ class GameAction:
         "target_id": str,
     }
 
+    PerformanceStepCancel = "performance_step_cancel"
+    PerformanceStepCancelFields = {}
+
     PerformanceStepEndTurn = "performance_step_end_turn"
     PerformanceStepEndTurnFields = {}
 
@@ -374,6 +379,7 @@ class PlayerState:
         self.last_archived_count = 0
         self.clock_time_used = 0
         self.performance_cleanup_effects_pending = []
+        self.performance_attacked_this_turn = False
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -924,6 +930,7 @@ class PlayerState:
         self.baton_pass_this_turn = False
         self.collabed_this_turn = False
         self.turn_effects = []
+        self.performance_attacked_this_turn = False
         self.used_limited_this_turn = False
         self.played_support_this_turn = False
         self.effects_used_this_turn = []
@@ -1339,6 +1346,7 @@ class GameEngine:
         self.player_ids = [player_info["player_id"] for player_info in player_infos]
         self.player_states = [PlayerState(card_db, player_info, self) for player_info in player_infos]
         self.starting_player_id = None
+        self.first_turn_player_id = None
 
         # Combine all game card mappings into a single dict.
         self.all_game_cards_map = {}
@@ -1364,6 +1372,7 @@ class GameEngine:
             "player_final_life": [str(len(player_state.life)) for player_state in self.player_states],
             "seed": self.seed,
             "starting_player": self.get_player(self.starting_player_id).username,
+            "first_turn_player": self.get_player(self.first_turn_player_id).username,
             "turn_number": self.turn_number,
             "winner": winner,
         }
@@ -1458,6 +1467,25 @@ class GameEngine:
         self.phase = GamePhase.Mulligan
         self.active_player_id = self.starting_player_id
 
+        # TODO: Call send_first_turn_choice
+        self.handle_mulligan_phase()
+
+    def send_first_turn_choice(self):
+        choices = [
+            {
+                "effect_type": EffectType.EffectType_GoFirst,
+                "first": True,
+            },
+            {
+                "effect_type": EffectType.EffectType_GoFirst,
+                "first": False,
+            }
+        ]
+        add_ids_to_effects(choices, self.starting_player_id, "")
+        self.send_choice_to_player(self.starting_player_id, choices, False, self.after_first_turn_choice)
+
+    def after_first_turn_choice(self):
+        self.active_player_id = self.first_turn_player_id
         self.handle_mulligan_phase()
 
     def get_observer_catchup_events(self):
@@ -1558,7 +1586,7 @@ class GameEngine:
 
     def begin_initial_placement(self):
         self.phase = GamePhase.InitialPlacement
-        self.active_player_id = self.starting_player_id
+        self.active_player_id = self.first_turn_player_id
 
         # The player must now choose their center holomem and any backstage holomems from hand.
         self.send_initial_placement_event()
@@ -1612,7 +1640,7 @@ class GameEngine:
             self.broadcast_event(reveal_event)
 
             # Move on to the first player's turn.
-            self.active_player_id = self.starting_player_id
+            self.active_player_id = self.first_turn_player_id
             self.begin_player_turn(switch_active_player=False)
         else:
             # Tell the active player we're waiting on them to place cards.
@@ -1811,7 +1839,7 @@ class GameEngine:
                 if is_card_limited(card):
                     if active_player.used_limited_this_turn:
                         continue
-                    if self.starting_player_id == active_player.player_id and active_player.first_turn:
+                    if self.first_turn_player_id == active_player.player_id and active_player.first_turn:
                         continue
 
                 if "play_conditions" in card:
@@ -1853,7 +1881,7 @@ class GameEngine:
                     })
 
         # G. Begin Performance
-        if not (self.starting_player_id == active_player.player_id and active_player.first_turn):
+        if not (self.first_turn_player_id == active_player.player_id and active_player.first_turn):
             available_actions.append({
                 "action_type": GameAction.MainStepBeginPerformance,
             })
@@ -2003,16 +2031,22 @@ class GameEngine:
         available_actions.append({
             "action_type": GameAction.PerformanceStepEndTurn,
         })
+        if len(available_actions) > 1 and not active_player.performance_attacked_this_turn:
+            available_actions.append({
+                "action_type": GameAction.PerformanceStepCancel,
+            })
 
         return available_actions
 
     def begin_performance_step(self):
-        # Send a start performance event.
-        start_event = {
-            "event_type": EventType.EventType_PerformanceStepStart,
-            "active_player": self.active_player_id,
-        }
-        self.broadcast_event(start_event)
+        active_player = self.get_player(self.active_player_id)
+        if not active_player.performance_attacked_this_turn:
+            # Send a start performance event.
+            start_event = {
+                "event_type": EventType.EventType_PerformanceStepStart,
+                "active_player": self.active_player_id,
+            }
+            self.broadcast_event(start_event)
         self.continue_performance_step()
 
     def continue_performance_step(self):
@@ -2032,6 +2066,7 @@ class GameEngine:
 
     def begin_perform_art(self, performer_id, art_id, target_id, continuation):
         player = self.get_player(self.active_player_id)
+        player.performance_attacked_this_turn = True
         performer, _, _ = player.find_card(performer_id)
         performer["used_art_this_turn"] = True
         target_owner = self.other_player(self.active_player_id)
@@ -2174,6 +2209,7 @@ class GameEngine:
         self.after_damage_state.damage_dealt = damage
         self.after_damage_state.special = special
         self.after_damage_state.target_card_zone = target_player.get_holomem_zone(target_card)
+        self.after_damage_state.target_still_on_stage = target_card in target_player.get_holomem_on_stage()
 
         self.begin_resolving_effects(after_effects, lambda :
             self.complete_after_deal_damage(continuation)
@@ -2483,6 +2519,9 @@ class GameEngine:
                     return include_oshi_ability
                 return condition_color in damage_source["colors"]
             case Condition.Condition_DamagedHolomemIsBackstage:
+                still_on_stage_required = condition.get("still_on_stage", False)
+                if still_on_stage_required and not self.after_damage_state.target_still_on_stage:
+                    return False
                 return self.after_damage_state.target_card_zone == "backstage"
             case Condition.Condition_DamagedHolomemIsCenterOrCollab:
                 return self.after_damage_state.target_card_zone in ["center", "collab"]
@@ -3121,6 +3160,10 @@ class GameEngine:
                         target_cards = target_player.collab
                     case "center_or_collab":
                         target_cards = target_player.center + target_player.collab
+                    case "current_damage_target":
+                        # Only valid if still on stage.
+                        if self.after_damage_state.target_card in target_player.get_holomem_on_stage():
+                            target_cards = [self.after_damage_state.target_card]
                     case "holomem":
                         target_cards = target_player.get_holomem_on_stage()
                     case "self":
@@ -3330,6 +3373,12 @@ class GameEngine:
             case EffectType.EffectType_GenerateHolopower:
                 amount = effect["amount"]
                 effect_player.generate_holopower(amount)
+            case EffectType.EffectType_GoFirst:
+                first = effect["first"]
+                if first:
+                    self.first_turn_player_id = effect_player_id
+                else:
+                    self.first_turn_player_id = self.other_player(effect_player_id).player_id
             case EffectType.EffectType_OshiActivation:
                 skill_id = effect["skill_id"]
                 oshi_skill_event = {
@@ -4012,7 +4061,9 @@ class GameEngine:
         add_ids_to_effects(effects, target_player.player_id, source_card_id)
         self.add_effects_to_front(effects)
 
-    def send_choice_to_player(self, effect_player_id, choice, simultaneous_resolution = False):
+    def send_choice_to_player(self, effect_player_id, choice, simultaneous_resolution = False, continuation = None):
+        if not continuation:
+            continuation = self.continue_resolving_effects
         min_choice = 0
         max_choice = len(choice) - 1
         decision_event = {
@@ -4033,7 +4084,7 @@ class GameEngine:
             "max_choice": max_choice,
             "simultaneous_resolution": simultaneous_resolution,
             "resolution_func": self.handle_choice_effects,
-            "continuation": self.continue_resolving_effects,
+            "continuation": continuation,
         })
 
     def end_game(self, loser_id, reason_id):
@@ -4149,6 +4200,8 @@ class GameEngine:
                     handled = self.handle_performance_step_use_art(player_id, action_data)
                 case GameAction.PerformanceStepEndTurn:
                     handled = self.handle_performance_step_end_turn(player_id, action_data)
+                case GameAction.PerformanceStepCancel:
+                    handled = self.handle_performance_step_cancel(player_id, action_data)
                 case GameAction.EffectResolution_MoveCheerBetweenHolomems:
                     handled = self.handle_effect_resolution_move_cheer_between_holomems(player_id, action_data)
                 case GameAction.EffectResolution_ChooseCardsForEffect:
@@ -4692,6 +4745,15 @@ class GameEngine:
 
         self.clear_decision()
         self.end_player_turn()
+
+        return True
+
+    def handle_performance_step_cancel(self, player_id:str, action_data:dict):
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionPerformanceStep, GameAction.PerformanceStepCancelFields):
+            return False
+
+        self.clear_decision()
+        self.continue_main_step()
 
         return True
 

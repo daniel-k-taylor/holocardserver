@@ -1,4 +1,12 @@
 ☐ Allow choosing who goes first
+✔ Optional dice for holomem abilities @started(24-10-04 21:05) @done(24-10-04 21:40) @lasted(35m39s)
+✔ Comet can only target THAT holomem @started(24-10-04 21:10) @done(24-10-04 21:40) @lasted(30m30s)
+    ✔ "target": "current_damage_target", @done(24-10-04 21:40)
+    ✔ add test to ensure you can't comet when the damage downs the target @started(24-10-04 21:39) @done(24-10-04 21:39) @lasted(27s)
+
+☐ Back button for performance if you haven't attacked @started(24-10-05 01:24)
+
+
 ☐ Kotori + kiara bloom effect - simultaneous choice?
 
 Todo:

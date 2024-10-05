@@ -1747,7 +1747,7 @@ class Test_hbp01_Support(unittest.TestCase):
         actions = reset_mainstep(self)
         begin_performance(self)
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(actions[0]["performer_id"], p1center["game_card_id"])
 
 
@@ -2421,18 +2421,20 @@ class Test_hbp01_Support(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - roll die, choice
-        self.assertEqual(len(events), 6)
+        # Events - roll die choice
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "art_id": "konpeko",
             "power": 20,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {})
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
         events = pick_choice(self, self.player1, 0)
         # events - archive nousagi, roll die, boost, perform, damage, perform step
         self.assertEqual(len(events), 10)

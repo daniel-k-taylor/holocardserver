@@ -134,7 +134,7 @@ class Test_hbp01_001(unittest.TestCase):
         self.assertEqual(player1.collab[0]["game_card_id"], collab_id)
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3) # 2 arts and end turn
+        self.assertEqual(len(actions), 4) # 2 arts and end turn
         # First attack with collab, which should only do the 30 damage.
         p2target = player2.center[0]
         engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
@@ -256,7 +256,7 @@ class Test_hbp01_001(unittest.TestCase):
         self.assertEqual(player1.collab[0]["game_card_id"], collab_id)
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3) # 2 arts and end turn
+        self.assertEqual(len(actions), 4) # 2 arts and end turn, cancel
         # First attack with collab, which should only do the 30 damage.
         p2target = player2.center[0]
         engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
