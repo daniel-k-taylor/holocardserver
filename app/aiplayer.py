@@ -63,6 +63,7 @@ class AIPlayer:
             EventType.EventType_Decision_SendCheer: self._handle_send_cheer,
             EventType.EventType_Decision_SwapHolomemToCenter: self._handle_swap_holomem_to_center,
             EventType.EventType_DownedHolomem: self._handle_event_ignore,
+            EventType.EventType_DownedHolomem_Before: self._handle_event_ignore,
             EventType.EventType_Draw: self._handle_event_ignore,
             EventType.EventType_EndTurn: self._handle_event_ignore,
             EventType.EventType_ForceDieResult: self._handle_choice,
