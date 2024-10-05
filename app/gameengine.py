@@ -1468,6 +1468,7 @@ class GameEngine:
         self.active_player_id = self.starting_player_id
 
         # TODO: Call send_first_turn_choice
+        self.first_turn_player_id = self.starting_player_id
         self.handle_mulligan_phase()
 
     def send_first_turn_choice(self):
