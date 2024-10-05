@@ -105,7 +105,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When you would roll a die as part of a Holomem's Ability or Arts you may set the result.",
+                "full_english_text": "OSHI_STARTER_02_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "mapinthelefthand",
                 "cost": 3,
@@ -967,7 +967,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "Can be used during your opponent's turn when one of your Holomems with #Promise takes damage: reduce that damage by 50.",
+                "full_english_text": "OSHI_BP1_002_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "guardianofcivilization",
                 "cost": 2,
@@ -1104,7 +1104,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When your Holomem is downed on opponent's turn: Distribute all Green Cheer from that Holomem.",
+                "full_english_text": "OSHI_BP1_004_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "nousagis",
                 "cost": 2,
@@ -1177,7 +1177,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When you use a Red Holomem's Ability/Arts that Archives cards from your hand: you may Archive any number them from your Holopower instead.",
+                "full_english_text": "OSHI_BP1_005_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "executivesorder",
                 "cost": "X",
@@ -1248,7 +1248,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When your Red Holomem is downed on the opponent's turn: lose 1 less LIFE. You may take it and all stacked Holomem into your hand.",
+                "full_english_text": "OSHI_BP1_006_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "risefromtheashes",
                 "cost": 2,
@@ -1291,7 +1291,7 @@
         "actions": [],
         "effects": [
             {
-                "full_english_text": "When this or a Blue Holomem deals damage to your opponent's Back Holomem: deal 50 damage to that Holomem",
+                "full_english_text": "OSHI_BP1_007_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "comet",
                 "cost": 2,
@@ -1325,7 +1325,7 @@
                 ]
             },
             {
-                "full_english_text": "When your Blue Holomem deals damage to your opponent's Center or Collab Holomem: deal equal special damage to one of your opponent's Back Holomem",
+                "full_english_text": "OSHI_BP1_007_2_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "shootingstar",
                 "cost": 2,
@@ -1399,7 +1399,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When you archive Cheer with a Blue Holomem Ability/Arts: deal 20 Special damage to any of your opponent's Holomem.",
+                "full_english_text": "RAIN_SHAMANISM_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "rainshamanism",
                 "cost": 1,
@@ -2169,7 +2169,7 @@
         "collab_effects": [],
         "gift_effects": [
             {
-                "full_english_text": "1/Turn (Collab only) When a Holomem takes damage from the opponent, you may roll a die. If odd, prevent the damage.",
+                "full_english_text": "VESTIA_027_GIFT_FULL_TEXT",
                 "timing": "on_take_damage",
                 "conditions": [
                     { "condition": "effect_card_id_not_used_this_turn" },
@@ -2789,12 +2789,12 @@
                 "power": 50,
                 "art_effects": [
                     {
-                        "full_english_text": "Roll a die. This art gains +10 Power times the result.",
+                        "full_english_text": "PEKORA_42_ART_FULL_TEXT",
                         "timing": "before_art",
                         "effect_type": "choice",
                         "choice": [
                             {
-                                "full_english_text": "Roll a die. This art gains +10 Power times the result.",
+                                "full_english_text": "PEKORA_42_ART_FULL_TEXT",
                                 "effect_type": "roll_die",
                                 "source": "holomem_ability",
                                 "die_effects": [
@@ -2849,12 +2849,12 @@
                         "conditions": [{ "condition": "target_color", "color_requirement": "blue" }]
                     },
                     {
-                        "full_english_text": "Roll 3 dice. This art gains +10 Power times total result.",
+                        "full_english_text": "PEKORA_43_ART_FULL_TEXT",
                         "timing": "before_art",
                         "effect_type": "choice",
                         "choice": [
                             {
-                                "full_english_text": "Roll 3 dice. This art gains +10 Power times total result.",
+                                "full_english_text": "PEKORA_43_ART_FULL_TEXT",
                                 "effect_type": "roll_die",
                                 "source": "holomem_ability",
                                 "die_effects": [
@@ -3157,7 +3157,7 @@
                 "power": 20,
                 "art_effects": [
                     {
-                        "full_english_text": "Send the top card from your Cheer Deck to a #SecretSocietyholoX Holomem not Kazama Iroha.",
+                        "full_english_text": "IROHA_50_ART_FULL_TEXT",
                         "timing": "before_art",
                         "effect_type": "send_cheer",
                         "amount_min": 1,
@@ -3506,7 +3506,7 @@
                 "power": 50,
                 "art_effects": [
                     {
-                        "full_english_text": "You may Archive 1 card from hand to: reveal a 1st Bloom holomem (excluding Buzz holomem) from your deck and put it into your hand. Then shuffle.",
+                        "full_english_text": "LUI_59_ART_FULL_TEXT",
                         "timing": "before_art",
                         "effect_type": "choice",
                         "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
@@ -3618,7 +3618,7 @@
                         "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
                     },
                     {
-                        "full_english_text": "Archive 0-5 cards from your hand. Deal 20 special damage per to your opponent's Center or Collab.",
+                        "full_english_text": "LUI_61_ART_FULL_TEXT",
                         "timing": "before_art",
                         "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
                         "effect_type": "generate_choice_template",
@@ -4249,7 +4249,7 @@
         ],
         "collab_effects": [
             {
-                "full_english_text": "Each player put their hand on the bottom of their deck in any order then draws that many cards.",
+                "full_english_text": "BAELZ_75_COLLAB_FULL_TEXT",
                 "effect_type": "order_cards",
                 "from": "hand",
                 "destination": "deck",
@@ -4496,7 +4496,7 @@
         ],
         "arts": [
             {
-                "full_english_text": "Shining Comet: 60 (+50 vs Red)\nYou may Archive 2 Blue Cheers from this Holomem to: +60 Power per Holomem under this and you can target Backstage Holomem.",
+                "full_english_text": "SUISEI_81_ART_FULL_TEXT",
                 "art_id": "shiningcomet",
                 "target_condition": "all_if_meets_conditions",
                 "target_conditions": [{ "condition": "self_has_cheer_color", "amount_min": 2, "condition_colors": ["blue"] }],
@@ -5649,7 +5649,7 @@
         "limited": true,
         "effects": [
             {
-                "full_english_text": "Roll a die. If the result is 3 or less, Archive one of your opponent's holomems' Cheer.\nIf your Oshi is Nanashi Mumei, you may instead perform the following effect: (Once per game) Archive 2 Cheer from your opponent's Center.",
+                "full_english_text": "SUPPORT_110_FULL_TEXT",
                 "conditions": [
                     { "condition": "not_used_once_per_game_effect", "condition_effect_id": "clubemintonothingness" },
                     { "condition": "oshi_is", "required_member_name": "nanashi_mumei" }
@@ -6285,7 +6285,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "Can be used during your opponent's turn when one of your White Holomems takes damage: reduce that damage by 20.",
+                "full_english_text": "OSHI_CHEER_01_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "quickguard",
                 "cost": 1,
@@ -6493,7 +6493,7 @@
         ],
         "effects": [
             {
-                "full_english_text": "When one of your Blue Holomems deals damage to your opponent's Back Holomem: deal 50 damage to that Holomem",
+                "full_english_text": "OSHI_CHEER_04_FULL_TEXT",
                 "oshi_effect": "true",
                 "skill_id": "backshot",
                 "cost": 1,
