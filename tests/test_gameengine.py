@@ -83,19 +83,28 @@ class TestGameEngine(unittest.TestCase):
         events = self.engine.grab_events()
         # Beginning game events are:
         # - Game start
+        # - Choose who goes first.
+        self.assertEqual(len(events), 4)
+        self.validate_event(events[0], EventType.EventType_GameStartInfo, self.player1, {"your_id": self.player1 })
+        self.validate_event(events[1], EventType.EventType_GameStartInfo, self.player2, {"your_id": self.player2 })
+        self.validate_event(events[2], EventType.EventType_Decision_Choice, self.player1, {"effect_player_id": self.player1 })
+        self.validate_event(events[3], EventType.EventType_Decision_Choice, self.player2, {"effect_player_id": self.player1 })
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0
+        })
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 6)
         # - Initial draw player 1
         # - Initial draw player 2
         # - Mulligan ask to player 1
         # Events are all doubled since both players have a version.
-        self.assertEqual(len(events), 8)
-        self.validate_event(events[0], EventType.EventType_GameStartInfo, self.player1, {"your_id": self.player1 })
-        self.validate_event(events[1], EventType.EventType_GameStartInfo, self.player2, {"your_id": self.player2 })
-        self.validate_event(events[2], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player1})
-        self.validate_event(events[3], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player1})
-        self.validate_event(events[4], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player2})
-        self.validate_event(events[5], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player2})
-        self.validate_event(events[6], EventType.EventType_MulliganDecision, self.player1, {"active_player": self.player1 })
-        self.validate_event(events[7], EventType.EventType_MulliganDecision, self.player2, {"active_player": self.player1 })
+        self.assertEqual(len(events), 6)
+        self.validate_event(events[0], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player1})
+        self.validate_event(events[1], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player1})
+        self.validate_event(events[2], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player2})
+        self.validate_event(events[3], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player2})
+        self.validate_event(events[4], EventType.EventType_MulliganDecision, self.player1, {"active_player": self.player1 })
+        self.validate_event(events[5], EventType.EventType_MulliganDecision, self.player2, {"active_player": self.player1 })
 
         # Player 1 mulligan choice.
         # Make it so the cards we put back on top are "Shuffled" to the back.

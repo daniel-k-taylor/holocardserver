@@ -1005,18 +1005,20 @@ class PlayerState:
             if is_card_equipment(attached_card) and not is_card_attach_requirements_meant(attached_card, bloom_card):
                 self.move_card(attached_card["game_card_id"], "archive")
 
+        on_bloom_level_up_effects = []
         if next_bloom_level > previous_bloom_level:
             on_bloom_level_up_effects = self.get_effects_at_timing("on_bloom_level_up", bloom_card, "")
-            for effect in on_bloom_level_up_effects:
-                if self.engine.are_conditions_met(self, effect["source_card_id"], effect["conditions"]):
-                    # Assumption - these don't allow decisions.
-                    self.engine.do_effect(self, effect)
 
         # Handle any bloom effects.
+        all_bloom_effects = []
+        all_bloom_effects.extend(on_bloom_level_up_effects)
         if "bloom_effects" in bloom_card:
             effects = deepcopy(bloom_card["bloom_effects"])
             add_ids_to_effects(effects, self.player_id, bloom_card_id)
-            self.engine.begin_resolving_effects(effects, continuation)
+            all_bloom_effects.extend(effects)
+        if len(all_bloom_effects) > 0:
+            simultaneous_effects = len(on_bloom_level_up_effects) > 0
+            self.engine.begin_resolving_effects(all_bloom_effects, continuation, [], simultaneous_effects)
         else:
             continuation()
 
@@ -1460,16 +1462,8 @@ class GameEngine:
                 "game_card_map": self.all_game_cards_map,
             })
 
-        # Draw starting hands
-        for player_state in self.player_states:
-            player_state.draw(STARTING_HAND_SIZE)
-
-        self.phase = GamePhase.Mulligan
         self.active_player_id = self.starting_player_id
-
-        # TODO: Call send_first_turn_choice
-        self.first_turn_player_id = self.starting_player_id
-        self.handle_mulligan_phase()
+        self.send_first_turn_choice()
 
     def send_first_turn_choice(self):
         choices = [
@@ -1487,6 +1481,12 @@ class GameEngine:
 
     def after_first_turn_choice(self):
         self.active_player_id = self.first_turn_player_id
+
+        # Draw starting hands
+        for player_state in self.player_states:
+            player_state.draw(STARTING_HAND_SIZE)
+
+        self.phase = GamePhase.Mulligan
         self.handle_mulligan_phase()
 
     def get_observer_catchup_events(self):
@@ -5101,59 +5101,62 @@ class GameEngine:
             self.do_effect(player, attach_effect)
         elif to_zone in ["backstage", "stage"]:
             # Determine possible options (backstage, center, collab) depending on what's open.
-            choice = [
-            ]
-            choice.append({
-                "effect_type": EffectType.EffectType_PlaceHolomem,
-                "player_id": performing_player_id,
-                "source_card_id": "",
-                "location": "backstage",
-                "card_id": card_ids[0],
-            })
-            if to_zone == "stage":
-                if len(player.center) == 0:
-                    choice.append({
-                        "effect_type": EffectType.EffectType_PlaceHolomem,
-                        "player_id": performing_player_id,
-                        "source_card_id": "",
-                        "location": "center",
-                        "card_id": card_ids[0],
-                    })
-                if len(player.collab) == 0:
-                    choice.append({
-                        "effect_type": EffectType.EffectType_PlaceHolomem,
-                        "player_id": performing_player_id,
-                        "source_card_id": "",
-                        "location": "collab",
-                        "card_id": card_ids[0],
-                    })
-
-            if len(choice) == 1:
-                # Must be backstage.
-                to_zone = "backstage"
-                for card_id in card_ids:
-                    player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+            if len(card_ids) == 0:
                 self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
             else:
-                decision_event = {
-                    "event_type": EventType.EventType_Decision_Choice,
-                    "desired_response": GameAction.EffectResolution_MakeChoice,
-                    "effect_player_id": player.player_id,
-                    "choice": choice,
-                    "min_choice": 0,
-                    "max_choice": len(choice) - 1,
-                }
-                self.broadcast_event(decision_event)
-                self.set_decision({
-                    "decision_type": DecisionType.DecisionChoice,
-                    "decision_player": player.player_id,
-                    "choice": choice,
-                    "min_choice": 0,
-                    "max_choice": len(choice) - 1,
-                    "resolution_func": self.handle_choice_effects,
-                    "continuation": lambda :
-                        self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
+                choice = [
+                ]
+                choice.append({
+                    "effect_type": EffectType.EffectType_PlaceHolomem,
+                    "player_id": performing_player_id,
+                    "source_card_id": "",
+                    "location": "backstage",
+                    "card_id": card_ids[0],
                 })
+                if to_zone == "stage":
+                    if len(player.center) == 0:
+                        choice.append({
+                            "effect_type": EffectType.EffectType_PlaceHolomem,
+                            "player_id": performing_player_id,
+                            "source_card_id": "",
+                            "location": "center",
+                            "card_id": card_ids[0],
+                        })
+                    if len(player.collab) == 0:
+                        choice.append({
+                            "effect_type": EffectType.EffectType_PlaceHolomem,
+                            "player_id": performing_player_id,
+                            "source_card_id": "",
+                            "location": "collab",
+                            "card_id": card_ids[0],
+                        })
+
+                if len(choice) == 1:
+                    # Must be backstage.
+                    to_zone = "backstage"
+                    for card_id in card_ids:
+                        player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
+                    self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
+                else:
+                    decision_event = {
+                        "event_type": EventType.EventType_Decision_Choice,
+                        "desired_response": GameAction.EffectResolution_MakeChoice,
+                        "effect_player_id": player.player_id,
+                        "choice": choice,
+                        "min_choice": 0,
+                        "max_choice": len(choice) - 1,
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionChoice,
+                        "decision_player": player.player_id,
+                        "choice": choice,
+                        "min_choice": 0,
+                        "max_choice": len(choice) - 1,
+                        "resolution_func": self.handle_choice_effects,
+                        "continuation": lambda :
+                            self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
+                    })
         else:
             for card_id in card_ids:
                 player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)

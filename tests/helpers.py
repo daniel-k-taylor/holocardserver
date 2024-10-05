@@ -149,6 +149,13 @@ def initialize_game_to_third_turn(self : unittest.TestCase, p1deck = None, p2dec
     self.engine.set_random_test_hook(self.random_override)
 
     self.engine.begin_game()
+    events = self.engine.grab_events()
+    validate_last_event_not_error(self, events)
+    first_choice_player_id = self.engine.starting_player_id
+    # Most tests want the starting player to go first.
+    self.engine.handle_game_message(first_choice_player_id, GameAction.EffectResolution_MakeChoice, {
+        "choice_index": 0
+    })
     self.engine.handle_game_message(self.player1, GameAction.Mulligan, {"do_mulligan": False })
     self.engine.handle_game_message(self.player2, GameAction.Mulligan, {"do_mulligan": False })
 

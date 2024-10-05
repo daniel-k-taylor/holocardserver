@@ -38,6 +38,7 @@ for file_name in os.listdir(match_logs_dir):
         player_info = match_data["player_info"]
         winner = match_data["winner"]
         starting_player = match_data["starting_player"]
+        first_turn_player = match_data["first_turn_player"] if "first_turn_player" in match_data else starting_player
         player_clocks = match_data["player_clocks"]
         turn_number = match_data["turn_number"]
 
@@ -76,8 +77,8 @@ for file_name in os.listdir(match_logs_dir):
                 if username == winner:
                     card_wins[card_id] += 1
 
-        # Track if the starting player won
-        if starting_player == winner:
+        # Track if the first_turn_player won
+        if first_turn_player == winner:
             first_player_wins += 1
 
         # Track total turns
