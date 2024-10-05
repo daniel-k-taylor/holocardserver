@@ -8,7 +8,7 @@ from app.gameengine import GameAction, GamePhase
 from app.card_database import CardDatabase
 from helpers import RandomOverride, initialize_game_to_third_turn, validate_event, validate_actions, do_bloom, reset_mainstep, add_card_to_hand, do_cheer_step_on_card
 from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls
-from helpers import put_card_in_play, spawn_cheer_on_card, reset_performancestep
+from helpers import put_card_in_play, spawn_cheer_on_card, reset_performancestep, pick_choice
 
 class TestStarterDeckCards(unittest.TestCase):
 
@@ -65,12 +65,12 @@ class TestStarterDeckCards(unittest.TestCase):
         events = engine.grab_events()
         validate_last_event_not_error(self, events)
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
 
         spawn_cheer_on_card(self, player1, test_card["game_card_id"], "green", "greencheer3")
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
         self.assertEqual(actions[1]["art_id"], "sorazsympathy")
 
@@ -152,7 +152,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(actions[0]["art_id"], "dreamlive")
         self.assertEqual(actions[1]["art_id"], "sorazsympathy")
 
@@ -234,7 +234,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "nunnun")
 
         # Perform the art
@@ -317,7 +317,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "sorazgravity")
 
         # Perform the art
@@ -405,7 +405,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(actions[1]["art_id"], "destinysong")
 
         # Perform the art
@@ -417,39 +417,42 @@ class TestStarterDeckCards(unittest.TestCase):
             "target_id": target
         })
         events = engine.grab_events()
-        # Events - no weakness boost, roll die (1), power boost 100
-        self.assertEqual(len(events), 14)
+        # Events - perform art no weakness boost, choose to roll the die
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "destinysong",
             "target_id": target,
             "power": 100,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # events - roll die (1), power boost 100
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "card_id": test_card["game_card_id"],
             "stat": "power",
             "amount": 100,
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 200,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": target,
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -481,7 +484,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "sorazgravity")
 
         # Perform the art
@@ -614,7 +617,7 @@ class TestStarterDeckCards(unittest.TestCase):
         validate_last_event_not_error(self, events)
 
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
         self.assertEqual(actions[0]["art_id"], "brighterfuture")
 
         # Perform the art
@@ -626,32 +629,35 @@ class TestStarterDeckCards(unittest.TestCase):
             "target_id": target
         })
         events = engine.grab_events()
-        # Events - roll die, send_cheer, use art, damage, end turn + 10
-        self.assertEqual(len(events), 20)
+        # Events - perform art roll die choice
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "brighterfuture",
             "target_id": target,
             "power": 50,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events - roll die, send_cheer, use art, damage, end turn + 10
+        self.assertEqual(len(events), 18)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_MoveAttachedCard, self.player1, {
+        validate_event(self, events[2], EventType.EventType_MoveAttachedCard, self.player1, {
             "owning_player_id": self.player1,
             "from_holomem_id": "cheer_deck",
             "to_holomem_id": player1.center[0]["game_card_id"],
             "attached_id": top_cheer,
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": target,
             "damage": 50,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, { "ending_player_id": self.player1 })
 
 
     def test_support_hSD01_015_collab_with_member_sora(self):

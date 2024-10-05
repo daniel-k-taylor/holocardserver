@@ -46,7 +46,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = engine.grab_events()
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
         self.assertEqual(len(actions[0]["valid_targets"]), 1)
         # Collab still has expected 2 targets.
         self.assertEqual(len(actions[1]["valid_targets"]), 2)
@@ -88,7 +88,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = engine.grab_events()
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
 
 
         self.assertEqual(len(actions[0]["valid_targets"]), 1)
@@ -160,7 +160,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         events = engine.grab_events()
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
 
 
         self.assertEqual(len(actions[0]["valid_targets"]), 1)
@@ -265,20 +265,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": test_card["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, roll die, main step.
-        self.assertEqual(len(events), 6)
+        # Events - bloom,
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
             "target_card_id": test_card["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        #events - roll die, main step.
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
+        validate_event(self, events[2], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player1 })
         actions = reset_mainstep(self)
 
     def test_hbp01_012_no_mascots(self):
@@ -307,20 +310,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": test_card["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, roll die, choose cards
-        self.assertEqual(len(events), 6)
+        # Events - bloom,
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
             "target_card_id": test_card["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        #events roll die, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
             "to_zone": "holomem",
@@ -329,8 +335,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "reveal_chosen": True,
             "remaining_cards_action": "shuffle",
         })
-        from_options = events[4]["cards_can_choose"]
-        all_options = events[4]["all_card_seen"]
+        from_options = events[2]["cards_can_choose"]
+        all_options = events[2]["all_card_seen"]
         self.assertEqual(len(player1.deck), len(all_options))
         self.assertEqual(len(from_options), 0)
         # Choose no cards.
@@ -370,20 +376,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": test_card["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, roll die, choose cards
-        self.assertEqual(len(events), 6)
+        # Events - bloom,
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
             "target_card_id": test_card["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events - roll die, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
             "to_zone": "holomem",
@@ -392,7 +401,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "reveal_chosen": True,
             "remaining_cards_action": "shuffle",
         })
-        from_options = events[4]["cards_can_choose"]
+        from_options = events[2]["cards_can_choose"]
         self.assertEqual(len(from_options), 3) # 3 to choose from
         # Choose no cards.
         chosen_card_id = from_options[0]
@@ -460,20 +469,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": test_card["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, roll die, choose cards
-        self.assertEqual(len(events), 6)
+        # Events - bloom,
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
             "target_card_id": test_card["game_card_id"],
             "bloom_from_zone": "hand",
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events -  roll die, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "effect_player_id": self.player1,
             "from_zone": "deck",
             "to_zone": "holomem",
@@ -482,7 +494,7 @@ class Test_hbp01_holomems(unittest.TestCase):
             "reveal_chosen": True,
             "remaining_cards_action": "shuffle",
         })
-        from_options = events[4]["cards_can_choose"]
+        from_options = events[2]["cards_can_choose"]
         self.assertEqual(len(from_options), 2) # 2 to choose from
         self.assertTrue(already_attached["game_card_id"] not in from_options)
         # Choose no cards.
@@ -815,7 +827,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         actions = reset_mainstep(self)
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
 
         # Use attack
         engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
@@ -876,7 +888,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         actions = reset_mainstep(self)
         engine.handle_game_message(self.player1, GameAction.MainStepBeginPerformance, {})
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 2)
+        self.assertEqual(len(actions), 3)
 
         # Give p2 damage
         p2center["damage"] = 50
@@ -1460,74 +1472,80 @@ class Test_hbp01_holomems(unittest.TestCase):
         })
         events = engine.grab_events()
         # Events - (Roll die, perform, damage) x 3 then cheer
-        self.assertEqual(len(events), 24)
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
             "damage": 80,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[6], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
         })
-        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[10], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
             "damage": 80,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[12], EventType.EventType_PerformArt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "itwontstop",
             "target_id": p2collab["game_card_id"],
             "power": 80,
         })
-        validate_event(self, events[14], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[16], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
             "damage": 80,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[18], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[20], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2collab["game_card_id"],
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 2,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[22], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[8], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 2,
             "amount_max": 2,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[22]["from_options"]
+        from_options = events[8]["from_options"]
         # Send that cheer to center
         placements = {}
         placements[from_options[0]] = player2.center[0]["game_card_id"]
@@ -1838,22 +1856,25 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": player1.backstage[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - collab, choose cards
-        self.assertEqual(len(events), 6)
+        # Events - collab, roll die choice
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": collaber["game_card_id"],
             "holopower_generated": 1,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events - roll die, restore hp, choose holomem
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
             "effect_player_id": self.player1,
         })
-        cards_can_choose = events[4]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         self.assertEqual(len(cards_can_choose), 3) # Only green.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [cards_can_choose[0]]
@@ -2155,36 +2176,38 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - roll die, power boost, perform, damage, cheer
-        self.assertEqual(len(events), 14)
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "kitraaaa",
             "target_id": p2center["game_card_id"],
             "power": 50,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events - roll die, power boost, perform, damage, cheer
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 4,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 90,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[10], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -2221,54 +2244,56 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - (roll die, power boost)x 3, perform, damage, cheer
-        self.assertEqual(len(events), 22)
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": player1.center[0]["game_card_id"],
             "art_id": "humanrabbitalityproject",
             "target_id": p2center["game_card_id"],
             "power": 60,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # Events - (roll die, power boost)x 3, perform, damage, cheer
+        self.assertEqual(len(events), 20)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 4,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 40,
         })
-        validate_event(self, events[6], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[4], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[8], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[6], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 10,
         })
-        validate_event(self, events[10], EventType.EventType_RollDie, self.player1, {
+        validate_event(self, events[8], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": False,
         })
-        validate_event(self, events[12], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[10], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 60,
         })
-        validate_event(self, events[14], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[12], EventType.EventType_DamageDealt, self.player1, {
             "damage": 170,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[16], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[18], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[14], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[16], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[20], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[18], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
@@ -2309,8 +2334,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player1.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, restore hp, roll die, send cheer from archive (nothing there, so go to main step)
-        self.assertEqual(len(events), 8)
+        # Events - bloom, restore hp,
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
@@ -2323,7 +2348,10 @@ class Test_hbp01_holomems(unittest.TestCase):
             "healed_amount": 30,
             "new_damage": 0,
         })
-        validate_event(self, events[4], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        #events -  roll die, send cheer from archive (nothing there, so go to main step)
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
@@ -2365,8 +2393,8 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player1.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - bloom, restore hp, roll die, send cheer from archive
-        self.assertEqual(len(events), 8)
+        # Events - bloom, restore hp,
+        self.assertEqual(len(events), 6)
         validate_event(self, events[0], EventType.EventType_Bloom, self.player1, {
             "bloom_player_id": self.player1,
             "bloom_card_id": bloom_card["game_card_id"],
@@ -2379,12 +2407,15 @@ class Test_hbp01_holomems(unittest.TestCase):
             "healed_amount": 30,
             "new_damage": 0,
         })
-        validate_event(self, events[4], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        #events - roll die, send cheer from archive
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {
             "effect_player_id": self.player1,
             "amount_min": 1,
             "amount_max": 3,
@@ -2526,7 +2557,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         begin_performance(self)
         # Normally there would be options to attack center or collab, but Iroha bodyguards the center.
         actions = reset_performancestep(self)
-        self.assertEqual(len(actions), 3) # 2 attacks to collab and end turn.
+        self.assertEqual(len(actions), 4) # 2 attacks to collab and end turn, cancel
         self.assertListEqual(actions[0]["valid_targets"], [test_card["game_card_id"]])
         self.assertListEqual(actions[1]["valid_targets"], [test_card["game_card_id"]])
         # Make iroha weak so we insta kill her.
@@ -3208,7 +3239,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         zain = add_card_to_hand(self, player1, "hBP01-126")
         actions = reset_mainstep(self)
         actions = begin_performance(self)
-        self.assertEqual(len(actions), 2) # No polka.
+        self.assertEqual(len(actions), 3) # No polka.
 
 
     def test_hBP01_070_has_zain(self):
@@ -3235,7 +3266,7 @@ class Test_hbp01_holomems(unittest.TestCase):
         player1.hand = []
         actions = reset_mainstep(self)
         actions = begin_performance(self)
-        self.assertEqual(len(actions), 3)
+        self.assertEqual(len(actions), 4)
 
 
     def test_hBP01_071_boost_per_fans(self):
@@ -3365,26 +3396,29 @@ class Test_hbp01_holomems(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"],
         })
         events = engine.grab_events()
-        # roll die, deal damage to collab, perform, damage, performance step
-        self.assertEqual(len(events), 10)
+
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "performer_id": test_card["game_card_id"],
             "art_id": "wazzup",
             "target_id": p2center["game_card_id"],
             "power": 20,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        # roll die, deal damage to collab, perform, damage, performance step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 1,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2collab["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
             "special": True,
         })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "target_id": p2center["game_card_id"],
             "damage": 20,
             "target_player": self.player2,
@@ -4089,20 +4123,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - collab, roll die, automatic since only 1 so down them, no cheer since prevented, so main step
-        self.assertEqual(len(events), 10)
+        # Events - collab, roll die choice
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
             "holopower_generated": 1,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 8)
+        # Events - roll die, automatic since only 1 so down them, no cheer since prevented, so main step
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 5,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
             "target_id": p2target["game_card_id"],
             "target_player": self.player2,
             "life_lost": 0,
@@ -4137,19 +4174,23 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - collab, roll die, choose cards
-        self.assertEqual(len(events), 6)
+        # Events - collab,
+        self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
             "holopower_generated": 1,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+
+        # Events - roll die, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 5,
             "rigged": False,
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
         })
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [p2target["game_card_id"]]
@@ -5550,22 +5591,25 @@ class Test_hbp01_holomems(unittest.TestCase):
             "card_id": test_card["game_card_id"],
         })
         events = engine.grab_events()
-        # Events - collab, roll die, choose buzz
+        # Events - collab, roll die choice
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
             "collab_card_id": test_card["game_card_id"],
             "holopower_generated": 1,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 4)
+        # Events - roll die, choose buzz
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 2,
             "rigged": False
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseCards, self.player1, {
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
             "from_zone": "deck",
             "to_zone": "hand"
         })
-        cards_can_choose = events[4]["cards_can_choose"]
+        cards_can_choose = events[2]["cards_can_choose"]
         for card_id in cards_can_choose:
             card, _, _ = player1.find_card(card_id)
             self.assertTrue("buzz" in card and card["buzz"])

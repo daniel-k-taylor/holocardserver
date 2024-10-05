@@ -83,19 +83,28 @@ class TestGameEngine(unittest.TestCase):
         events = self.engine.grab_events()
         # Beginning game events are:
         # - Game start
+        # - Choose who goes first.
+        self.assertEqual(len(events), 4)
+        self.validate_event(events[0], EventType.EventType_GameStartInfo, self.player1, {"your_id": self.player1 })
+        self.validate_event(events[1], EventType.EventType_GameStartInfo, self.player2, {"your_id": self.player2 })
+        self.validate_event(events[2], EventType.EventType_Decision_Choice, self.player1, {"effect_player_id": self.player1 })
+        self.validate_event(events[3], EventType.EventType_Decision_Choice, self.player2, {"effect_player_id": self.player1 })
+        self.engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
+            "choice_index": 0
+        })
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 6)
         # - Initial draw player 1
         # - Initial draw player 2
         # - Mulligan ask to player 1
         # Events are all doubled since both players have a version.
-        self.assertEqual(len(events), 8)
-        self.validate_event(events[0], EventType.EventType_GameStartInfo, self.player1, {"your_id": self.player1 })
-        self.validate_event(events[1], EventType.EventType_GameStartInfo, self.player2, {"your_id": self.player2 })
-        self.validate_event(events[2], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player1})
-        self.validate_event(events[3], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player1})
-        self.validate_event(events[4], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player2})
-        self.validate_event(events[5], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player2})
-        self.validate_event(events[6], EventType.EventType_MulliganDecision, self.player1, {"active_player": self.player1 })
-        self.validate_event(events[7], EventType.EventType_MulliganDecision, self.player2, {"active_player": self.player1 })
+        self.assertEqual(len(events), 6)
+        self.validate_event(events[0], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player1})
+        self.validate_event(events[1], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player1})
+        self.validate_event(events[2], EventType.EventType_Draw, self.player1, {"drawing_player_id": self.player2})
+        self.validate_event(events[3], EventType.EventType_Draw, self.player2, {"drawing_player_id": self.player2})
+        self.validate_event(events[4], EventType.EventType_MulliganDecision, self.player1, {"active_player": self.player1 })
+        self.validate_event(events[5], EventType.EventType_MulliganDecision, self.player2, {"active_player": self.player1 })
 
         # Player 1 mulligan choice.
         # Make it so the cards we put back on top are "Shuffled" to the back.
@@ -285,13 +294,24 @@ class TestGameEngine(unittest.TestCase):
         self.validate_event(events[1], EventType.EventType_PerformanceStepStart, self.player2, { "active_player": self.player2 })
         self.validate_event(events[3], EventType.EventType_Decision_PerformanceStep, self.player2, { "active_player": self.player2 })
         actions = events[3]["available_actions"]
-        self.validate_actions(actions, [GameAction.PerformanceStepUseArt, GameAction.PerformanceStepEndTurn])
+        self.validate_actions(actions, [GameAction.PerformanceStepUseArt, GameAction.PerformanceStepEndTurn, GameAction.PerformanceStepCancel])
         # Validate the perform art
         self.assertEqual(actions[0]["performer_id"], player2.center[0]["game_card_id"])
         self.assertEqual(actions[0]["art_id"], "nunnun")
         self.assertEqual(actions[0]["power"], 30)
         self.assertEqual(len(actions[0]["valid_targets"]), 1)
         self.assertEqual(actions[0]["valid_targets"][0], player1.center[0]["game_card_id"])
+
+        # Cancel first.
+        self.engine.handle_game_message(self.player2, GameAction.PerformanceStepCancel, {})
+        events = self.engine.grab_events()
+        self.validate_event(events[0], EventType.EventType_Decision_MainStep, self.player1, { "active_player": self.player2 })
+        # Go back to performance.
+        self.engine.handle_game_message(self.player2, GameAction.MainStepBeginPerformance, {})
+        events = self.engine.grab_events()
+        self.assertEqual(len(events), 4)
+        self.validate_event(events[1], EventType.EventType_PerformanceStepStart, self.player2, { "active_player": self.player2 })
+        self.validate_event(events[3], EventType.EventType_Decision_PerformanceStep, self.player2, { "active_player": self.player2 })
         # DO it
         self.assertEqual(player1.center[0]["hp"], 50)
         top_p1_life_before_attack = player1.life[0]["game_card_id"]
@@ -533,7 +553,7 @@ class TestGameEngine(unittest.TestCase):
         # Events - performance step start and decision
         actions = events[2]["available_actions"]
         p2collaber = player2.collab[0]
-        self.assertEqual(len(actions), 2) # Perform with irys in collab slot or end turn
+        self.assertEqual(len(actions), 3) # Perform with irys in collab slot or end turn, cancel
         self.engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
             "performer_id": player1.collab[0]["game_card_id"],
             "art_id": "embodimentofhope",

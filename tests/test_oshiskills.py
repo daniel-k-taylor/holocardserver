@@ -7,7 +7,7 @@ from app.gameengine import EventType
 from app.gameengine import GameAction, GamePhase
 from app.card_database import CardDatabase
 from helpers import RandomOverride, initialize_game_to_third_turn, validate_event, validate_actions, do_bloom, reset_mainstep, add_card_to_hand, do_cheer_step_on_card
-from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls
+from helpers import end_turn, validate_last_event_is_error, validate_last_event_not_error, do_collab_get_events, set_next_die_rolls, pick_choice
 
 class TestOshiSkills(unittest.TestCase):
 
@@ -387,7 +387,7 @@ class TestOshiSkills(unittest.TestCase):
         top_cheer = player1.cheer_deck[0]
         reset_mainstep(self)
         events = do_collab_get_events(self, player1, azki_card["game_card_id"])
-        # Events - holopower gen, oshi skill choie
+        # Events - holopower gen, use the roll die ability choice
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
@@ -403,6 +403,9 @@ class TestOshiSkills(unittest.TestCase):
             "choice_index": 0
         })
         events = self.engine.grab_events()
+        # Events - now choice to use oshi ability or not
+        self.assertEqual(len(events), 2)
+        events = pick_choice(self, self.player1, 0)
         # Events - holopower moved * 3, oshi skill activation, force result pick
         self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
@@ -518,7 +521,7 @@ class TestOshiSkills(unittest.TestCase):
         top_cheer = player1.cheer_deck[0]
         reset_mainstep(self)
         events = do_collab_get_events(self, player1, azki_card["game_card_id"])
-        # Events - holopower gen, oshi skill question
+        # Events - holopower gen, ability roll die choice
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
@@ -534,6 +537,9 @@ class TestOshiSkills(unittest.TestCase):
             "choice_index": 0
         })
         events = self.engine.grab_events()
+        self.assertEqual(len(events), 2)
+        # oshi skill question
+        events = pick_choice(self, self.player1, 0)
         # Events - holopower moved * 3, oshi skill activation, force result pick
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
             "moving_player_id": self.player1,
@@ -642,7 +648,7 @@ class TestOshiSkills(unittest.TestCase):
         top_cheer = player1.cheer_deck[0]
         reset_mainstep(self)
         events = do_collab_get_events(self, player1, azki_card["game_card_id"])
-        # Events - holopower gen, oshi skill question
+        # Events - holopower gen, roll die choice
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
@@ -658,6 +664,8 @@ class TestOshiSkills(unittest.TestCase):
             "choice_index": 0
         })
         events = self.engine.grab_events()
+        self.assertEqual(len(events), 2)
+        events = pick_choice(self, self.player1, 0)
         # Events - holopower moved * 3, oshi skill activation, force result pick
         self.assertEqual(len(events), 10)
         validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
@@ -755,7 +763,7 @@ class TestOshiSkills(unittest.TestCase):
         top_cheer = player1.cheer_deck[0]
         reset_mainstep(self)
         events = do_collab_get_events(self, player1, azki_card["game_card_id"])
-        # Events - holopower gen, oshi skill question
+        # Events - holopower gen, roll die ability choice
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
             "collab_player_id": self.player1,
@@ -766,6 +774,10 @@ class TestOshiSkills(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
         })
+        # Use the roll die ability.
+        events = pick_choice(self, self.player1, 0)
+        # Events - oshi choice.
+        self.assertEqual(len(events), 2)
         # Choice is to use ability or not, pass.
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, {
             "choice_index": 1

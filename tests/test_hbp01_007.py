@@ -66,6 +66,7 @@ class Test_hbp01_007(unittest.TestCase):
         })
         cards_can_choose = events[2]["cards_can_choose"]
         backstage_options = [card["game_card_id"] for card in player2.backstage]
+        comet_target = backstage_options[0]
         engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
             "card_ids": [backstage_options[0]]
         })
@@ -83,30 +84,107 @@ class Test_hbp01_007(unittest.TestCase):
         # Use or don't use.
         self.assertEqual(len(choice), 2)
         events = pick_choice(self, self.player1, 0)
-        #Events 2x move, oshi, choose who to hit
-        self.assertEqual(len(events), 8)
+        #Events 2x move, oshi, deal the damage to that target and continue
+        self.assertEqual(len(events), 14)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
             "oshi_player_id": self.player1,
             "skill_id": "comet",
         })
-        validate_event(self, events[6], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
-            "effect_player_id": self.player1,
-        })
-        cards_can_choose = events[6]["cards_can_choose"]
-        self.assertListEqual(cards_can_choose, ids_from_cards(player2.backstage))
-        # Choose who to hit.
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [backstage_options[1]]
-        })
-        events = engine.grab_events()
-        # Events - comet damage,  deal damage, performance step
-        self.assertEqual(len(events), 6)
-        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": backstage_options[1],
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": comet_target,
             "damage": 50,
             "special": True,
         })
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": comet_target,
+            "life_lost": 1,
+            "life_loss_prevented": False,
+        })
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {})
+        from_options = events[12]["from_options"]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+            "placements": {
+                from_options[0]: p2center["game_card_id"],
+            }
+        })
+        events = engine.grab_events()
+        self.assertEqual(len(events), 6)
         validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player2.center[0]["game_card_id"],
+            "damage": 20,
+            "special": False,
+        })
+        reset_performancestep(self)
+
+
+    def test_hbp01_007_cant_use_comet_if_killed(self):
+        p1deck = generate_deck_with("hBP01-007", {"hBP01-076": 2, "hBP01-079": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        # 76 can do bonus damage with art, 79 with bloom
+
+        """Test"""
+        player1.generate_holopower(2)
+        player1.center = []
+        test_card = put_card_in_play(self, player1, "hBP01-076", player1.center)
+        p1collab = put_card_in_play(self, player1, "hBP01-079", player1.collab)
+        actions = reset_mainstep(self)
+        p2center = player2.center[0]
+        player2.collab = [player2.backstage[0]]
+        player2.backstage = player2.backstage[1:]
+        spawn_cheer_on_card(self, player1, test_card["game_card_id"], "blue", "b1")
+        spawn_cheer_on_card(self, player1, p1collab["game_card_id"], "blue", "b2")
+        spawn_cheer_on_card(self, player1, p1collab["game_card_id"], "blue", "b3")
+        spawn_cheer_on_card(self, player1, p1collab["game_card_id"], "blue", "b4")
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+        engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - art effect first = deal damage
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
+            "performer_id": test_card["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": p2center["game_card_id"],
+            "power": 20,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
+            "effect_player_id": self.player1,
+        })
+        cards_can_choose = events[2]["cards_can_choose"]
+        backstage_options = [card["game_card_id"] for card in player2.backstage]
+        comet_target = player2.backstage[0]
+        comet_target["damage"] = comet_target["hp"] - 10
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [backstage_options[0]]
+        })
+        events = engine.grab_events()
+        # Events - damage from special, life loss prevented, no comet
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": comet_target["game_card_id"],
+            "damage": 10,
+            "special": True,
+        })
+        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": comet_target["game_card_id"],
+            "life_lost": 0,
+            "life_loss_prevented": True,
+        })
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
             "target_id": player2.center[0]["game_card_id"],
             "damage": 20,
             "special": False,
@@ -208,36 +286,31 @@ class Test_hbp01_007(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
         })
         # Use comet.
+        comet_target = player2.backstage[1]["game_card_id"]
         events = pick_choice(self, self.player1, 0)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
             "oshi_player_id": self.player1,
             "skill_id": "comet",
         })
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [backstage_options[2]]
-        })
-        events = engine.grab_events()
-        # Comet damage, we killed somebody
-        self.assertEqual(len(events), 8)
-        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": backstage_options[2],
+        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": comet_target,
             "damage": 50, # comet
             "special": True,
         })
-        validate_event(self, events[2], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[4], EventType.EventType_DownedHolomem, self.player1, {
-            "target_id": backstage_options[2],
+        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": comet_target,
             "life_lost": 1,
             "life_loss_prevented": False,
         })
-        validate_event(self, events[6], EventType.EventType_Decision_SendCheer, self.player1, {
+        validate_event(self, events[12], EventType.EventType_Decision_SendCheer, self.player1, {
           "effect_player_id": self.player2,
             "amount_min": 1,
             "amount_max": 1,
             "from_zone": "life",
             "to_zone": "holomem",
         })
-        from_options = events[6]["from_options"]
+        from_options = events[12]["from_options"]
         placements = {
             from_options[0]: p2center["game_card_id"],
         }
@@ -318,31 +391,21 @@ class Test_hbp01_007(unittest.TestCase):
         validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player1,
         })
+        comet_target = player2.backstage[0]
         # Use comet
         events = pick_choice(self, self.player1, 0)
-        # spend 2 holo, oshi activation, Choose target.
+        # spend 2 holo, oshi activation, mumei choice to reduce.
         self.assertEqual(len(events), 8)
         validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
             "oshi_player_id": self.player1,
             "skill_id": "comet",
         })
-        validate_event(self, events[6], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
-            "effect_player_id": self.player1,
-        })
-        cards_can_choose = events[6]["cards_can_choose"]
-        backstage_options = [card["game_card_id"] for card in player2.backstage]
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [backstage_options[0]]
-        })
-        events = engine.grab_events()
-        # Events - mumei choice to reduce.
-        self.assertEqual(len(events), 2)
-        validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
+        validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player2,
         })
         events = pick_choice(self, self.player2, 0)
         # Events - no deal damage event because 0 damage
-        self.assertEqual(player2.backstage[0]["damage"], 10) # From the art special
+        self.assertEqual(comet_target["damage"], 10) # From the art special
         # 2x move card, oshi activation, Reduce damage, damage dealt 0
         # perform art, damage, performance step
         self.assertEqual(len(events), 14)
@@ -355,7 +418,7 @@ class Test_hbp01_007(unittest.TestCase):
             "amount": 50
         })
         validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
-            "target_id": player2.backstage[0]["game_card_id"],
+            "target_id": comet_target["game_card_id"],
             "damage": 0,
             "special": True,
         })
@@ -518,6 +581,7 @@ class Test_hbp01_007(unittest.TestCase):
         })
         validate_event(self, events[6], EventType.EventType_Decision_Choice, self.player1, {
         })
+        comet_target = p2back
         # Use comet
         events = pick_choice(self, self.player1, 0)
         self.assertEqual(len(events), 14)
@@ -673,16 +737,11 @@ class Test_hbp01_007(unittest.TestCase):
             }
         })
         events = engine.grab_events()
-        # Events - move cheer, comet choice!
-        self.assertEqual(len(events), 4)
+        # Events - move cheer, no comet because the target is dead!
+        self.assertEqual(len(events), 12)
         validate_event(self, events[0], EventType.EventType_MoveAttachedCard, player1.player_id, {})
-        validate_event(self, events[2], EventType.EventType_Decision_Choice, player1.player_id, {})
-        # Pass
-        events = pick_choice(self, self.player1, 1)
-        # events - end turn etc.
-        self.assertEqual(len(events), 10)
-        validate_event(self, events[0], EventType.EventType_EndTurn, player1.player_id, {})
-        validate_event(self, events[8], EventType.EventType_ResetStepChooseNewCenter, player1.player_id, {})
+        validate_event(self, events[2], EventType.EventType_EndTurn, player1.player_id, {})
+        validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, player1.player_id, {})
 
 if __name__ == '__main__':
     unittest.main()

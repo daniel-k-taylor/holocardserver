@@ -190,18 +190,21 @@ class Test_hbp01_004(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        self.assertEqual(len(events), 10)
+        self.assertEqual(len(events), 4)
         # Events - perform art, roll die, power boost, damage, perform step
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {
             "art_id": "konpeko",
             "power": 20,
         })
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        events = pick_choice(self, self.player1, 0)
+        self.assertEqual(len(events), 8)
+        # Events - perform art, roll die, power boost, damage, perform step
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": True,
         })
-        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20
         })
@@ -215,25 +218,28 @@ class Test_hbp01_004(unittest.TestCase):
             "target_id": player2.center[0]["game_card_id"]
         })
         events = engine.grab_events()
-        # Events - perform art, roll die, power boost, damage, send cheer
-        self.assertEqual(len(events), 14)
-        validate_event(self, events[2], EventType.EventType_RollDie, self.player1, {
+        # Events - perform art,
+        self.assertEqual(len(events), 4)
+        events = pick_choice(self, self.player1, 0)
+        # Events - roll die, power boost, damage, send cheer
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[0], EventType.EventType_RollDie, self.player1, {
             "effect_player_id": self.player1,
             "die_result": 6,
             "rigged": True,
         })
-        validate_event(self, events[4], EventType.EventType_BoostStat, self.player1, {
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
             "stat": "power",
             "amount": 20
         })
         self.assertEqual(p2center["damage"], 80)
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 40,
             "target_player": self.player2,
             "special": False,
         })
-        validate_event(self, events[8], EventType.EventType_DownedHolomem_Before, self.player1, {})
-        validate_event(self, events[10], EventType.EventType_DownedHolomem, self.player1, {
+        validate_event(self, events[6], EventType.EventType_DownedHolomem_Before, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_DownedHolomem, self.player1, {
             "game_over": False,
             "target_player": self.player2,
             "life_lost": 1,
