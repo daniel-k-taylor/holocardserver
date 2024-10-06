@@ -1,5 +1,7 @@
 import os
 import uuid
+import time
+import asyncio
 from typing import List
 import tempfile
 from contextlib import asynccontextmanager
@@ -9,11 +11,16 @@ from fastapi.staticfiles import StaticFiles
 from app.matchmaking import Matchmaking
 import app.message_types as message_types
 from app.playermanager import PlayerManager, Player
+from app.gameengine import GamePhase
 from app.gameroom import GameRoom
 from app.card_database import CardDatabase
 from app.dbaccess import download_and_extract_game_package
 import logging
 from dotenv import load_dotenv
+
+# Set the player timeout to 15 minutes.
+PLAYER_TIMEOUT_THRESHOLD = 15 * 60
+IDLE_TASK_TIMER = 60
 
 # Load the .env file
 load_dotenv()
@@ -28,6 +35,7 @@ skip_hosting_game = os.getenv("SKIP_HOSTING_GAME", "false").lower() == "true"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Actions to perform during startup
+    asyncio.create_task(check_idle_users_task())
     with tempfile.TemporaryDirectory() as tmpdir:
         if not skip_hosting_game:
             unpacked_game_dir = os.path.join(tmpdir, "unpacked_game")
@@ -63,8 +71,14 @@ class ConnectionManager:
         await websocket.accept()
         self.active_connections.append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    async def disconnect(self, websocket: WebSocket, send_disconnection = False):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            if send_disconnection:
+                try:
+                    await websocket.close()
+                except:
+                    pass
 
     async def broadcast(self, message : message_types.Message):
         dict_message = message.as_dict()
@@ -112,6 +126,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.error("Error in message parsing: {e}\nMessage: {data}")
                 await send_error_message(websocket, "invalid_message", f"ERROR: Invalid JSON: {data}")
                 continue
+
+            player.last_seen = time.time()
 
             if isinstance(message, message_types.JoinServerMessage):
                 await broadcast_server_info()
@@ -193,7 +209,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await send_error_message(websocket, "invalid_game_message", f"ERROR: Invalid message: {data}")
 
     except WebSocketDisconnect:
-        logger.info("Client disconnected.")
+        logger.info(f"Client disconnected: {player.get_username()} - {player.player_id}")
         player.connected = False
         matchmaking.remove_player_from_queue(player)
         for room in game_rooms:
@@ -203,25 +219,59 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
 
         player_manager.remove_player(player_id)
-        manager.disconnect(websocket)
+        await manager.disconnect(websocket)
         await broadcast_server_info()
+
+def cleanup_room(room: GameRoom):
+    logger.info("Cleanup game room ID: %s" % room.room_id)
+    game_rooms.remove(room)
+    for player in room.players:
+        player.current_game_room = None
+    for observer in room.observers:
+        observer.current_game_room = None
 
 def check_cleanup_room(room: GameRoom):
     if room.is_ready_for_cleanup():
-        logger.info("Cleanup game room ID: %s" % room.room_id)
-        game_rooms.remove(room)
-        for player in room.players:
-            player.current_game_room = None
-        for observer in room.observers:
-            observer.current_game_room = None
+        cleanup_room(room)
     else:
         state = "NO_ENGINE"
         if room.engine:
             state = room.engine.phase
-        logger.info(f"Leaving open game room ID: {room.room_id} because room state: {state}")
+        if state == GamePhase.GameOver:
+            last_event = room.engine.all_events[-1]
+            last_message = room.engine.all_game_messages[-1]
+            logger.error(f"Room {room.room_id} open after game over.\nEvent: {last_event}\nMessage: {last_message}\nPlayerCount: {len(room.players)}\n")
+            cleanup_room(room)
+        else:
+            if state != GamePhase.PlayerTurn:
+                logger.info(f"Room still open ID: {room.room_id} state: {state}")
 
 def can_player_join_queue(player: Player):
     # If the player is in a queue or in a game room, then they can't join another queue.
     if player.current_game_room or matchmaking.get_player_queue(player):
         return False
     return True
+
+async def check_idle_users_task():
+    while True:
+        await asyncio.sleep(IDLE_TASK_TIMER)
+        # Check for idle players.
+        removed_players = False
+        player_keys = list(player_manager.active_players.keys())
+        for player_id in player_keys:
+            player = player_manager.get_player(player_id)
+            if time.time() - player.last_seen > PLAYER_TIMEOUT_THRESHOLD:
+                logger.info(f"Player timed out: {player.get_username()} - {player.player_id}")
+                matchmaking.remove_player_from_queue(player)
+                for room in game_rooms:
+                    if player in room.players or player in room.observers:
+                        await room.handle_player_quit(player)
+                        check_cleanup_room(room)
+                        break
+                player.connected = False
+                player_manager.remove_player(player_id)
+                await manager.disconnect(player.websocket, True)
+                removed_players = True
+        if removed_players:
+            await broadcast_server_info()
+
