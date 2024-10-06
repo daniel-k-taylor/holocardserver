@@ -4168,7 +4168,7 @@ class GameEngine:
             "action_type": action_type,
             "action_data": action_data
         })
-        #username = self.get_player(player_id).username
+        username = self.get_player(player_id).username
         #logger.info("Game Message: Player(%s) : %s" % (username, action_type))
         handled = False
         try:
@@ -4212,6 +4212,7 @@ class GameEngine:
                 case GameAction.EffectResolution_OrderCards:
                     handled = self.handle_effect_resolution_order_cards(player_id, action_data)
                 case GameAction.Resign:
+                    logger.info("Game Message: Player(%s) : %s" % (username, action_type))
                     handled = self.handle_player_resign(player_id)
                 case _:
                     self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))

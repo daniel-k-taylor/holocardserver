@@ -208,12 +208,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
 def check_cleanup_room(room: GameRoom):
     if room.is_ready_for_cleanup():
-        logger.info("Cleanup game room: %s" % room.room_id)
+        logger.info("Cleanup game room ID: %s" % room.room_id)
         game_rooms.remove(room)
         for player in room.players:
             player.current_game_room = None
         for observer in room.observers:
             observer.current_game_room = None
+    else:
+        state = "NO_ENGINE"
+        if room.engine:
+            state = room.engine.phase
+        logger.info(f"Leaving open game room ID: {room.room_id} because room state: {state}")
 
 def can_player_join_queue(player: Player):
     # If the player is in a queue or in a game room, then they can't join another queue.
