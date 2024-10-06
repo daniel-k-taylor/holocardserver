@@ -57,7 +57,7 @@ class MatchQueue:
                 room_name = "AI"
             case _:
                 room_name = "Custom_" + self.queue_name
-        logger.info("Creating match with ID: %s" % room_id)
+        logger.info("Creating match with room ID: %s" % room_id)
         return GameRoom(
             room_id=room_id,
             room_name=room_name,

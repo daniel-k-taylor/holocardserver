@@ -38,7 +38,7 @@ class GameRoom:
         }
 
     async def start(self, card_db: CardDatabase):
-        logger.info("GAME: Starting game!")
+        logger.info(f"GAME: Starting game! {self.room_id}")
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
             self.ai_player = AIPlayer(player_id="aiplayer" + self.players[0].player_id)
