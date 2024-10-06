@@ -4168,8 +4168,8 @@ class GameEngine:
             "action_type": action_type,
             "action_data": action_data
         })
-        username = self.get_player(player_id).username
-        logger.info("Game Message: Player(%s) : %s" % (username, action_type))
+        #username = self.get_player(player_id).username
+        #logger.info("Game Message: Player(%s) : %s" % (username, action_type))
         handled = False
         try:
             match action_type:
