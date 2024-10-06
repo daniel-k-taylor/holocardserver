@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import json
 from typing import Dict, List, Any
+from copy import deepcopy
 import logging
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class CardDatabase:
     def get_card_by_id(self, card_id):
         for card in self.all_cards:
             if card["card_id"] == card_id:
-                return card
+                return deepcopy(card)
         return None
 
     def validate_deck(self, oshi_id : str, deck : Dict[str, int], cheer_deck: Dict[str, int]):

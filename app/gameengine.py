@@ -4221,7 +4221,11 @@ class GameEngine:
             logger.error(f"Error processing game message {action_type} from player {player_id}: {e}\nCallstack:\n{error_details}")
         if not handled:
             # Put out a warning log line with the action that was sent.
-            logger.warning(f"Action {action_type} was not handled: {action_data}.")
+            logger.error(f"Game Message: Player({username}) - {player_id}\nAction {action_type} was not handled: {action_data}.")
+            player_info_str = ""
+            for player in self.player_states:
+                player_info_str += f"{player.username}({player.player_id}),"
+            logger.error(f"Player info: {player_info_str}")
 
     def validate_mulligan(self, player_id:str, action_data: dict):
         if self.phase != GamePhase.Mulligan:
