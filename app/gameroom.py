@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import List
 from app.playermanager import Player
 from app.gameengine import GameEngine, GameAction, EventType
@@ -87,6 +88,10 @@ class GameRoom:
                 observer.current_game_room = None
                 self.observers.remove(observer)
                 return
+
+        # If the game is receiving messages, everyone playing/watching should not idle out.
+        for player in self.observers + self.players:
+            player.last_seen = time.time()
 
         done_processing = False
         while not done_processing:

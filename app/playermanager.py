@@ -3,6 +3,7 @@ from fastapi import WebSocket
 from typing import Dict
 from app.message_types import ServerInfoMessage
 import random
+import time
 
 def generate_username(num_results=1):
     directory_path = os.path.dirname(__file__)
@@ -31,6 +32,7 @@ class Player:
         self.current_game_room = None
         self.username = generate_username(1)[0]
         self.queue_name = ""
+        self.last_seen = time.time()
 
         self.oshi_id = None
         self.deck = []
