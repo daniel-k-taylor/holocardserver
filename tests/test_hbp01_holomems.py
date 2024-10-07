@@ -2748,9 +2748,13 @@ class Test_hbp01_holomems(unittest.TestCase):
         # Events - move cheer between mems only to ID though.
         self.assertEqual(len(events), 4)
         validate_event(self, events[0], EventType.EventType_PerformArt, self.player1, {})
-        validate_event(self, events[2], EventType.EventType_Decision_SendCheer, self.player1, {})
-        to_options = events[2]["to_options"]
-        from_options = events[2]["from_options"]
+        validate_event(self, events[2], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player1, 0)
+        # Events - the send cheer event is the only one.
+        self.assertEqual(len(events), 2)
+        validate_event(self, events[0], EventType.EventType_Decision_SendCheer, self.player1, {})
+        to_options = events[0]["to_options"]
+        from_options = events[0]["from_options"]
         self.assertEqual(len(to_options), 2)
         engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
             "placements": {
