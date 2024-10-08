@@ -1542,6 +1542,7 @@ class GameEngine:
                     "event_type": EventType.EventType_MulliganDecision,
                     "desired_response": GameAction.Mulligan,
                     "active_player": self.active_player_id,
+                    "first_player": self.first_turn_player_id,
                 }
                 self.broadcast_event(decision_event)
             else:
