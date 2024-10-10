@@ -2668,7 +2668,7 @@ class GameEngine:
                 amount = effect["amount"]
                 self.take_damage_state.added_damage += amount
                 for_art = self.take_damage_state.art_info
-                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_added", amount, for_art)
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], effect["source_card_id"], "damage_added", amount, for_art)
             case EffectType.EffectType_AddTurnEffect:
                 effect["turn_effect"]["source_card_id"] = effect["source_card_id"]
                 effect_player.add_turn_effect(effect["turn_effect"])
@@ -3461,7 +3461,7 @@ class GameEngine:
                 amount *= multiplier
                 if amount != 0:
                     self.performance_artstatboosts.power += amount
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", amount, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", amount, for_art=True)
             case EffectType.EffectType_PowerBoostPerAllFans:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3473,14 +3473,14 @@ class GameEngine:
                 total = per_amount * fan_count
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
                 total = per_amount * len(holomems_in_archive)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
                 limit = effect["limit"]
@@ -3490,14 +3490,14 @@ class GameEngine:
                 total = per_amount * multiplier
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerBackstage:
                 per_amount = effect["amount"]
                 backstage_mems = len(effect_player.backstage)
                 total = per_amount * backstage_mems
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerHolomem:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3506,7 +3506,7 @@ class GameEngine:
                 total = per_amount * len(holomems)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
@@ -3514,7 +3514,7 @@ class GameEngine:
                 total = per_amount * len(stacked_holomems)
                 if total != 0:
                     self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], "power", total, for_art=True)
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
             case EffectType.EffectType_RecordUsedOncePerGameEffect:
@@ -3531,7 +3531,7 @@ class GameEngine:
                     amount_num = amount
                 self.take_damage_state.prevented_damage += amount_num
                 from_art = self.take_damage_state.art_info
-                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], "damage_prevented", amount, from_art)
+                self.send_boost_event(self.take_damage_state.target_card["game_card_id"], effect["source_card_id"], "damage_prevented", amount, from_art)
             case EffectType.EffectType_ReduceRequiredArchiveCount:
                 amount = effect["amount"]
                 self.archive_count_required -= amount
@@ -4101,13 +4101,14 @@ class GameEngine:
             self.broadcast_event(gameover_event)
             self.game_over_event = gameover_event
 
-    def send_boost_event(self, card_id, stat:str, amount:int, for_art):
+    def send_boost_event(self, card_id, source_card_id, stat:str, amount:int, for_art):
         boost_event = {
             "event_type": EventType.EventType_BoostStat,
             "card_id": card_id,
             "stat": stat,
             "amount": amount,
             "for_art": for_art,
+            "source_card_id": source_card_id
         }
         self.broadcast_event(boost_event)
 
