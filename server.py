@@ -1,7 +1,6 @@
 import os
 import uuid
 import time
-import asyncio
 from typing import List
 import tempfile
 from contextlib import asynccontextmanager
@@ -22,6 +21,8 @@ from dotenv import load_dotenv
 PLAYER_TIMEOUT_THRESHOLD = 15 * 60
 IDLE_TASK_TIMER = 60
 
+last_idle_check = time.time()
+
 # Load the .env file
 load_dotenv()
 
@@ -35,7 +36,6 @@ skip_hosting_game = os.getenv("SKIP_HOSTING_GAME", "false").lower() == "true"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Actions to perform during startup
-    asyncio.create_task(check_idle_users_task())
     with tempfile.TemporaryDirectory() as tmpdir:
         if not skip_hosting_game:
             unpacked_game_dir = os.path.join(tmpdir, "unpacked_game")
@@ -208,6 +208,8 @@ async def websocket_endpoint(websocket: WebSocket):
             else:
                 await send_error_message(websocket, "invalid_game_message", f"ERROR: Invalid message: {data}")
 
+            check_idle_users_task()
+
     except WebSocketDisconnect:
         logger.info(f"Client disconnected: {player.get_username()} - {player.player_id}")
         player.connected = False
@@ -240,7 +242,7 @@ def check_cleanup_room(room: GameRoom):
         if state == GamePhase.GameOver:
             last_event = room.engine.all_events[-1]
             last_message = room.engine.all_game_messages[-1]
-            logger.error(f"Room {room.room_id} open after game over.\nEvent: {last_event}\nMessage: {last_message}\nPlayerCount: {len(room.players)}\n")
+            logger.error(f"Room {room.room_id} open after game over.  Event: {last_event}  Message: {last_message}  PlayerCount: {len(room.players)}\n")
             cleanup_room(room)
         else:
             if state != GamePhase.PlayerTurn:
@@ -253,25 +255,27 @@ def can_player_join_queue(player: Player):
     return True
 
 async def check_idle_users_task():
-    while True:
-        await asyncio.sleep(IDLE_TASK_TIMER)
-        # Check for idle players.
-        removed_players = False
-        player_keys = list(player_manager.active_players.keys())
-        for player_id in player_keys:
-            player = player_manager.get_player(player_id)
-            if time.time() - player.last_seen > PLAYER_TIMEOUT_THRESHOLD:
-                logger.info(f"Player timed out: {player.get_username()} - {player.player_id}")
-                matchmaking.remove_player_from_queue(player)
-                for room in game_rooms:
-                    if player in room.players or player in room.observers:
-                        await room.handle_player_quit(player)
-                        check_cleanup_room(room)
-                        break
-                player.connected = False
-                player_manager.remove_player(player_id)
-                await manager.disconnect(player.websocket, True)
-                removed_players = True
-        if removed_players:
-            await broadcast_server_info()
+    if last_idle_check + IDLE_TASK_TIMER > time.time():
+        return
+    last_idle_check = time.time()
+
+    # Check for idle players.
+    removed_players = False
+    player_keys = list(player_manager.active_players.keys())
+    for player_id in player_keys:
+        player = player_manager.get_player(player_id)
+        if time.time() - player.last_seen > PLAYER_TIMEOUT_THRESHOLD:
+            logger.info(f"Player timed out: {player.get_username()} - {player.player_id}")
+            matchmaking.remove_player_from_queue(player)
+            for room in game_rooms:
+                if player in room.players or player in room.observers:
+                    await room.handle_player_quit(player)
+                    check_cleanup_room(room)
+                    break
+            player.connected = False
+            player_manager.remove_player(player_id)
+            await manager.disconnect(player.websocket, True)
+            removed_players = True
+    if removed_players:
+        await broadcast_server_info()
 

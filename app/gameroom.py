@@ -39,7 +39,7 @@ class GameRoom:
         }
 
     async def start(self, card_db: CardDatabase):
-        logger.info(f"GAME: Starting game! {self.room_id}")
+        logger.info(f"GAME: Starting game ({self.room_id}) Players ({[player.get_username() for player in self.players]})")
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
             self.ai_player = AIPlayer(player_id="aiplayer" + self.players[0].player_id)
@@ -94,7 +94,7 @@ class GameRoom:
             player.last_seen = time.time()
 
         done_processing = False
-        while not done_processing:
+        while not done_processing and not self.engine.is_game_over():
             self.engine.handle_game_message(player_id, action_type, action_data)
             events = self.engine.grab_events()
             await self.send_events(events)
