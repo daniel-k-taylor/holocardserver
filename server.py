@@ -21,8 +21,6 @@ from dotenv import load_dotenv
 PLAYER_TIMEOUT_THRESHOLD = 15 * 60
 IDLE_TASK_TIMER = 60
 
-last_idle_check = time.time()
-
 # Load the .env file
 load_dotenv()
 
@@ -94,6 +92,7 @@ player_manager : PlayerManager = PlayerManager()
 game_rooms : List[GameRoom] = []
 matchmaking : Matchmaking = Matchmaking()
 card_db : CardDatabase = CardDatabase()
+last_idle_check = time.time()
 
 async def broadcast_server_info():
     await player_manager.broadcast_server_info(matchmaking.get_queue_info(), game_rooms)
@@ -208,7 +207,7 @@ async def websocket_endpoint(websocket: WebSocket):
             else:
                 await send_error_message(websocket, "invalid_game_message", f"ERROR: Invalid message: {data}")
 
-            check_idle_users_task()
+            await check_idle_users_task()
 
     except WebSocketDisconnect:
         logger.info(f"Client disconnected: {player.get_username()} - {player.player_id}")
@@ -255,6 +254,7 @@ def can_player_join_queue(player: Player):
     return True
 
 async def check_idle_users_task():
+    global last_idle_check
     if last_idle_check + IDLE_TASK_TIMER > time.time():
         return
     last_idle_check = time.time()
