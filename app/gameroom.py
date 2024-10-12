@@ -1,3 +1,4 @@
+import traceback
 import json
 import os
 import time
@@ -145,12 +146,20 @@ class GameRoom:
 
 
     async def handle_player_quit(self, player: Player):
-        logger.info(f"Player quit message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
-        await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        try:
+            logger.info(f"Player quit message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
+            await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error processing handle_player_quitplayer {player.get_username()} - {player.player_id} from Room {self.room_id}: {e} Callstack: {error_details}")
 
     async def handle_player_disconnect(self, player : Player):
-        logger.info(f"Player disconnect message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
-        await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        try:
+            logger.info(f"Player disconnect message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
+            await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error processing handle_player_quitplayer {player.get_username()} - {player.player_id} from Room {self.room_id}: {e} Callstack: {error_details}")
 
         # TODO: Reconnect logic.
         # all_players_disconnected = all([not player.connected for player in self.players])

@@ -1,3 +1,4 @@
+import traceback
 import os
 import uuid
 import time
@@ -222,6 +223,9 @@ async def websocket_endpoint(websocket: WebSocket):
         player_manager.remove_player(player_id)
         await manager.disconnect(websocket)
         await broadcast_server_info()
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error websocket loop from player {player.get_username()} - {player.player_id}: {e} Callstack: {error_details}")
 
 def cleanup_room(room: GameRoom):
     logger.info("Cleanup game room ID: %s" % room.room_id)

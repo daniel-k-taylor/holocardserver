@@ -4223,10 +4223,10 @@ class GameEngine:
                     self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
         except Exception as e:
             error_details = traceback.format_exc()
-            logger.error(f"Error processing game message {action_type} from player {player_id}: {e}\nCallstack:\n{error_details}")
+            logger.error(f"Error processing game message {action_type} from player {username} - {player_id}: {e} Callstack: {error_details}")
         if not handled:
             # Put out a warning log line with the action that was sent.
-            logger.error(f"Game Message: Player({username}) - {player_id}\nAction {action_type} was not handled: {action_data}.")
+            logger.error(f"Game Message: Player({username}) - {player_id} Action {action_type} was not handled: {action_data}.")
             player_info_str = ""
             for player in self.player_states:
                 player_info_str += f"{player.username}({player.player_id}),"
