@@ -1023,9 +1023,12 @@ class PlayerState:
             continuation()
 
     def generate_holopower(self, amount, skip_event=False):
+        generated_something = False
         for _ in range(amount):
-            self.holopower.insert(0, self.deck.pop(0))
-        if not skip_event:
+            if len(self.deck) > 0:
+                self.holopower.insert(0, self.deck.pop(0))
+                generated_something = True
+        if generated_something and not skip_event:
             generate_hp_event = {
                 "event_type": EventType.EventType_GenerateHolopower,
                 "generating_player_id": self.player_id,
