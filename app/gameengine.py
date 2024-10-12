@@ -1377,7 +1377,7 @@ class GameEngine:
             "player_final_life": [str(len(player_state.life)) for player_state in self.player_states],
             "seed": self.seed,
             "starting_player": self.get_player(self.starting_player_id).username,
-            "first_turn_player": self.get_player(self.first_turn_player_id).username,
+            "first_turn_player": self.get_player(self.first_turn_player_id).username if self.first_turn_player_id else "",
             "turn_number": self.turn_number,
             "winner": winner,
         }

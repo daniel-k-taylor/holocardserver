@@ -90,6 +90,10 @@ class GameRoom:
                 self.observers.remove(observer)
                 return
 
+        if self.engine.is_game_over():
+            logger.info(f"Room {self.room_id} already game over, ignoring message player {player_id} action {action_type} data {action_data}")
+            return
+
         # If the game is receiving messages, everyone playing/watching should not idle out.
         for player in self.observers + self.players:
             player.last_seen = time.time()
