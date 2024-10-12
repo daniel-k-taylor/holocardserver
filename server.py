@@ -232,6 +232,7 @@ def cleanup_room(room: GameRoom):
         observer.current_game_room = None
 
 def check_cleanup_room(room: GameRoom):
+    logger.info(f"Checking room {room.room_id} for cleanup {room.cleanup_room}")
     if room.is_ready_for_cleanup():
         cleanup_room(room)
     else:
@@ -246,6 +247,7 @@ def check_cleanup_room(room: GameRoom):
         else:
             if state != GamePhase.PlayerTurn:
                 logger.info(f"Room still open ID: {room.room_id} state: {state}")
+    logger.info(f"Finished Checking room {room.room_id}")
 
 def can_player_join_queue(player: Player):
     # If the player is in a queue or in a game room, then they can't join another queue.
