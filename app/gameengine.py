@@ -1023,9 +1023,12 @@ class PlayerState:
             continuation()
 
     def generate_holopower(self, amount, skip_event=False):
+        generated_something = False
         for _ in range(amount):
-            self.holopower.insert(0, self.deck.pop(0))
-        if not skip_event:
+            if len(self.deck) > 0:
+                self.holopower.insert(0, self.deck.pop(0))
+                generated_something = True
+        if generated_something and not skip_event:
             generate_hp_event = {
                 "event_type": EventType.EventType_GenerateHolopower,
                 "generating_player_id": self.player_id,
@@ -4220,10 +4223,10 @@ class GameEngine:
                     self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action type."))
         except Exception as e:
             error_details = traceback.format_exc()
-            logger.error(f"Error processing game message {action_type} from player {player_id}: {e}\nCallstack:\n{error_details}")
+            logger.error(f"Error processing game message {action_type} from player {username} - {player_id}: {e} Callstack: {error_details}")
         if not handled:
             # Put out a warning log line with the action that was sent.
-            logger.error(f"Game Message: Player({username}) - {player_id}\nAction {action_type} was not handled: {action_data}.")
+            logger.error(f"Game Message: Player({username}) - {player_id} Action {action_type} was not handled: {action_data}.")
             player_info_str = ""
             for player in self.player_states:
                 player_info_str += f"{player.username}({player.player_id}),"

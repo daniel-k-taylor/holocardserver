@@ -1827,6 +1827,68 @@ class Test_hbp01_holomems(unittest.TestCase):
         self.assertEqual(player1.hand[-1]["game_card_id"], chosen_card_id)
 
 
+    def test_hBP01_031_collab_generateholopower_cantifdeckempty(self):
+        p1deck = generate_deck_with([], {"hBP01-031": 3 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.center = []
+        player1.backstage = []
+
+        put_card_in_play(self, player1, "hBP01-031", player1.center)
+        put_card_in_play(self, player1, "hBP01-031", player1.backstage)
+        put_card_in_play(self, player1, "hBP01-031", player1.backstage)
+        collaber = player1.backstage[0]
+        actions = reset_mainstep(self)
+        player1.deck = [player1.deck[0]]
+        self.assertEqual(len(player1.holopower), 0)
+
+        engine.handle_game_message(self.player1, GameAction.MainStepCollab, {
+            "card_id": player1.backstage[0]["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - collab, choose cards
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_Collab, self.player1, {
+            "collab_player_id": self.player1,
+            "collab_card_id": collaber["game_card_id"],
+            "holopower_generated": 1,
+        })
+        validate_event(self, events[2], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "holopower",
+            "to_zone": "hand",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "nothing",
+        })
+        chosen_card_id = player1.holopower[0]["game_card_id"]
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [player1.holopower[0]["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - move card, skip generate because deck is empty!, main step
+        self.assertEqual(len(events), 4)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "holopower",
+            "to_zone": "hand",
+            "card_id": chosen_card_id,
+        })
+        actions = reset_mainstep(self)
+        self.assertEqual(player1.hand[-1]["game_card_id"], chosen_card_id)
+        self.assertEqual(len(player1.deck), 0)
+        self.assertEqual(len(player1.holopower), 0)
+
+
     def test_hBP01_033_collab_restorehp_chooseholomem(self):
         p1deck = generate_deck_with([], {"hBP01-033": 3 }, [])
         initialize_game_to_third_turn(self, p1deck)

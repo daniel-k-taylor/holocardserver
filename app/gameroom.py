@@ -1,3 +1,4 @@
+import traceback
 import json
 import os
 import time
@@ -39,7 +40,7 @@ class GameRoom:
         }
 
     async def start(self, card_db: CardDatabase):
-        logger.info(f"GAME: Starting game ({self.room_id}) Players ({[player.get_username() for player in self.players]})")
+        logger.info(f"GAME: Starting game ({self.room_id}) Players ({[player.get_username() for player in self.players]}) Ids ({[player.player_id for player in self.players]})")
         player_info = [player.get_player_game_info() for player in self.players]
         if self.is_ai_game():
             self.ai_player = AIPlayer(player_id="aiplayer" + self.players[0].player_id)
@@ -120,6 +121,7 @@ class GameRoom:
                     match_data["queue_name"] = self.queue_name
                     upload_match_to_blob_storage(match_data)
             self.cleanup_room = True
+            logger.info(f"Ready for cleanup Room {self.room_id}")
 
     def is_ready_for_cleanup(self):
         return self.cleanup_room
@@ -144,10 +146,20 @@ class GameRoom:
 
 
     async def handle_player_quit(self, player: Player):
-        await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        try:
+            logger.info(f"Player quit message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
+            await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error processing handle_player_quitplayer {player.get_username()} - {player.player_id} from Room {self.room_id}: {e} Callstack: {error_details}")
 
     async def handle_player_disconnect(self, player : Player):
-        await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        try:
+            logger.info(f"Player disconnect message: {player.get_username()} - {player.player_id} from Room {self.room_id}")
+            await self.handle_game_message(player.player_id, GameAction.Resign, {})
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error processing handle_player_quitplayer {player.get_username()} - {player.player_id} from Room {self.room_id}: {e} Callstack: {error_details}")
 
         # TODO: Reconnect logic.
         # all_players_disconnected = all([not player.connected for player in self.players])
