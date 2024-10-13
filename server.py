@@ -236,7 +236,6 @@ def cleanup_room(room: GameRoom):
         observer.current_game_room = None
 
 def check_cleanup_room(room: GameRoom):
-    logger.info(f"Checking room {room.room_id} for cleanup {room.cleanup_room}")
     if room.is_ready_for_cleanup():
         cleanup_room(room)
     else:
@@ -248,10 +247,6 @@ def check_cleanup_room(room: GameRoom):
             last_message = room.engine.all_game_messages[-1]
             logger.error(f"Room {room.room_id} open after game over.  Event: {last_event}  Message: {last_message}  PlayerCount: {len(room.players)}\n")
             cleanup_room(room)
-        else:
-            if state != GamePhase.PlayerTurn:
-                logger.info(f"Room still open ID: {room.room_id} state: {state}")
-    logger.info(f"Finished Checking room {room.room_id}")
 
 def can_player_join_queue(player: Player):
     # If the player is in a queue or in a game room, then they can't join another queue.
@@ -270,17 +265,23 @@ async def check_idle_users_task():
     player_keys = list(player_manager.active_players.keys())
     for player_id in player_keys:
         player = player_manager.get_player(player_id)
-        if time.time() - player.last_seen > PLAYER_TIMEOUT_THRESHOLD:
-            logger.info(f"Player timed out: {player.get_username()} - {player.player_id}")
-            matchmaking.remove_player_from_queue(player)
-            for room in game_rooms:
-                if player in room.players or player in room.observers:
-                    await room.handle_player_quit(player)
-                    check_cleanup_room(room)
-                    break
-            player.connected = False
+        if player:
+            if time.time() - player.last_seen > PLAYER_TIMEOUT_THRESHOLD:
+                logger.info(f"Player timed out: {player.get_username()} - {player.player_id}")
+                matchmaking.remove_player_from_queue(player)
+                for room in game_rooms:
+                    if player in room.players or player in room.observers:
+                        await room.handle_player_quit(player)
+                        check_cleanup_room(room)
+                        break
+                player.connected = False
+                player_manager.remove_player(player_id)
+                await manager.disconnect(player.websocket, True)
+                removed_players = True
+        else:
+            # Don't know exactly how this could happen but it did?
+            # Probably during an await something else removed the player.
             player_manager.remove_player(player_id)
-            await manager.disconnect(player.websocket, True)
             removed_players = True
     if removed_players:
         await broadcast_server_info()

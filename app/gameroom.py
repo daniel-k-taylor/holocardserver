@@ -125,7 +125,6 @@ class GameRoom:
                     match_data["queue_name"] = self.queue_name
                     upload_match_to_blob_storage(match_data)
             self.cleanup_room = True
-            logger.info(f"Ready for cleanup Room {self.room_id}")
 
     def is_ready_for_cleanup(self):
         return self.cleanup_room
