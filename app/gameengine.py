@@ -2631,7 +2631,7 @@ class GameEngine:
                 return color_requirement in self.performance_target_card["colors"]
             case Condition.Condition_TargetHasAnyTag:
                 valid_tags = condition["condition_tags"]
-                for tag in self.performance_target_card["tags"]:
+                for tag in self.take_damage_state.target_card["tags"]:
                     if tag in valid_tags:
                         return True
                 return False
