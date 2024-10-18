@@ -4763,7 +4763,8 @@
                                 "amount": 10,
                                 "target": "backstage",
                                 "opponent": true,
-                                "multiple_targets": "all"
+                                "multiple_targets": "all",
+                                "prevent_life_loss": true
                             }
                         ]
                     },
