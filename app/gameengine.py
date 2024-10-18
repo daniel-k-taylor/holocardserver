@@ -402,6 +402,7 @@ class PlayerState:
                 generated_card["attached_support"] = []
                 generated_card["stacked_cards"] = []
                 generated_card["zone_when_downed"] = ""
+                generated_card["zone_when_returned_to_hand"] = ""
                 generated_card["attached_when_downed"] = []
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
@@ -646,6 +647,8 @@ class PlayerState:
     def get_holomem_zone(self, card):
         if card in self.archive:
             return card["zone_when_downed"]
+        elif card in self.hand:
+            return card["zone_when_returned_to_hand"]
         elif card in self.center:
             return "center"
         elif card in self.collab:
@@ -1171,7 +1174,8 @@ class PlayerState:
         return ids_from_cards(to_archive)
 
     def return_holomem_to_hand(self, card_id, include_stacked_holomem = False):
-        returning_card, _, _ = self.find_and_remove_card(card_id)
+        returning_card, _, zone_name = self.find_and_remove_card(card_id)
+        returning_card["zone_when_returned_to_hand"] = zone_name
         attached_cheer = returning_card["attached_cheer"]
         attached_support = returning_card["attached_support"]
         stacked_cards = returning_card["stacked_cards"]
