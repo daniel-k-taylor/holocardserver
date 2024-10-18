@@ -262,6 +262,366 @@ class Test_hbp01_006(unittest.TestCase):
         self.assertEqual(len(player1.life), 1)
 
 
+    def test_hbp01_006_risefromtheashes_itwontstop(self):
+        p1deck = generate_deck_with("hBP01-006", {"hBP01-057": 2, "hBP01-058": 2, "hBP01-059": 2,  }, [])
+        p2deck = generate_deck_with("hBP01-006", {"hBP01-023": 2}, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player1.center = []
+        test1 = put_card_in_play(self, player1, "hBP01-057", player1.center)
+        b1 = add_card_to_hand(self, player1, "hBP01-058")
+        b2 = add_card_to_hand(self, player1, "hBP01-059")
+        b3 = add_card_to_hand(self, player1, "hBP01-059")
+
+        player2.center = []
+        p2center = put_card_in_play(self, player2, "hBP01-023", player2.center)
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "white", "w1")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "white", "w2")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "white", "w3")
+        actions = reset_mainstep(self)
+
+        player1.life = player1.life[:1]
+        self.assertEqual(len(player1.life), 1)
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b1["game_card_id"],
+            "target_id": test1["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player1.center[0])
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b2["game_card_id"],
+            "target_id": b1["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player1.center[0])
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b3["game_card_id"],
+            "target_id": b2["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        # Ok, now that p1's bloom is stacked up, kill it with p2 and we trigger rise and get all the cards back.
+        player1.center[0]["damage"] = player1.center[0]["hp"] - 10
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+
+        set_next_die_rolls(self, [1,1,1,1,1,1])
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": p2center["game_card_id"],
+            "art_id": "itwontstop",
+            "target_id": b3["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - perform, boost from weakness, roll die choice
+        self.assertEqual(len(events), 6)
+        validate_event(self, events[2], EventType.EventType_BoostStat, self.player1, {
+            "card_id": p2center["game_card_id"],
+            "stat": "power",
+            "amount": 50,
+        })
+        validate_event(self, events[4], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player2, 0)
+        # Events - roll die get 1, do damage, down events, rise from ashes choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": b3["game_card_id"],
+            "damage": 130,
+            "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+
+        # Before doing this, let's get an empty hand.
+        player1.hand = []
+        events = pick_choice(self, self.player1, 0)
+        # Events - 2 holopower, oshi, down, send cheer
+        self.assertEqual(len(events), 18)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
+            "oshi_player_id": self.player1,
+            "skill_id": "risefromtheashes",
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": b3["game_card_id"],
+            "life_lost": 0
+        })
+        archived_ids = events[6]["archived_ids"]
+        hand_ids = events[6]["hand_ids"]
+        self.assertListEqual(archived_ids, cheer_on_p1)
+        self.assertTrue(b1["game_card_id"] in hand_ids)
+        self.assertTrue(b2["game_card_id"] in hand_ids)
+        self.assertTrue(b3["game_card_id"] in hand_ids)
+        self.assertTrue(test1["game_card_id"] in hand_ids)
+        validate_event(self, events[8], EventType.EventType_EndTurn, self.player1, {})
+
+        validate_event(self, events[16], EventType.EventType_ResetStepChooseNewCenter, self.player1, {
+            "active_player": self.player1
+        })
+        inhand = ids_from_cards(player1.hand)
+        self.assertTrue(b1["game_card_id"] in inhand)
+        self.assertTrue(b2["game_card_id"] in inhand)
+        self.assertTrue(b3["game_card_id"] in inhand)
+        self.assertTrue(test1["game_card_id"] in inhand)
+        self.assertEqual(len(player1.hand), 4)
+        self.assertEqual(len(player1.life), 1)
+
+
+
+    def test_hbp01_006_risefromtheashes_suisei_oshi(self):
+        p1deck = generate_deck_with("hBP01-006", {"hBP01-057": 2, "hBP01-058": 2, "hBP01-059": 2,  }, [])
+        p2deck = generate_deck_with("hBP01-007", {"hBP01-077": 2}, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player2.generate_holopower(2)
+        player1.center = []
+        test1 = put_card_in_play(self, player1, "hBP01-057", player1.center)
+        b1 = add_card_to_hand(self, player1, "hBP01-058")
+        b2 = add_card_to_hand(self, player1, "hBP01-059")
+        b3 = add_card_to_hand(self, player1, "hBP01-059")
+
+        player2.center = []
+        p2center = put_card_in_play(self, player2, "hBP01-077", player2.center)
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b1")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b2")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b3")
+        actions = reset_mainstep(self)
+
+        player1.life = player1.life[:1]
+        self.assertEqual(len(player1.life), 1)
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b1["game_card_id"],
+            "target_id": test1["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player1.center[0])
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b2["game_card_id"],
+            "target_id": b1["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        end_turn(self)
+        do_cheer_step_on_card(self, player1.center[0])
+        engine.handle_game_message(self.player1, GameAction.MainStepBloom, {
+            "card_id": b3["game_card_id"],
+            "target_id": b2["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Bloom, main step
+        self.assertEqual(len(events), 4)
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        # Ok, now that p1's bloom is stacked up, kill it with p2 and we trigger rise and get all the cards back.
+        player1.center[0]["damage"] = player1.center[0]["hp"] - 10
+        begin_performance(self)
+        cheer_on_p1 = ids_from_cards(player1.center[0]["attached_cheer"])
+
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": p2center["game_card_id"],
+            "art_id": "newcostume",
+            "target_id": b3["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - perform, do damage, down events, rise from ashes choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": b3["game_card_id"],
+            "damage": 30,
+            "special": False,
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+
+        # Before doing this, let's get an empty hand.
+        player1.hand = []
+        events = pick_choice(self, self.player1, 0)
+        # Events - 2 holopower, oshi, down, shooting star choice
+        self.assertEqual(len(events), 10)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
+            "oshi_player_id": self.player1,
+            "skill_id": "risefromtheashes",
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": b3["game_card_id"],
+            "life_lost": 0
+        })
+        archived_ids = events[6]["archived_ids"]
+        hand_ids = events[6]["hand_ids"]
+        self.assertListEqual(archived_ids, cheer_on_p1)
+        self.assertTrue(b1["game_card_id"] in hand_ids)
+        self.assertTrue(b2["game_card_id"] in hand_ids)
+        self.assertTrue(b3["game_card_id"] in hand_ids)
+        self.assertTrue(test1["game_card_id"] in hand_ids)
+        validate_event(self, events[8], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player2, 0)
+        # Events - choose shooting star target.
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player2,
+            "skill_id": "shootingstar",
+        })
+        p1back = player1.backstage[0]
+        engine.handle_game_message(self.player2, GameAction.EffectResolution_ChooseCardsForEffect, {
+            "card_ids": [p1back["game_card_id"]]
+        })
+        events = engine.grab_events()
+        # Events - do shooting star damage, end turn through choose new center
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[0], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": p1back["game_card_id"],
+            "damage": 30,
+            "special": True,
+        })
+        validate_event(self, events[2], EventType.EventType_EndTurn, self.player1, {})
+
+        validate_event(self, events[10], EventType.EventType_ResetStepChooseNewCenter, self.player1, {
+            "active_player": self.player1
+        })
+        inhand = ids_from_cards(player1.hand)
+        self.assertTrue(b1["game_card_id"] in inhand)
+        self.assertTrue(b2["game_card_id"] in inhand)
+        self.assertTrue(b3["game_card_id"] in inhand)
+        self.assertTrue(test1["game_card_id"] in inhand)
+        self.assertEqual(len(player1.hand), 4)
+        self.assertEqual(len(player1.life), 1)
+
+
+
+
+    def test_hbp01_006_risefromtheashes_suisei_backstage_hit_rise_no_comet(self):
+        p1deck = generate_deck_with("hBP01-006", {"hBP01-057": 2 }, [])
+        p2deck = generate_deck_with("hBP01-007", {"hBP01-076": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck, p2deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+
+        """Test"""
+        player1.generate_holopower(2)
+        player2.generate_holopower(2)
+        player1.center = []
+        test1 = put_card_in_play(self, player1, "hBP01-057", player1.center)
+        player1.backstage = []
+        back1 = put_card_in_play(self, player1, "hBP01-057", player1.backstage)
+
+        player1.life = player1.life[:1]
+        self.assertEqual(len(player1.life), 1)
+
+        player2.center = []
+        p2center = put_card_in_play(self, player2, "hBP01-076", player2.center)
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b1")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b2")
+        spawn_cheer_on_card(self, player2, p2center["game_card_id"], "blue", "b3")
+        actions = reset_mainstep(self)
+
+        end_turn(self)
+        do_cheer_step_on_card(self, player2.center[0])  # P1 turn start, cheer on center
+        actions = reset_mainstep(self)
+        back1["damage"] = back1["hp"] - 10
+        begin_performance(self)
+        engine.handle_game_message(self.player2, GameAction.PerformanceStepUseArt, {
+            "performer_id": p2center["game_card_id"],
+            "art_id": "diamondintherough",
+            "target_id": player1.center[0]["game_card_id"]
+        })
+        events = engine.grab_events()
+        # Events - perform, before deal damage to back, down events, rise from ashes choice
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[2], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": back1["game_card_id"],
+            "damage": 10,
+            "special": True
+        })
+        validate_event(self, events[4], EventType.EventType_DownedHolomem_Before, self.player1, {})
+
+        # Before doing this, let's get an empty hand.
+        player1.hand = []
+        events = pick_choice(self, self.player1, 0)
+        # Events - 2 holopower, oshi, down, damage to center, shooting star choice
+        self.assertEqual(len(events), 12)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, self.player1, {
+            "oshi_player_id": self.player1,
+            "skill_id": "risefromtheashes",
+        })
+        validate_event(self, events[6], EventType.EventType_DownedHolomem, self.player1, {
+            "target_id": back1["game_card_id"],
+            "life_lost": 0
+        })
+        archived_ids = events[6]["archived_ids"]
+        hand_ids = events[6]["hand_ids"]
+        self.assertTrue(back1["game_card_id"] in hand_ids)
+        self.assertListEqual(archived_ids, [])
+
+        validate_event(self, events[8], EventType.EventType_DamageDealt, self.player1, {
+            "target_id": player1.center[0]["game_card_id"],
+            "damage": 20,
+            "special": False,
+        })
+        validate_event(self, events[10], EventType.EventType_Decision_Choice, self.player1, {})
+        events = pick_choice(self, self.player2, 0)
+        # Events - spend holopower, oshi skill, no target though so just end turn etc.
+        self.assertEqual(len(events), 18)
+        validate_event(self, events[4], EventType.EventType_OshiSkillActivation, player1.player_id, {
+            "oshi_player_id": self.player2,
+            "skill_id": "shootingstar",
+        })
+        validate_event(self, events[6], EventType.EventType_EndTurn, self.player1, {})
+        validate_event(self, events[8], EventType.EventType_TurnStart, self.player1, {})
+        validate_event(self, events[10], EventType.EventType_ResetStepActivate, self.player1, {})
+        validate_event(self, events[12], EventType.EventType_ResetStepCollab, self.player1, {})
+        validate_event(self, events[14], EventType.EventType_Draw, self.player1, {})
+        validate_event(self, events[16], EventType.EventType_CheerStep, self.player1, {})
+        do_cheer_step_on_card(self, player1.center[0])
+        reset_mainstep(self)
+        inhand = ids_from_cards(player1.hand)
+        self.assertTrue(back1["game_card_id"] in inhand)
+        self.assertEqual(len(player1.life), 1)
 
 if __name__ == '__main__':
     unittest.main()

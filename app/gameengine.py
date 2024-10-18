@@ -402,6 +402,7 @@ class PlayerState:
                 generated_card["attached_support"] = []
                 generated_card["stacked_cards"] = []
                 generated_card["zone_when_downed"] = ""
+                generated_card["zone_when_returned_to_hand"] = ""
                 generated_card["attached_when_downed"] = []
                 generated_card["damage"] = 0
                 generated_card["resting"] = False
@@ -646,6 +647,8 @@ class PlayerState:
     def get_holomem_zone(self, card):
         if card in self.archive:
             return card["zone_when_downed"]
+        elif card in self.hand:
+            return card["zone_when_returned_to_hand"]
         elif card in self.center:
             return "center"
         elif card in self.collab:
@@ -1171,7 +1174,8 @@ class PlayerState:
         return ids_from_cards(to_archive)
 
     def return_holomem_to_hand(self, card_id, include_stacked_holomem = False):
-        returning_card, _, _ = self.find_and_remove_card(card_id)
+        returning_card, _, zone_name = self.find_and_remove_card(card_id)
+        returning_card["zone_when_returned_to_hand"] = zone_name
         attached_cheer = returning_card["attached_cheer"]
         attached_support = returning_card["attached_support"]
         stacked_cards = returning_card["stacked_cards"]
@@ -1565,9 +1569,9 @@ class GameEngine:
             should_sanitize = not (player_state.player_id == event.get("hidden_info_player"))
             new_event = {
                 "event_player_id": player_state.player_id,
+                **event,
                 "your_clock_used": player_state.clock_time_used,
                 "opponent_clock_used": self.other_player(player_state.player_id).clock_time_used,
-                **event,
             }
             if should_sanitize:
                 for field in hidden_fields:
@@ -2235,6 +2239,12 @@ class GameEngine:
         down_info.nested_state = self.down_holomem_state
         self.down_holomem_state = down_info
         self.down_holomem_state.holomem_card = target_card
+
+        if self.performance_artstatboosts.repeat_art:
+            # Check to see if the current performance target is being downed,
+            # if so, remove repeat_art because they're dead.
+            if self.performance_target_card["game_card_id"] == target_card["game_card_id"]:
+                self.performance_artstatboosts.repeat_art = False
 
         pre_down_event = {
             "event_type": EventType.EventType_DownedHolomem_Before,
