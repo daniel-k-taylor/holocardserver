@@ -1565,9 +1565,9 @@ class GameEngine:
             should_sanitize = not (player_state.player_id == event.get("hidden_info_player"))
             new_event = {
                 "event_player_id": player_state.player_id,
+                **event,
                 "your_clock_used": player_state.clock_time_used,
                 "opponent_clock_used": self.other_player(player_state.player_id).clock_time_used,
-                **event,
             }
             if should_sanitize:
                 for field in hidden_fields:
@@ -2235,6 +2235,12 @@ class GameEngine:
         down_info.nested_state = self.down_holomem_state
         self.down_holomem_state = down_info
         self.down_holomem_state.holomem_card = target_card
+
+        if self.performance_artstatboosts.repeat_art:
+            # Check to see if the current performance target is being downed,
+            # if so, remove repeat_art because they're dead.
+            if self.performance_target_card["game_card_id"] == target_card["game_card_id"]:
+                self.performance_artstatboosts.repeat_art = False
 
         pre_down_event = {
             "event_type": EventType.EventType_DownedHolomem_Before,
