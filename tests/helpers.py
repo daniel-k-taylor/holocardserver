@@ -46,6 +46,17 @@ def validate_event(self : unittest.TestCase, event, event_type, event_player_id,
     for key, value in event_data.items():
         self.assertEqual(event[key], value)
 
+def validate_consecutive_events(self: unittest.TestCase, player_id: str, for_events: list, against_data: list[(str, dict)]):
+    player_events = list(filter(lambda event: event["event_player_id"] == player_id, for_events))
+
+    self.assertGreater(len(player_events), 0, f"No events for {player_id}")
+    self.assertEqual(len(player_events), len(against_data), f"Events to compare are not equal")
+
+    for event, data in zip(player_events, against_data):
+        event_type, event_data = data
+        validate_event(self, event, event_type, player_id, event_data)
+
+
 def validate_actions(self : unittest.TestCase, actions, expected_actions):
     self.assertEqual(len(actions), len(expected_actions))
     for i in range(len(actions)):
