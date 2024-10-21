@@ -358,3 +358,6 @@ def generate_deck_with(oshi_id, cards : dict[str, int] = [], cheer = []):
             deck[card_id] = count
 
     return new_deck
+
+def jsonprint(data):
+    print(json.dumps(data, indent=4))

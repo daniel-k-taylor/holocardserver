@@ -5,9 +5,6 @@ from app.gameengine import PlayerState
 from app.gameengine import EventType
 from tests.helpers import *
 
-import json
-def jsonprint(data):
-  print(json.dumps(data, indent=4))
 
 class Test_hSD01_009(unittest.TestCase):
   engine: GameEngine
