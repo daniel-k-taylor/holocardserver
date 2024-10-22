@@ -46,7 +46,7 @@ def validate_event(self : unittest.TestCase, event, event_type, event_player_id,
     for key, value in event_data.items():
         self.assertEqual(event[key], value)
 
-def validate_consecutive_events(self: unittest.TestCase, player_id: str, for_events: list, against_data: list[(str, dict)]):
+def validate_consecutive_events(self: unittest.TestCase, player_id: str, for_events: list, against_data: list[(EventType, dict)]):
     player_events = list(filter(lambda event: event["event_player_id"] == player_id, for_events))
 
     self.assertGreater(len(player_events), 0, f"No events for {player_id}")
@@ -361,3 +361,16 @@ def generate_deck_with(oshi_id, cards : dict[str, int] = [], cheer = []):
 
 def jsonprint(data):
     print(json.dumps(data, indent=4))
+
+# generates events that occurs from end turn to next player's turn
+def end_turn_events(for_validation=True) -> list:
+    events = [
+        EventType.EventType_EndTurn,
+        EventType.EventType_TurnStart,
+        EventType.EventType_ResetStepActivate,
+        EventType.EventType_ResetStepCollab,
+        EventType.EventType_Draw,
+        EventType.EventType_CheerStep,
+    ]
+
+    return [(event, {}) if for_validation else events for event in events]
