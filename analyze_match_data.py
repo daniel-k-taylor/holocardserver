@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+PRINT_CARD_STATS = False
+
 # Make the directory to download this dir + tests\match_logs
 current_directory = os.getcwd()
 match_logs_dir = os.path.join(current_directory, "tests", "match_logs")
@@ -133,10 +135,11 @@ for card, count in card_usage.items():
     card_stats.append((card, win_percentage, usage_percentage, count))
 
 card_stats.sort(key=lambda x: x[1], reverse=True)
-print("\nCard Stats (sorted by win percentage):")
-print(f"{'Card ID':<15} {'Win %':<10} {'Usage %':<10} {'Total Usage':<12}")
-for card, win_percentage, usage_percentage, count in card_stats:
-    print(f"{card:<15} {win_percentage:<10.2f} {usage_percentage:<10.2f} {count:<12}")
+if PRINT_CARD_STATS:
+    print("\nCard Stats (sorted by win percentage):")
+    print(f"{'Card ID':<15} {'Win %':<10} {'Usage %':<10} {'Total Usage':<12}")
+    for card, win_percentage, usage_percentage, count in card_stats:
+        print(f"{card:<15} {win_percentage:<10.2f} {usage_percentage:<10.2f} {count:<12}")
 
 
 print(f"\nTotal games analyzed: {total_games}")
@@ -156,5 +159,5 @@ deck_stats.sort(key=lambda x: x[1], reverse=True)
 
 print("\nDeck Usage Totals:")
 for deck, win_percentage, usage_percentage, win_count, count in deck_stats:
-    if count > 10:
+    if count > 20 and win_percentage > 50:
         print(f"{deck}\nWon {win_count} / {count} times. Win rate: {win_percentage:.2f}%")
