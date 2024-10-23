@@ -4634,8 +4634,7 @@ class GameEngine:
             player.archive_attached_cards(cheer_to_archive_from_play)
 
         # Begin resolving the card effects.
-        if not is_card_equipment(card):
-            player.played_support_this_turn = True
+        player.played_support_this_turn = True
         if is_card_limited(card):
             player.used_limited_this_turn = True
 
