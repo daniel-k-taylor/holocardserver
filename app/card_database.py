@@ -31,7 +31,19 @@ class CardDatabase:
     def load_cards(self, path):
         # Load all the cards from the definitions file.
         with open(path, "r") as f:
-            card_data = json.load(f)
+            json_data = json.load(f)
+            card_data = []
+            for card in json_data:
+                card_data.append(card)
+                # populate the alternates based on the original card
+                for rarity in card.get("alternates", []):
+                    alt_card = deepcopy(card)
+                    alt_id = alt_card["alt_id"]
+                    alt_card["alt_id"] = alt_id
+                    alt_card["card_id"] = alt_id + "_" + rarity.upper()
+                    alt_card["rarity"] = rarity
+                    del alt_card["alternates"]
+                    card_data.append(alt_card)
             self.all_cards = card_data
 
     def get_card_by_id(self, card_id):
@@ -50,6 +62,7 @@ class CardDatabase:
 
         # Check the deck
         deck_count = 0
+        alt_copies = {}
         for card_id, count in deck.items():
             deck_card = self.get_card_by_id(card_id)
             if not deck_card or deck_card["card_type"] not in ALLOWED_DECK_TYPES:
@@ -65,7 +78,21 @@ class CardDatabase:
             deck_limit = MAX_ANY_CARD_COUNT
             if "special_deck_limit" in deck_card:
                 deck_limit = deck_card["special_deck_limit"]
-            if count > deck_limit:
+
+            card_copies = 0
+            if "alt_id" in deck_card:
+                alt_id = deck_card["alt_id"]
+                if alt_id in alt_copies:
+                    card_copies = alt_copies[alt_id]
+                else:
+                    for key in deck.keys():
+                        if key.startswith(alt_id):
+                            card_copies += deck[key]
+                    alt_copies[alt_id] = card_copies
+            else:
+                card_copies = count
+
+            if card_copies > deck_limit:
                 logger.info("--Deck Invalid: Too many cards")
                 return False
 

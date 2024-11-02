@@ -868,6 +868,8 @@
         "card_names": ["amane_kanata"],
         "colors": ["white"],
         "rarity": "osr",
+        "alt_id": "hBP01-001",
+        "alternates": ["our"],
         "life": 5,
         "actions": [
             {
@@ -934,6 +936,8 @@
         "card_names": ["nanashi_mumei"],
         "colors": ["white"],
         "rarity": "osr",
+        "alt_id": "hBP01-002",
+        "alternates": ["our"],
         "life": 5,
         "actions": [
             {
@@ -1009,6 +1013,8 @@
         "card_names": ["aki_rosenthal"],
         "colors": ["green"],
         "rarity": "osr",
+        "alt_id": "hBP01-003",
+        "alternates": ["our"],
         "life": 5,
         "actions": [
             {
@@ -1074,6 +1080,8 @@
         "card_names": ["usada_pekora"],
         "colors": ["green"],
         "rarity": "osr",
+        "alt_id": "hBP01-004",
+        "alternates": ["our"],
         "life": 6,
         "actions": [
             {
@@ -1151,6 +1159,8 @@
         "card_names": ["takane_lui"],
         "colors": ["red"],
         "rarity": "osr",
+        "alt_id": "hBP01-005",
+        "alternates": ["our"],
         "life": 5,
         "special_hand_archive_skill_per_turn": "executivesorder",
         "actions": [
@@ -1215,6 +1225,8 @@
         "card_names": ["takanashi_kiara"],
         "colors": ["red"],
         "rarity": "osr",
+        "alt_id": "hBP01-006",
+        "alternates": ["our"],
         "life": 5,
         "actions": [
             {
@@ -1287,6 +1299,8 @@
         "card_names": ["hoshimachi_suisei"],
         "colors": ["blue"],
         "rarity": "osr",
+        "alt_id": "hBP01-007",
+        "alternates": ["our"],
         "life": 5,
         "actions": [],
         "effects": [
@@ -1367,6 +1381,8 @@
         "card_names": ["kobo_kanaeru"],
         "colors": ["blue"],
         "rarity": "osr",
+        "alt_id": "hBP01-008",
+        "alternates": ["our"],
         "life": 6,
         "actions": [
             {
@@ -1622,6 +1638,8 @@
         "bloom_level": 2,
         "card_names": ["amane_kanata"],
         "rarity": "rr",
+        "alt_id": "hBP01-014",
+        "alternates": ["ur"],
         "colors": ["white"],
         "hp": 200,
         "baton_cost": 2,
@@ -1980,6 +1998,8 @@
         "bloom_level": 2,
         "card_names": ["tokino_sora"],
         "rarity": "rr",
+        "alt_id": "hBP01-023",
+        "alternates": ["ur"],
         "colors": ["white"],
         "hp": 210,
         "baton_cost": 1,
@@ -2138,6 +2158,8 @@
         "bloom_level": 1,
         "card_names": ["vestia_zeta"],
         "rarity": "rr",
+        "alt_id": "hBP01-027",
+        "alternates": ["ur"],
         "colors": ["white"],
         "buzz": true,
         "hp": 200,
@@ -2825,6 +2847,8 @@
         "card_names": ["usada_pekora"],
         "bloom_level": 2,
         "rarity": "rr",
+        "alt_id": "hBP01-043",
+        "alternates": ["ur"],
         "colors": ["green"],
         "hp": 200,
         "baton_cost": 2,
@@ -3014,6 +3038,8 @@
         "bloom_level": 2,
         "card_names": ["azki"],
         "rarity": "rr",
+        "alt_id": "hBP01-047",
+        "alternates": ["ur"],
         "colors": ["green"],
         "hp": 220,
         "baton_cost": 2,
@@ -3186,6 +3212,8 @@
         "buzz": "true",
         "card_names": ["kazama_iroha"],
         "rarity": "rr",
+        "alt_id": "hBP01-051",
+        "alternates": ["ur"],
         "colors": ["green"],
         "hp": 250,
         "baton_cost": 2,
@@ -3889,6 +3917,8 @@
         "bloom_level": 2,
         "card_names": ["takanashi_kiara"],
         "rarity": "rr",
+        "alt_id": "hBP01-067",
+        "alternates": ["ur"],
         "colors": ["red"],
         "hp": 200,
         "baton_cost": 2,
@@ -4054,6 +4084,8 @@
         "buzz": true,
         "card_names": ["omaru_polka"],
         "rarity": "rr",
+        "alt_id": "hBP01-071",
+        "alternates": ["ur"],
         "colors": ["red"],
         "hp": 240,
         "baton_cost": 1,
@@ -4493,6 +4525,8 @@
         "bloom_level": 2,
         "card_names": ["hoshimachi_suisei"],
         "rarity": "rr",
+        "alt_id": "hBP01-081",
+        "alternates": ["ur"],
         "colors": ["blue"],
         "hp": 210,
         "baton_cost": 2,
@@ -4994,6 +5028,8 @@
         "buzz": true,
         "card_names": ["moona_hoshinova"],
         "rarity": "rr",
+        "alt_id": "hBP01-091",
+        "alternates": ["ur"],
         "colors": ["blue"],
         "hp": 240,
         "baton_cost": 2,
