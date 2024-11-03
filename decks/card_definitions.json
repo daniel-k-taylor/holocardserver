@@ -882,7 +882,7 @@
                         "skill_id": "squeezesqueeze",
                         "pre_effects": [
                             { "effect_type": "spend_holopower", "amount": 3 },
-                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "squeezesqueeze" }
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "squeezesqueeze" }
                         ]
                     },
                     {
