@@ -134,6 +134,7 @@ class Condition:
     Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCollab = "this_card_is_collab"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
+    Condition_ColorOnStage = "color_on_stage"
 
 
 class TurnEffectType:
@@ -2663,6 +2664,10 @@ class GameEngine:
                         if tag in valid_tags:
                             return True
                 return False
+            case Condition.Condition_ColorOnStage:
+                holomems = effect_player.get_holomem_on_stage()
+                condition_colors = condition["condition_colors"]
+                return any(True for color in condition_colors for holomem in holomems if color in holomem["colors"])
             case _:
                 raise NotImplementedError(f"Unimplemented condition: {condition['condition']}")
         return False

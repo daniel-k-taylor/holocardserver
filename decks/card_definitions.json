@@ -6288,6 +6288,75 @@
     },
 
     {
+        "NOTE": "PR CARDS START",
+
+        "card_id": "hBD24-001",
+        "card_type": "oshi",
+        "card_names": ["pavolia_reine"],
+        "colors": ["green"],
+        "rarity": "p",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "greenenhance",
+                "cost": 2,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_turn",
+                        "skill_id": "greenenhance",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "greenenhance" }
+                        ]
+                    },
+                    {
+                        "effect_type": "add_turn_effect_for_holomem",
+                        "conditions": [{ "condition": "color_on_stage", "condition_colors": ["green"] }],
+                        "turn_effect": {
+                            "timing": "before_art",
+                            "conditions": [{ "condition": "performer_is_specific_id", "required_id": "REPLACED_BY_EFFECT" }],
+                            "effect_type": "power_boost",
+                            "amount": 20
+                        }
+                    }
+                ]
+            },
+            {
+                "skill_id": "birthdaygiftgreen",
+                "cost": 2,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_game",
+                        "skill_id": "birthdaygiftgreen",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "birthdaygiftgreen" }
+                        ]
+                    },
+                    {
+                        "effect_type": "choose_cards",
+                        "from": "deck",
+                        "look_at": -1,
+                        "destination": "hand",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "requirement": "color_in",
+                        "requirement_colors": ["green"],
+                        "reveal_chosen": true,
+                        "remaining_cards_action": "shuffle"
+                    }
+                ]
+            }
+        ]
+    },
+
+    {
         "NOTE": "CHEER SET OSHI CARDS START",
 
         "card_id": "hYS01-001",
@@ -6602,5 +6671,4 @@
 
         "NOTE": "CHEER CARDS END"
     }
-
 ]
