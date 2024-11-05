@@ -2879,6 +2879,8 @@ class GameEngine:
                     case "tag_in":
                         holomem_targets = [holomem for holomem in holomem_targets \
                             if any(tag in holomem["tags"] for tag in to_limitation_tags)]
+                    case "backstage":
+                        holomem_targets = effect_player.backstage
                 if len(holomem_targets) > 0:
                     attach_effect = {
                         "effect_type": EffectType.EffectType_AttachCardToHolomem_Internal,
