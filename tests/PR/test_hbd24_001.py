@@ -156,6 +156,47 @@ class Test_hBD24_001(unittest.TestCase):
     self.assertIn("greenenhance", available_oshi_skills) # `greenenhance` can be used again
 
 
+  def test_hBD24_001_birthdaygiftgreen_once_per_game(self):
+    engine = self.engine
+
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(4)
+    reset_mainstep(self)
+
+    greens_in_deck = list(card["game_card_id"] for card in p1.deck if "green" in card["colors"])
+    card_chosen = greens_in_deck[0]
+
+    # Use `birthdaygiftgreen`
+    engine.handle_game_message(self.player1, GameAction.MainStepOshiSkill, { "skill_id": "birthdaygiftgreen" })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [card_chosen] })
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    # Events
+    available_actions = engine.grab_events()[-2]["available_actions"]
+    available_oshi_skills = list(action["skill_id"] for action in available_actions if action["action_type"] == GameAction.MainStepOshiSkill)
+    self.assertGreaterEqual(len(p1.holopower), 2)
+    self.assertNotIn("birthdaygiftgreen", available_oshi_skills) # `birthdaygiftgreen` is not in the available actions even with sufficient holopower
+
+    # relay turns
+    end_turn(self)
+    self.assertEqual(engine.active_player_id, self.player2)
+    do_cheer_step_on_card(self, p2.center[0])
+    end_turn(self)
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    # Events
+    events = do_cheer_step_on_card(self, p1.center[0])
+    available_actions = events[-2]["available_actions"]
+    available_oshi_skills = list(action["skill_id"] for action in available_actions if action["action_type"] == GameAction.MainStepOshiSkill)
+    self.assertGreaterEqual(len(p1.holopower), 2)
+    self.assertNotIn("birthdaygiftgreen", available_oshi_skills) # `birthdaygiftgreen` still cannot be used
+
+
   def test_hBD24_001_greenenhance_used_without_green_holomem_on_stage(self):
     engine = self.engine
 
