@@ -362,6 +362,9 @@ def generate_deck_with(oshi_id, cards : dict[str, int] = [], cheer = []):
 def jsonprint(data):
     print(json.dumps(data, indent=4))
 
+def unpack_game_id(card) -> tuple[any, str]:
+    return card, card["game_card_id"]
+
 # generates events that occurs from end turn to next player's turn
 def end_turn_events(for_validation=True) -> list:
     events = [
