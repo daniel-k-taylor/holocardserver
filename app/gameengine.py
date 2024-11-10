@@ -2698,9 +2698,19 @@ class GameEngine:
                 }
                 self.broadcast_event(event)
             case EffectType.EffectType_AddTurnEffectForHolomem:
-                holomem_targets = ids_from_cards(effect_player.get_holomem_on_stage())
+                holomem_targets = effect_player.get_holomem_on_stage()
+                limitation = effect.get("limitation", None)
+                if limitation:
+                    match limitation:
+                        case "color_in":
+                            limitation_colors = effect["limitation_colors"]
+                            holomem_targets = [holomem for holomem in holomem_targets if any(color in holomem["colors"] for color in limitation_colors)]
                 turn_effect_copy = deepcopy(effect["turn_effect"])
                 turn_effect_copy["source_card_id"] = effect["source_card_id"]
+                holomem_targets = ids_from_cards(holomem_targets)
+                if len(holomem_targets) == 0:
+                    # No effect.
+                    pass
                 if len(holomem_targets) == 1:
                     replace_field_in_conditions(turn_effect_copy, "required_id", holomem_targets[0])
                     effect_player.add_turn_effect(turn_effect_copy)
