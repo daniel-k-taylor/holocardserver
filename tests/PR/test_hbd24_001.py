@@ -28,6 +28,9 @@ class Test_hBD24_001(unittest.TestCase):
     _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD01-009", p1.center))
     spawn_cheer_on_card(self, p1, center_card_id, "green", "g1")
 
+    # Put another green mem in play to choose against.
+    p1.backstage = p1.backstage[:1]
+    put_card_in_play(self, p1, "hSD01-009", p1.backstage)
 
     """Test"""
     self.assertEqual(engine.active_player_id, self.player1)
@@ -35,9 +38,9 @@ class Test_hBD24_001(unittest.TestCase):
     p1.generate_holopower(2)
     reset_mainstep(self)
 
-    
+
     engine.handle_game_message(self.player1, GameAction.MainStepOshiSkill, { "skill_id": "greenenhance" })
-    
+
     # Events
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
@@ -75,7 +78,7 @@ class Test_hBD24_001(unittest.TestCase):
       *end_turn_events()
     ])
 
-  
+
   def test_hBD24_001_birthdaygiftgreen(self):
     engine = self.engine
 
@@ -125,7 +128,11 @@ class Test_hBD24_001(unittest.TestCase):
     # Setup to have player1 use `greenenhance`
     p1.center = []
     _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD01-009", p1.center))
-    
+
+    # Put another green mem in play to choose against.
+    p1.backstage = p1.backstage[:1]
+    put_card_in_play(self, p1, "hSD01-009", p1.backstage)
+
     p1.generate_holopower(6)
     reset_mainstep(self)
     engine.handle_game_message(self.player1, GameAction.MainStepOshiSkill, { "skill_id": "greenenhance" })
@@ -141,7 +148,7 @@ class Test_hBD24_001(unittest.TestCase):
     self.assertGreaterEqual(len(p1.holopower), 2)
     self.assertNotIn("greenenhance", available_oshi_skills) # `greenenhance` is not in the available actions even with sufficient holopower
 
-    # relay turns 
+    # relay turns
     end_turn(self)
     self.assertEqual(engine.active_player_id, self.player2)
     do_cheer_step_on_card(self, p2.center[0])
@@ -207,7 +214,7 @@ class Test_hBD24_001(unittest.TestCase):
     p1.backstage = []
     p1.collab = []
     center_card = p1.center[0]
-    
+
     p1.generate_holopower(2)
     reset_mainstep(self)
 
