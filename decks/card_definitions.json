@@ -952,8 +952,39 @@
                 "costs": [
                     { "color": "red", "amount": 1 }
                 ],
-                "power": 30,
-                "art_effects": []
+                "power": 30
+            }
+        ]
+    },
+    {
+        "card_id": "hSD02-003",
+        "card_type": "holomem_debut",
+        "card_names": ["nakiri_ayame"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 70,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "shiranui",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "deal_damage",
+                "special": true,
+                "amount": 10,
+                "target": "collab",
+                "opponent": true
             }
         ],
 

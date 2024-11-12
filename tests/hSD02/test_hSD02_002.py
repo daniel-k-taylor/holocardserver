@@ -90,7 +90,8 @@ class Test_hSD02_002(unittest.TestCase):
     self.assertTrue(result)
 
     # check for hp and tags
-    card = next((card for card in card_db.all_cards if card["card_id"] == "hSD02-002"), None)
+    p1: PlayerState = self.engine.get_player(self.player1)
+    card = next((card for card in p1.deck if card["card_id"] == "hSD02-002"), None)
     self.assertIsNotNone(card)
 
     self.assertEqual(card["hp"], 90)
