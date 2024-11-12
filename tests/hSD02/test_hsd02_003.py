@@ -5,9 +5,6 @@ from app.gameengine import EventType
 from tests.helpers import *
 
 
-# overall
-
-
 class Test_hSD02_003(unittest.TestCase):
   engine: GameEngine
   player1: str
@@ -102,10 +99,10 @@ class Test_hSD02_003(unittest.TestCase):
 
 
   def test_hSD02_003_overall_check(self):
-    # check for hp and tags
     p1: PlayerState = self.engine.get_player(self.player1)
     card = next((card for card in p1.deck if card["card_id"] == "hSD02-003"), None)
     self.assertIsNotNone(card)
 
+    # check for hp and tags
     card["hp"] = 70
     self.assertCountEqual(card["tags"], ["#JP", "#Gen2", "#Shooter"])

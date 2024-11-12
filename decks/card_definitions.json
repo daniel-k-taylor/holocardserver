@@ -986,6 +986,38 @@
                 "target": "collab",
                 "opponent": true
             }
+        ]
+    },
+    {
+        "card_id": "hSD02-005",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nakiri_ayame"],
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 140,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "sleepyyo",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20
+            },
+            {
+                "art_id": "otsunakiri",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60
+            }
         ],
 
         "NOTE": "hSD02 CARDS END"
