@@ -1,6 +1,6 @@
 [
     {
-        "NOTE": "STARTER DECK CARDS START",
+        "NOTE": "hSD01 CARDS START",
 
         "card_id": "hSD01-001",
         "card_type": "oshi",
@@ -860,7 +860,104 @@
             }
         ],
 
-        "NOTE": "STARTER DECK CARDS END"
+        "NOTE": "hSD01 CARDS END"
+    },
+
+    {
+        "NOTE": "hSD02 CARDS START",
+
+        "card_id": "hSD02-001",
+        "card_type": "oshi",
+        "card_names": ["nakiri_ayame"],
+        "colors": ["red"],
+        "rarity": "oc",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "redmic",
+                "cost": 2,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "skill_id": "redmic",
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_turn",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "redmic" }
+                        ]
+                    },
+                    {
+                        "effect_type": "add_turn_effect",
+                        "turn_effect": {
+                            "timing": "before_art",
+                            "conditions": [
+                                { "condition": "performer_is_center" },
+                                { "condition": "performer_is_color", "condition_colors": ["red"] }
+                            ],
+                            "effect_type": "power_boost",
+                            "amount": 20
+                        }
+                    }
+                ]
+            },
+            {
+                "skill_id": "comeonagain",
+                "cost": 1,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "skill_id": "comeonagain",
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_game",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 1 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "comeonagain" }
+                        ]
+                    },
+                    {
+                        "effect_type": "choose_cards",
+                        "from": "archive",
+                        "look_at": -1,
+                        "destination": "hand",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "requirement": "color_in",
+                        "requirement_colors": ["red"],
+                        "remaining_cards_action": "nothing"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "card_id": "hSD02-002",
+        "card_type": "holomem_debut",
+        "card_names": ["nakiri_ayame"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 90,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "konnakiri",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 30,
+                "art_effects": []
+            }
+        ],
+
+        "NOTE": "hSD02 CARDS END"
     },
 
 
@@ -7182,7 +7279,9 @@
                     { "effect_type": "pass" }
                 ]
             }
-        ]
+        ],
+
+        "NOTE": "CHEER SET OSHI CARDS END"
     },
 
 
