@@ -1249,6 +1249,7 @@
                         "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
                     },
                     {
+                        "full_english_text": "AYAME_09_ART_FULL_TEXT",
                         "timing": "before_art",
                         "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
                         "effect_type": "generate_choice_template",
@@ -1284,7 +1285,7 @@
         "card_names": ["poyoyo"],
         "rarity": "c",
         "tags": [
-            "ShirakamiCharacter"
+            "#ShirakamiCharacter"
         ],
         "effects": [
             { "effect_type": "attach_card_to_holomem" }
