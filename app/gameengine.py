@@ -3908,6 +3908,10 @@ class GameEngine:
                                     to_options = [card for card in holomems if to_limitation_name in card["card_names"]]
                                 case "tag_in":
                                     to_options = [card for card in effect_player.get_holomem_on_stage() if any(tag in card["tags"] for tag in to_limitation_tags)]
+                                case "card_type":
+                                    to_limitation_card_type = effect.get("to_limitation_card_type", "")
+                                    holomems = effect_player.get_holomem_on_stage()
+                                    to_options = [card for card in holomems if to_limitation_card_type == card["card_type"]]
                                 case _:
                                     raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
                         else:
