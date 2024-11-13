@@ -1205,6 +1205,79 @@
         ]
     },
     {
+        "card_id": "hSD02-009",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "card_names": ["nakiri_ayame"],
+        "rarity": "rr",
+        "colors": ["red"],
+        "hp": 180,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "theayainayafubumi",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
+                    }
+                ]
+            },
+            {
+                "art_id": "yodayo",
+                "costs": [
+                    { "color": "red", "amount": 2 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "yellow" }]
+                    },
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
+                        "effect_type": "generate_choice_template",
+                        "can_pass": true,
+                        "starts_at": 1,
+                        "ends_at": 3,
+                        "usage_count_restriction": "available_archive_from_hand",
+                        "ability_source": "holomem_red",
+                        "multi_value": 40,
+                        "template_choice": {
+                            "effect_type": "archive_from_hand",
+                            "ability_source": "holomem_red",
+                            "amount": "X",
+                            "and": [
+                                {
+                                    "effect_type": "deal_damage",
+                                    "special": true,
+                                    "amount": "multiX",
+                                    "target": "center",
+                                    "opponent": true
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD02-014",
         "card_type": "support",
         "sub_type": "mascot",
