@@ -1107,6 +1107,45 @@
         ]
     },
     {
+        "card_id": "hSD02-007",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nakiri_ayame"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "dontmisstheshiningme",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 2,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
+                "reveal_chosen": true,
+                "remaining_cards_action": "archive",
+                "conditions": [
+                    { "condition": "bloom_target_is_debut" }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD02-014",
         "card_type": "support",
         "sub_type": "mascot",
