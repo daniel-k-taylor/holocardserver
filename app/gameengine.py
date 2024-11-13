@@ -93,6 +93,7 @@ class EffectType:
 class Condition:
     Condition_AnyTagHolomemHasCheer = "any_tag_holomem_has_cheer"
     Condition_AttachedTo = "attached_to"
+    Condition_AttachedWith = "attached_with"
     Condition_AttachedOwnerIsLocation = "attached_owner_is_location"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
@@ -2461,6 +2462,15 @@ class GameEngine:
                     if required_member_name in self.after_damage_state.target_card["card_names"]:
                         if not required_bloom_levels or self.after_damage_state.target_card.get("bloom_level", -1) in required_bloom_levels:
                             return True
+                return False
+            case Condition.Condition_AttachedWith:
+                required_card_name = condition["required_card_name"]
+                source_card = self.find_card(source_card_id)
+                # Check if the source card is attached with the mentioned card name
+                for support in source_card["attached_support"]:
+                    if required_card_name in support["card_names"]:
+                        return True
+                # Can be expaneded to include other attachment zones
                 return False
             case Condition.Condition_AttachedOwnerIsLocation:
                 required_location = condition["condition_location"]

@@ -989,6 +989,43 @@
         ]
     },
     {
+        "card_id": "hSD02-004",
+        "card_type": "holomem_debut",
+        "card_names": ["nakiri_ayame"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 60,
+        "baton_cost": 0,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "deliciousdangos",
+                "costs": [
+                    { "color": "red", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "add_turn_effect",
+                "conditions": [
+                    { "condition": "attached_with", "required_card_name": "poyoyo" }
+                ],
+                "turn_effect": {
+                    "timing": "before_art",
+                    "conditions": [{ "condition": "performer_is_center" }],
+                    "effect_type": "power_boost",
+                    "amount": 20
+                }
+            }
+        ]
+    },
+    {
         "card_id": "hSD02-005",
         "card_type": "holomem_bloom",
         "bloom_level": 1,
