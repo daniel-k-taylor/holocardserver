@@ -1018,6 +1018,34 @@
                 ],
                 "power": 60
             }
+        ]
+    },
+    {
+        "card_id": "hSD02-014",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "card_names": ["poyoyo"],
+        "rarity": "c",
+        "tags": [
+            "ShirakamiCharacter"
+        ],
+        "effects": [
+            { "effect_type": "attach_card_to_holomem" }
+        ],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 20
+            },
+            {
+                "timing": "on_bloom_level_up",
+                "conditions": [
+                    { "condition": "attached_to", "required_member_name": "nakiri_ayame" }
+                ],
+                "effect_type": "draw",
+                "amount": 1
+            }
         ],
 
         "NOTE": "hSD02 CARDS END"
