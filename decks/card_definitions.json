@@ -1146,6 +1146,65 @@
         ]
     },
     {
+        "card_id": "hSD02-008",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nakiri_ayame"],
+        "rarity": "r",
+        "colors": ["red"],
+        "buzz": true,
+        "hp": 230,
+        "baton_cost": 1,
+        "down_life_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gen2",
+            "#Shooter"
+        ],
+        "arts":[
+            {
+                "art_id": "fancybirthday",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40
+            },
+            {
+                "art_id": "whatsinthepresent",
+                "costs": [
+                    { "color": "red", "amount": 2 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 50,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "choice",
+                        "conditions": [{ "condition": "can_archive_from_hand", "amount_min": 1, "condition_source": "holomem_red" }],
+                        "choice": [
+                            {
+                                "effect_type": "archive_from_hand",
+                                "ability_source": "holomem_red",
+                                "amount": 1,
+                                "and": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 50,
+                                        "target": "center_or_collab",
+                                        "opponent": true
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD02-014",
         "card_type": "support",
         "sub_type": "mascot",
