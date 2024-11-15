@@ -93,7 +93,6 @@ class EffectType:
 class Condition:
     Condition_AnyTagHolomemHasCheer = "any_tag_holomem_has_cheer"
     Condition_AttachedTo = "attached_to"
-    Condition_AttachedWith = "attached_with"
     Condition_AttachedOwnerIsLocation = "attached_owner_is_location"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
@@ -113,6 +112,7 @@ class Condition:
     Condition_DownedCardIsColor = "downed_card_is_color"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HasAttachmentOfType = "has_attachment_of_type"
+    Condition_HasAttachedCard = "has_attached_card"
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemOnStage = "holomem_on_stage"
     Condition_HolopowerAtLeast = "holopower_at_least"
@@ -2463,15 +2463,6 @@ class GameEngine:
                         if not required_bloom_levels or self.after_damage_state.target_card.get("bloom_level", -1) in required_bloom_levels:
                             return True
                 return False
-            case Condition.Condition_AttachedWith:
-                required_card_name = condition["required_card_name"]
-                source_card = self.find_card(source_card_id)
-                # Check if the source card is attached with the mentioned card name
-                for support in source_card["attached_support"]:
-                    if required_card_name in support["card_names"]:
-                        return True
-                # Can be expaneded to include other attachment zones
-                return False
             case Condition.Condition_AttachedOwnerIsLocation:
                 required_location = condition["condition_location"]
                 holomems = effect_player.get_holomems_with_attachment(source_card_id)
@@ -2569,6 +2560,15 @@ class GameEngine:
                 for attachment in card["attached_support"]:
                     if "sub_type" in attachment and attachment["sub_type"] == attachment_type:
                         return True
+                return False
+            case Condition.Condition_HasAttachedCard:
+                required_card_name = condition["required_card_name"]
+                source_card = self.find_card(source_card_id)
+                # Check if the source card is attached with the mentioned card name
+                for support in source_card["attached_support"]:
+                    if required_card_name in support["card_names"]:
+                        return True
+                # Can be expanded to include other attachment zones
                 return False
             case Condition.Condition_HasStackedHolomem:
                 card, _, _ = effect_player.find_card(source_card_id)
