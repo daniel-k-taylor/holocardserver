@@ -2554,13 +2554,6 @@ class GameEngine:
                 return condition_color in downed_card["colors"]
             case Condition.Condition_EffectCardIdNotUsedThisTurn:
                 return not effect_player.has_used_card_effect_this_turn(source_card_id)
-            case Condition.Condition_HasAttachmentOfType:
-                attachment_type = condition["condition_type"]
-                card, _, _ = effect_player.find_card(source_card_id)
-                for attachment in card["attached_support"]:
-                    if "sub_type" in attachment and attachment["sub_type"] == attachment_type:
-                        return True
-                return False
             case Condition.Condition_HasAttachedCard:
                 required_card_name = condition["required_card_name"]
                 source_card = self.find_card(source_card_id)
@@ -2569,6 +2562,13 @@ class GameEngine:
                     if required_card_name in support["card_names"]:
                         return True
                 # Can be expanded to include other attachment zones
+                return False
+            case Condition.Condition_HasAttachmentOfType:
+                attachment_type = condition["condition_type"]
+                card, _, _ = effect_player.find_card(source_card_id)
+                for attachment in card["attached_support"]:
+                    if "sub_type" in attachment and attachment["sub_type"] == attachment_type:
+                        return True
                 return False
             case Condition.Condition_HasStackedHolomem:
                 card, _, _ = effect_player.find_card(source_card_id)
