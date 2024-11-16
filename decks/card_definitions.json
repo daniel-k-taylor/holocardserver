@@ -1471,7 +1471,7 @@
             {
                 "art_id": "mogumoguokayu",
                 "costs": [
-                    { "color": "white", "amount": 1 }
+                    { "color": "any", "amount": 1 }
                 ],
                 "power": 30
             }
@@ -1505,7 +1505,7 @@
                 "conditions": [{ "condition": "center_has_any_tag", "condition_tags": ["#Gamers"] }],
                 "special": true,
                 "amount": 10,
-                "target": "center_and_backstage",
+                "target": "center_and_x_backstage",
                 "opponent": true,
                 "prevent_life_loss": true
             }
@@ -1549,6 +1549,7 @@
                                 "to": "this_holomem"
                             },
                             {
+                                "full_english_text": "OKAYU_004_COLLAB_PARTIAL_TEXT",
                                 "effect_type": "order_cards",
                                 "from": "deck",
                                 "destination": "deck",
@@ -1640,7 +1641,7 @@
                                         "effect_type": "deal_damage",
                                         "special": true,
                                         "amount": 10,
-                                        "target": "center_and_backstage",
+                                        "target": "center_and_x_backstage",
                                         "opponent": true
                                     }
                                 ]

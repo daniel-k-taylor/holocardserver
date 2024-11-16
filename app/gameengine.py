@@ -3259,14 +3259,13 @@ class GameEngine:
                         target_cards = target_player.center
                     case "collab":
                         target_cards = target_player.collab
-                    case "center_and_backstage":
-                        # this preserves the order of effect: center first, before backstage
-                        # will only be relevant if there is only one backstage member
-                        # otherwise, backstage will be first because the player has to `choose`
-                        back_effect = deepcopy(effect)
-                        back_effect["target"] = "backstage"
-                        self.do_effect(effect_player, back_effect)
-                        target_cards = target_player.center
+                    case "center_and_x_backstage":
+                        # backstage damage is applied first, before center
+                        center_effect = deepcopy(effect)
+                        center_effect["target"] = "center"
+                        center_effect["multiple_targets"] = None
+                        self.do_effect(effect_player, center_effect)
+                        target_cards = target_player.backstage
                     case "center_or_collab":
                         target_cards = target_player.center + target_player.collab
                     case "current_damage_target":
