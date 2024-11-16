@@ -1686,6 +1686,29 @@
                 "to_limitation": "tag_in",
                 "to_limitation_tags": ["#Gamers"]
             }
+        ]
+    },
+    {
+        "card_id": "hSD03-014",
+        "card_type": "support",
+        "sub_type": "fan",
+        "card_names": ["onigirya"],
+        "rarity": "c",
+        "colors": [],
+        "play_conditions": [{ "condition": "holomem_on_stage", "required_member_name": "nekomata_okayu" }],
+        "effects": [
+            {
+                "effect_type": "attach_card_to_holomem",
+                "to_limitation": "specific_member_name",
+                "to_limitation_name": "nekomata_okayu"
+            }
+        ],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 10
+            }
         ],
 
         "NOTE": "hSD03 CARDS END"
