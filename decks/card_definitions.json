@@ -1509,6 +1509,57 @@
                 "opponent": true,
                 "prevent_life_loss": true
             }
+        ]
+    },
+    {
+        "card_id": "hSD03-004",
+        "card_type": "holomem_debut",
+        "card_names": ["nekomata_okayu"],
+        "rarity": "u",
+        "colors": ["blue"],
+        "hp": 80,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "studentcat",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 20
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "choice",
+                "choice": [
+                    { 
+                        "effect_type": "reveal_top_deck",
+                        "and": [
+                            {
+                                "effect_type": "send_cheer",
+                                "conditions": [{ "condition": "top_deck_has_any_card_type", "condition_card_types": ["holomem_debut", "holomem_spot"] }],
+                                "amount_min": 1,
+                                "amount_max": 1,
+                                "from": "cheer_deck",
+                                "to": "this_holomem"
+                            },
+                            {
+                                "effect_type": "order_cards",
+                                "from": "deck",
+                                "destination": "deck",
+                                "bottom": true,
+                                "amount": 1
+                            }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
         ],
 
         "NOTE": "hSD03 CARDS END"

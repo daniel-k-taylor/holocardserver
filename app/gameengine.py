@@ -136,6 +136,7 @@ class Condition:
     Condition_TargetIsBackstage = "target_is_backstage"
     Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCollab = "this_card_is_collab"
+    Condition_TopDeckCardHasAnyCardType = "top_deck_has_any_card_type"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
     Condition_ColorOnStage = "color_on_stage"
 
@@ -2705,6 +2706,15 @@ class GameEngine:
                 if len(effect_player.collab) == 0:
                     return False
                 return effect_player.collab[0]["game_card_id"] == source_card_id
+            case Condition.Condition_TopDeckCardHasAnyCardType:
+                valid_card_types = condition["condition_card_types"]
+                if len(effect_player.deck) == 0:
+                    return False
+                top_card_type = effect_player.deck[0]["card_type"]
+                for valid_type in valid_card_types:
+                    if top_card_type == valid_type:
+                        return True
+                return False
             case Condition.Condition_TopDeckCardHasAnyTag:
                 valid_tags = condition["condition_tags"]
                 if len(effect_player.deck) == 0:
@@ -3530,6 +3540,7 @@ class GameEngine:
                 from_zone = effect["from"]
                 to_zone = effect["destination"]
                 bottom = effect.get("bottom", False)
+                amount = effect.get("amount", -1)
                 order_player = effect_player
                 if for_opponent:
                     order_player = self.other_player(effect_player_id)
@@ -3537,6 +3548,11 @@ class GameEngine:
                 match from_zone:
                     case "hand":
                         cards_to_order = ids_from_cards(order_player.hand)
+                    case "deck":
+                        cards_to_order = ids_from_cards(order_player.deck)
+
+                amount = len(cards_to_order) if amount == -1 else min(amount, len(cards_to_order))
+                cards_to_order = cards_to_order[:amount]
                 self.last_card_count = len(cards_to_order)
                 self.choose_cards_cleanup_remaining(order_player.player_id, cards_to_order, "order_on_bottom", from_zone, to_zone,
                     self.continue_resolving_effects
