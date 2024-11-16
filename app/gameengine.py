@@ -112,6 +112,7 @@ class Condition:
     Condition_DownedCardIsColor = "downed_card_is_color"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HasAttachmentOfType = "has_attachment_of_type"
+    Condition_HasAttachedCard = "has_attached_card"
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemOnStage = "holomem_on_stage"
     Condition_HolopowerAtLeast = "holopower_at_least"
@@ -2553,6 +2554,15 @@ class GameEngine:
                 return condition_color in downed_card["colors"]
             case Condition.Condition_EffectCardIdNotUsedThisTurn:
                 return not effect_player.has_used_card_effect_this_turn(source_card_id)
+            case Condition.Condition_HasAttachedCard:
+                required_card_name = condition["required_card_name"]
+                source_card = self.find_card(source_card_id)
+                # Check if the source card is attached with the mentioned card name
+                for support in source_card["attached_support"]:
+                    if required_card_name in support["card_names"]:
+                        return True
+                # Can be expanded to include other attachment zones
+                return False
             case Condition.Condition_HasAttachmentOfType:
                 attachment_type = condition["condition_type"]
                 card, _, _ = effect_player.find_card(source_card_id)
@@ -3898,6 +3908,10 @@ class GameEngine:
                                     to_options = [card for card in holomems if to_limitation_name in card["card_names"]]
                                 case "tag_in":
                                     to_options = [card for card in effect_player.get_holomem_on_stage() if any(tag in card["tags"] for tag in to_limitation_tags)]
+                                case "card_type":
+                                    to_limitation_card_type = effect.get("to_limitation_card_type", "")
+                                    holomems = effect_player.get_holomem_on_stage()
+                                    to_options = [card for card in holomems if to_limitation_card_type == card["card_type"]]
                                 case _:
                                     raise NotImplementedError(f"Unimplemented to limitation: {to_limitation}")
                         else:
