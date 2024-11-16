@@ -1560,6 +1560,38 @@
                     { "effect_type": "pass" }
                 ]
             }
+        ]
+    },
+    {
+        "card_id": "hSD03-005",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nekomata_okayu"],
+        "rarity": "c",
+        "colors": ["blue"],
+        "hp": 170,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "givemeatighthug",
+                "costs": [
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30
+            },
+            {
+                "art_id": "eheheprank",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 50
+            }
         ],
 
         "NOTE": "hSD03 CARDS END"
