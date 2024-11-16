@@ -1451,6 +1451,33 @@
         "NOTE": "hSD02 CARDS END"
     },
 
+    {
+        "NOTE": "hSD03 CARDS START",
+
+        "card_id": "hSD03-002",
+        "card_type": "holomem_debut",
+        "card_names": ["nekomata_okayu"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["blue"],
+        "hp": 100,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "mogumoguokayu",
+                "costs": [
+                    { "color": "white", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ]
+    },
+
 
     {
         "NOTE": "hSD04 CARDS START",
