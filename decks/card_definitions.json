@@ -1592,6 +1592,64 @@
                 ],
                 "power": 50
             }
+        ]
+    },
+    {
+        "card_id": "hSD03-006",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nekomata_okayu"],
+        "rarity": "c",
+        "colors": ["blue"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars",
+            "#Song"
+        ],
+        "arts": [
+            {
+                "art_id": "nekokaburi",
+                "costs": [
+                    { "color": "blue", "amount": 1 }
+                ],
+                "power": 30
+            },
+            {
+                "art_id": "shaa",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 40,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "choice",
+                        "choice": [
+                            {
+                                "effect_type": "archive_cheer_from_holomem",
+                                "required_colors": ["blue"],
+                                "ability_source": "holomem_blue",
+                                "from": "self",
+                                "amount": 1,
+                                "and": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 10,
+                                        "target": "center_and_backstage",
+                                        "opponent": true
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
         ],
 
         "NOTE": "hSD03 CARDS END"

@@ -372,14 +372,17 @@ def unpack_game_id(card) -> tuple[any, str]:
     return card, card["game_card_id"]
 
 # generates events that occurs from end turn to next player's turn
-def end_turn_events(for_validation=True) -> list:
+def end_turn_events(for_validation=True, new_center=False) -> list:
     events = [
         EventType.EventType_EndTurn,
         EventType.EventType_TurnStart,
         EventType.EventType_ResetStepActivate,
         EventType.EventType_ResetStepCollab,
-        EventType.EventType_Draw,
-        EventType.EventType_CheerStep,
     ]
+
+    if new_center:
+        events += [EventType.EventType_ResetStepChooseNewCenter]
+    else:
+        events += [EventType.EventType_Draw, EventType.EventType_CheerStep]
 
     return [(event, {}) if for_validation else events for event in events]
