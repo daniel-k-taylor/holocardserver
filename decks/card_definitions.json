@@ -1733,7 +1733,7 @@
         "card_id": "hSD03-011",
         "card_type": "holomem_spot",
         "bloom_blocked": true,
-        "card_names": ["laplus_darknesss"],
+        "card_names": ["laplus_darkness"],
         "rarity": "u",
         "colors": ["none"],
         "hp": 60,
@@ -1761,6 +1761,30 @@
                         "max_in_hand": 3
                     }
                 ]
+            }
+        ]
+    },
+    {
+        "card_id": "hSD03-012",
+        "card_type": "support",
+        "sub_type": "event",
+        "card_names": ["dorobo_construction"],
+        "rarity": "u",
+        "limited": true,
+        "colors": [],
+        "play_conditions": [{ "condition": "cards_in_hand", "amount_max": 7 }],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem_named",
+                "requirement_names": ["nekomata_okayu", "takane_lui", "ookami_mio", "shirakami_fubuki", "laplus_darkness", "inugami_korone"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
             }
         ]
     },
