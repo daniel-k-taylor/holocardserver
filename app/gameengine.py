@@ -2605,15 +2605,20 @@ class GameEngine:
                         return True
                 return False
             case Condition.Condition_HolomemOnStage:
+                holomems = []
+                match condition.get("location"):
+                    case "center":
+                        holomems = effect_player.center
+                    case _:
+                        holomems = effect_player.get_holomem_on_stage()
+
                 if "required_member_name" in condition:
                     required_member_name = condition["required_member_name"]
-                    holomems = effect_player.get_holomem_on_stage()
                     return any(required_member_name in holomem["card_names"] for holomem in holomems)
                 elif "exclude_member_name" in condition:
                     exclude_member_name = condition["exclude_member_name"]
                     if "tag_in" in condition:
                         tags = condition["tag_in"]
-                        holomems = effect_player.get_holomem_on_stage()
                         for holomem in holomems:
                             if exclude_member_name in holomem["card_names"]:
                                 continue
@@ -3080,6 +3085,7 @@ class GameEngine:
                 requirement_match_oshi_color = effect.get("requirement_match_oshi_color", False)
                 requirement_only_holomems_with_any_tag = effect.get("requirement_only_holomems_with_any_tag", False)
                 requirement_colors = effect.get("requirement_colors", [])
+                requirement_support_types = effect.get("requirement_support_types", [])
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 after_choose_effect = effect.get("after_choose_effect", None)
@@ -3094,6 +3100,7 @@ class GameEngine:
                     "requirement_match_oshi_color": requirement_match_oshi_color,
                     "requirement_only_holomems_with_any_tag": requirement_only_holomems_with_any_tag,
                     "requirement_colors": requirement_colors,
+                    "requirement_support_types": requirement_support_types
                 }
 
                 cards_to_choose_from = []
@@ -3162,6 +3169,9 @@ class GameEngine:
                         case "event":
                             # Only include cards that are events.
                             cards_can_choose = [card for card in cards_can_choose if is_card_event(card)]
+                        case "support_types":
+                            # Only include support cards that are of sub_type
+                            cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_support_types]
                         case "cheer":
                             # Only include cards that are cheer.
                             cards_can_choose = [card for card in cards_can_choose if is_card_cheer(card)]
