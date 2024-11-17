@@ -1,3 +1,39 @@
+✔ yuzuki_choco @done(24-11-16 15:47)
+✔ oozora_subaru @done(24-11-16 15:47)
+✔ purplemic @done(24-11-16 15:48)
+✔ cardchange @done(24-11-16 15:53)
+✔ underworldschoolnurse @done(24-11-16 15:53)
+✔ mycutestudents @done(24-11-16 15:53)
+✔ pleaseeatalot @done(24-11-16 15:53)
+✔ otsukareito @done(24-11-16 15:54)
+✔ ohhhchu @done(24-11-16 15:54)
+✔ forbiddenkiss @done(24-11-16 15:54)
+✔ daisukichu @done(24-11-16 15:54)
+✔ didmybestmakingthis @done(24-11-16 15:55)
+✔ enjoythemeal @done(24-11-16 15:55)
+✔ 332211 @done(24-11-16 15:55)
+✔ artname_go @done(24-11-16 15:55)
+✔ illmakeyoudrawthehelllotto @done(24-11-16 15:55)
+✔ nnaaaaaaaaa @done(24-11-16 15:55)
+✔ subachocoluna @done(24-11-16 15:56)
+✔ chocos_omurice @done(24-11-16 15:56)
+✔ chocolat @done(24-11-16 15:56)
+✔ CHOCO_SD04_004_FULL_TEXT @done(24-11-16 16:48)
+
+
+☐ "conditions": [{ "condition": "oshi_is_color", "condition_colors": ["purple"] }], @started(24-11-16 16:53)
+
+☐ choose cards "requirement_tags": ["#Food"], with requirement "event" @started(24-11-16 16:54)
+
+☐ restore_hp "amount": "damage_dealt_floor_round_to_10s" @started(24-11-16 16:57)
+
+☐ choosecards "requirement_block_limited": true, with requirement "event" @started(24-11-16 17:14)
+
+☐ "effect_type": "power_boost_per_played_support", @started(24-11-16 17:23)
+
+☐ "use_last_chosen_holomem": true, @started(24-11-16 17:41)
+☐ restore_hp "target": "attached_owner", @started(24-11-16 17:11)
+
 Bugs:
     ☐ Pekora rabbitality reroll from fan should affect whole ability
 
