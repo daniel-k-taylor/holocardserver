@@ -3412,10 +3412,13 @@ class GameEngine:
                         "continuation": self.continue_resolving_effects,
                     })
             case EffectType.EffectType_Draw:
-                amount = effect["amount"]
+                amount = effect.get("amount", len(effect_player.hand))
                 if str(amount) == "last_card_count":
                     amount = self.last_card_count
                     self.last_card_count = 0
+                max_in_hand = effect.get("max_in_hand")
+                if max_in_hand:
+                    amount = max(0, max_in_hand - amount)
                 if amount > 0:
                     target_player = effect_player
                     if effect.get("opponent", False):

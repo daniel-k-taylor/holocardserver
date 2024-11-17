@@ -1730,6 +1730,41 @@
         ]
     },
     {
+        "card_id": "hSD03-011",
+        "card_type": "holomem_spot",
+        "bloom_blocked": true,
+        "card_names": ["laplus_darknesss"],
+        "rarity": "u",
+        "colors": ["none"],
+        "hp": 60,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Shooter"
+        ],
+        "arts": [
+            {
+                "art_id": "doroboconstructionagriculturalminister",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 10
+            },
+            {
+                "art_id": "illdefinitelyletyoueatit",
+                "costs": [{ "color": "any", "amount": 2 }],
+                "power": 20,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "draw",
+                        "conditions": [{ "condition": "cards_in_hand", "amount_max": 2 }],
+                        "max_in_hand": 3
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD03-014",
         "card_type": "support",
         "sub_type": "fan",
