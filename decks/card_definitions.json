@@ -1738,6 +1738,78 @@
         ]
     },
     {
+        "card_id": "hSD03-009",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "card_names": ["nekomata_okayu"],
+        "rarity": "rr",
+        "colors": ["blue"],
+        "hp": 190,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "mogmog",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "white" }]
+                    }
+                ]
+            },
+            {
+                "art_id": "okayu",
+                "costs": [
+                    { "color": "blue", "amount": 2 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 100,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "white" }]  
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "choice",
+                        "choice": [
+                            {
+                                "effect_type": "archive_cheer_from_holomem",
+                                "required_colors": ["blue"],
+                                "ability_source": "holomem_blue",
+                                "from": "self",
+                                "amount": 2,
+                                "and": [
+                                    {
+                                        "effect_type": "deal_damage",
+                                        "special": true,
+                                        "amount": 30,
+                                        "target": "center_and_x_backstage",
+                                        "opponent": true
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD03-010",
         "card_type": "holomem_spot",
         "bloom_blocked": true,
