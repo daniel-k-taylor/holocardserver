@@ -2612,6 +2612,14 @@ class GameEngine:
                                 continue
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
+                else:
+                    # No specific member needed, but still check tags.
+                    if "tag_in" in condition:
+                        tags = condition["tag_in"]
+                        holomems = effect_player.get_holomem_on_stage()
+                        for holomem in holomems:
+                            if any(tag in holomem["tags"] for tag in tags):
+                                return True
                 return False
             case Condition.Condition_HolopowerAtLeast:
                 amount = condition["amount"]
@@ -3595,8 +3603,8 @@ class GameEngine:
                     self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerPlayedSupport:
                 per_amount = effect["amount"]
-                support_type = effect["support_type"]
-                num_played = effect_player.played_support_types_this_turn.get(support_type, 0)
+                sub_type = effect["support_sub_type"]
+                num_played = effect_player.played_support_types_this_turn.get(sub_type, 0)
                 total = per_amount * num_played
                 if total != 0:
                     self.performance_artstatboosts.power += total
@@ -4716,8 +4724,8 @@ class GameEngine:
 
         # Begin resolving the card effects.
         player.played_support_this_turn = True
-        amount_of_type_played = player.played_support_types_this_turn.get(card["card_type"], 0)
-        player.played_support_types_this_turn[card["card_type"]] = amount_of_type_played + 1
+        amount_of_type_played = player.played_support_types_this_turn.get(card["sub_type"], 0)
+        player.played_support_types_this_turn[card["sub_type"]] = amount_of_type_played + 1
         if is_card_limited(card):
             player.used_limited_this_turn = True
 

@@ -1771,6 +1771,7 @@
                 "power": 60,
                 "art_effects": [
                     {
+                        "timing": "before_art",
                         "effect_type": "choose_cards",
                         "from": "archive",
                         "look_at": -1,
@@ -1838,7 +1839,7 @@
                     {
                         "timing": "before_art",
                         "effect_type": "power_boost_per_played_support",
-                        "support_type": "event",
+                        "support_sub_type": "event",
                         "amount": 40
                     }
                 ]
@@ -1990,7 +1991,7 @@
         ]
     },
     {
-        "card_id": "hSD02-014",
+        "card_id": "hSD04-014",
         "card_type": "support",
         "sub_type": "mascot",
         "card_names": ["chocolat"],
