@@ -775,10 +775,12 @@ class PlayerState:
                 return card
         return None
 
-    def get_holomem_on_stage(self, only_performers = False, only_collab = False):
+    def get_holomem_on_stage(self, only_performers = False, only_collab = False, only_backstage = False):
         on_stage = []
         if only_collab:
             on_stage = self.collab.copy()
+        elif only_backstage:
+            on_stage = self.backstage.copy()
         else:
             on_stage = self.center + self.collab
             if not only_performers:
@@ -1245,6 +1247,7 @@ class PlayerState:
             if self.engine.after_damage_state:
                 damage_dealt = self.engine.after_damage_state.damage_dealt
                 healed_amount = 10 * (damage_dealt // 10)
+                healed_amount = min(healed_amount, card["damage"])
         else:
             healed_amount = min(amount, card["damage"])
         if healed_amount > 0:
@@ -2135,9 +2138,12 @@ class GameEngine:
         active_player = self.get_player(self.active_player_id)
 
         # Deal damage.
+        art_after_deal_damage_effects = filter_effects_at_timing(self.performance_art.get("art_effects", []), "after_deal_damage")
+        add_ids_to_effects(art_after_deal_damage_effects, self.active_player_id, self.performance_performer_card["game_card_id"])
         art_kill_effects = self.performance_art.get("on_kill_effects", [])
         add_ids_to_effects(art_kill_effects, self.active_player_id, self.performance_performer_card["game_card_id"])
         art_info = {
+            "after_deal_damage_effects": art_after_deal_damage_effects,
             "art_kill_effects": art_kill_effects,
         }
         self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_info, self.performance_continuation)
@@ -2204,24 +2210,25 @@ class GameEngine:
         died = target_card["damage"] >= target_player.get_card_hp(target_card)
         if died:
             self.begin_down_holomem(dealing_player, target_player, dealing_card, target_card, art_info, lambda :
-                self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation))
+                self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, art_info, continuation))
         else:
-            self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation)
+            self.complete_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, prevent_life_loss, died, art_info, continuation)
 
-    def complete_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, died, continuation):
+    def complete_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, died, art_info, continuation):
         if died:
             self.process_downed_holomem(target_player, target_card, prevent_life_loss, lambda :
-                self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, continuation)
+                self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, art_info, continuation)
             )
         else:
-            self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, continuation)
+            self.begin_after_deal_damage(dealing_player, target_player, dealing_card, target_card, damage, special, art_info, continuation)
 
-    def begin_after_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, continuation):
+    def begin_after_deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, art_info, continuation):
         after_effects = []
         if damage > 0:
+            art_after_deal_damage_effects = art_info.get("after_deal_damage_effects", [])
             after_deal_damage_effects = dealing_player.get_effects_at_timing("after_deal_damage", dealing_card)
             after_take_damage_effects = target_player.get_effects_at_timing("after_take_damage", target_card)
-            after_effects = after_deal_damage_effects + after_take_damage_effects
+            after_effects = art_after_deal_damage_effects + after_deal_damage_effects + after_take_damage_effects
         nested_state = None
         if self.after_damage_state:
             nested_state = self.after_damage_state
@@ -3149,7 +3156,7 @@ class GameEngine:
 
                     # Restrict to only tagged cards.
                     if requirement_tags:
-                        cards_can_choose = [card for card in cards_can_choose if any(tag in card["tags"] for tag in requirement_tags)]
+                        cards_can_choose = [card for card in cards_can_choose if any(tag in card.get("tags", []) for tag in requirement_tags)]
 
                     # Restrict to oshi color.
                     if requirement_match_oshi_color:
@@ -3628,6 +3635,8 @@ class GameEngine:
                         holomems = effect_player.get_holomems_with_attachment(effect["source_card_id"])
                         if holomems:
                             target_options = ids_from_cards(holomems)
+                    case "backstage":
+                        target_options = ids_from_cards(effect_player.backstage)
                     case "center":
                         target_options = ids_from_cards(effect_player.center)
                     case "holomem":
@@ -3678,7 +3687,7 @@ class GameEngine:
                 target_player = effect["target_player"]
                 target_card = effect["target_card"]
                 amount = effect["amount"]
-                self.last_chosen_holomem_id = target_card["game_card_id"]
+                self.last_chosen_holomem_id = target_card
                 self.restore_holomem_hp(target_player, target_card, amount, self.continue_resolving_effects)
                 passed_on_continuation = True
             case EffectType.EffectType_ReturnHolomemToDebut:

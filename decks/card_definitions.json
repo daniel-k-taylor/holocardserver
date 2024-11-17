@@ -1716,8 +1716,7 @@
                     {
                         "timing": "before_art",
                         "effect_type": "restore_hp",
-                        "target": "holomem",
-                        "limitation": "position_back",
+                        "target": "backstage",
                         "amount": 20
                     }
                 ]

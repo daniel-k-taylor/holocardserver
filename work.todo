@@ -1,3 +1,9 @@
+Continue tests:
+    ☐ 8
+    ☐ 9
+    ☐ 13
+    ☐ 14
+
 ✔ yuzuki_choco @done(24-11-16 15:47)
 ✔ oozora_subaru @done(24-11-16 15:47)
 ✔ purplemic @done(24-11-16 15:48)
@@ -21,11 +27,11 @@
 ✔ CHOCO_SD04_004_FULL_TEXT @done(24-11-16 16:48)
 
 
-☐ "conditions": [{ "condition": "oshi_is_color", "condition_colors": ["purple"] }], @started(24-11-16 16:53)
+✔ "conditions": [{ "condition": "oshi_is_color", "condition_colors": ["purple"] }], @started(24-11-16 16:53) @done(24-11-16 23:27) @lasted(6h34m17s)
 
-☐ choose cards "requirement_tags": ["#Food"], with requirement "event" @started(24-11-16 16:54)
+✔ choose cards "requirement_tags": ["#Food"], with requirement "event" @started(24-11-16 16:54) @done(24-11-16 23:27) @lasted(6h33m19s)
 
-☐ restore_hp "amount": "damage_dealt_floor_round_to_10s" @started(24-11-16 16:57)
+✔ restore_hp "amount": "damage_dealt_floor_round_to_10s" @started(24-11-16 16:57) @done(24-11-16 23:27) @lasted(6h30m21s)
 
 ☐ choosecards "requirement_block_limited": true, with requirement "event" @started(24-11-16 17:14)
 
