@@ -135,6 +135,7 @@ class Condition:
     Condition_TargetHasAnyTag = "target_has_any_tag"
     Condition_TargetIsBackstage = "target_is_backstage"
     Condition_TargetIsNotBackstage = "target_is_not_backstage"
+    Condition_ThisCardIsCenter = "this_card_is_center"
     Condition_ThisCardIsCollab = "this_card_is_collab"
     Condition_TopDeckCardHasAnyCardType = "top_deck_has_any_card_type"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
@@ -2609,12 +2610,17 @@ class GameEngine:
                 match condition.get("location"):
                     case "center":
                         holomems = effect_player.center
+                    case "collab":
+                        holomems = effect_player.collab
                     case _:
                         holomems = effect_player.get_holomem_on_stage()
 
                 if "required_member_name" in condition:
                     required_member_name = condition["required_member_name"]
                     return any(required_member_name in holomem["card_names"] for holomem in holomems)
+                elif "member_name_in" in condition:
+                    member_name_in = condition["member_name_in"]
+                    return any(member_name in holomem["card_names"] for member_name in member_name_in for holomem in holomems)
                 elif "exclude_member_name" in condition:
                     exclude_member_name = condition["exclude_member_name"]
                     if "tag_in" in condition:
@@ -2707,6 +2713,10 @@ class GameEngine:
                 return self.performance_target_card in self.performance_target_player.backstage
             case Condition.Condition_TargetIsNotBackstage:
                 return self.performance_target_card not in self.performance_target_player.backstage
+            case Condition.Condition_ThisCardIsCenter:
+                if len(effect_player.center) == 0:
+                    return False
+                return effect_player.center[0]["game_card_id"] == source_card_id
             case Condition.Condition_ThisCardIsCollab:
                 if len(effect_player.collab) == 0:
                     return False
@@ -2773,6 +2783,9 @@ class GameEngine:
                             holomem_targets = [holomem for holomem in holomem_targets if any(color in holomem["colors"] for color in limitation_colors)]
                         case "last_chosen_holomem":
                             holomem_targets = [holomem for holomem in holomem_targets if holomem["game_card_id"] == self.last_chosen_holomem_id]
+                        case "name_in":
+                            limitation_names = effect["limitation_names"]
+                            holomem_targets = [holomem for holomem in holomem_targets if any(name in holomem["card_names"] for name in limitation_names)]
                 turn_effect_copy = deepcopy(effect["turn_effect"])
                 turn_effect_copy["source_card_id"] = effect["source_card_id"]
                 holomem_targets = ids_from_cards(holomem_targets)

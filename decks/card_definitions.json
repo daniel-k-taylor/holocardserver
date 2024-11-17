@@ -1689,6 +1689,55 @@
         ]
     },
     {
+        "card_id": "hSD03-008",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nekomata_okayu"],
+        "buzz": true,
+        "rarity": "r",
+        "colors": ["blue"],
+        "hp": 240,
+        "baton_cost": 2,
+        "down_life_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gamers",
+            "#AnimalEars"
+        ],
+        "arts": [
+            {
+                "art_id": "themostnoblenekomataokayu",
+                "costs": [
+                    { "color": "blue", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60
+            }
+        ],
+        "gift_effects": [
+            {
+                "timing": "before_art",
+                "effect_type": "power_boost",
+                "conditions": [
+                    { "condition": "this_card_is_center" },
+                    { "condition": "performer_is_collab" },
+                    { 
+                        "condition": "holomem_on_stage",
+                        "location": "collab",
+                        "member_name_in": [
+                            "takane_lui",
+                            "ookami_mio",
+                            "shirakami_fubuki",
+                            "laplus_darkness",
+                            "inugami_korone"
+                        ]
+                    }
+                ],
+                "amount": 20
+            }
+        ]
+    },
+    {
         "card_id": "hSD03-010",
         "card_type": "holomem_spot",
         "bloom_blocked": true,
