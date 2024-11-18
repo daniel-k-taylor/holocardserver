@@ -56,6 +56,8 @@ def validate_consecutive_events(self: unittest.TestCase, player_id: str, for_eve
         event_type, event_data = data
         validate_event(self, event, event_type, player_id, event_data)
 
+    return player_events
+
 
 def validate_actions(self : unittest.TestCase, actions, expected_actions):
     self.assertEqual(len(actions), len(expected_actions))
@@ -311,6 +313,10 @@ def spawn_cheer_on_card(self, player : PlayerState, card_id, cheer_color, desire
             spawn_id = "hY03-001"
         case "blue":
             spawn_id = "hY04-001"
+        case "purple":
+            spawn_id = "hY05-001"
+        case "yellow":
+            spawn_id = "hY06-001"
         case _:
             self.fail("Invalid cheer color.")
 
