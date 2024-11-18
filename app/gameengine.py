@@ -2836,66 +2836,76 @@ class GameEngine:
                         # Add it to the rear of the queue.
                         self.add_effects_to_rear(after_archive_effects)
             case EffectType.EffectType_ArchiveCheerFromHolomem:
-                amount = effect["amount"]
-                from_zone = effect["from"]
-                required_colors = effect.get("required_colors", [])
-                target_holomems = []
+                source_card, _, _ = effect_player.find_card(effect["source_card_id"])
                 ability_source = effect["ability_source"]
-                match from_zone:
-                    case "self":
-                        source_card, _, _ = effect_player.find_card(effect["source_card_id"])
-                        target_holomems.append(source_card)
-                cheer_options = []
-                for holomem in target_holomems:
-                    if required_colors:
-                        matched_cheer = []
-                        for cheer in holomem["attached_cheer"]:
-                            if any(color in cheer["colors"] for color in required_colors):
-                                matched_cheer.append(cheer)
-                        cheer_options += ids_from_cards(matched_cheer)
-                    else:
-                        cheer_options += ids_from_cards(holomem["attached_cheer"])
-                after_archive_check_effect = {
-                    "player_id": effect_player_id,
-                    "effect_type": EffectType.EffectType_AfterArchiveCheerCheck,
-                    "effect_player_id": effect_player_id,
-                    "previous_archive_count": len(effect_player.archive),
-                    "ability_source": ability_source
-                }
-                self.add_effects_to_front([after_archive_check_effect])
-                if amount == len(cheer_options):
-                    # Do it immediately.
-                    effect_player.archive_attached_cards(cheer_options)
-                else:
-                    choose_event = {
-                        "event_type": EventType.EventType_Decision_ChooseCards,
-                        "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                self.archive_count_required = effect["amount"]
+                before_archive_effects = effect_player.get_effects_at_timing("before_archive_cheer", source_card, ability_source)
+
+                def archive_cheer_continuation():
+                    amount = self.archive_count_required
+                    from_zone = effect["from"]
+                    required_colors = effect.get("required_colors", [])
+                    target_holomems = []
+                    ability_source = effect["ability_source"]
+                    match from_zone:
+                        case "self":
+                            source_card, _, _ = effect_player.find_card(effect["source_card_id"])
+                            target_holomems.append(source_card)
+                    cheer_options = []
+                    for holomem in target_holomems:
+                        if required_colors:
+                            matched_cheer = []
+                            for cheer in holomem["attached_cheer"]:
+                                if any(color in cheer["colors"] for color in required_colors):
+                                    matched_cheer.append(cheer)
+                            cheer_options += ids_from_cards(matched_cheer)
+                        else:
+                            cheer_options += ids_from_cards(holomem["attached_cheer"])
+                    after_archive_check_effect = {
+                        "player_id": effect_player_id,
+                        "effect_type": EffectType.EffectType_AfterArchiveCheerCheck,
                         "effect_player_id": effect_player_id,
-                        "all_card_seen": cheer_options,
-                        "cards_can_choose": cheer_options,
-                        "from_zone": "holomem",
-                        "to_zone": "archive",
-                        "amount_min": amount,
-                        "amount_max": amount,
-                        "reveal_chosen": True,
-                        "remaining_cards_action": "nothing",
+                        "previous_archive_count": len(effect_player.archive),
+                        "ability_source": ability_source
                     }
-                    self.broadcast_event(choose_event)
-                    self.set_decision({
-                        "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
-                        "decision_player": effect_player_id,
-                        "all_card_seen": cheer_options,
-                        "cards_can_choose": cheer_options,
-                        "from_zone": "holomem",
-                        "to_zone": "archive",
-                        "amount_min": amount,
-                        "amount_max": amount,
-                        "reveal_chosen": True,
-                        "remaining_cards_action": "nothing",
-                        "source_card_id": effect["source_card_id"],
-                        "effect_resolution": self.handle_choose_cards_result,
-                        "continuation": self.continue_resolving_effects,
-                    })
+                    self.add_effects_to_front([after_archive_check_effect])
+                    if amount == 0:
+                        self.continue_resolving_effects()
+                    elif amount == len(cheer_options):
+                        # Do it immediately.
+                        effect_player.archive_attached_cards(cheer_options)
+                    else:
+                        choose_event = {
+                            "event_type": EventType.EventType_Decision_ChooseCards,
+                            "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                            "effect_player_id": effect_player_id,
+                            "all_card_seen": cheer_options,
+                            "cards_can_choose": cheer_options,
+                            "from_zone": "holomem",
+                            "to_zone": "archive",
+                            "amount_min": amount,
+                            "amount_max": amount,
+                            "reveal_chosen": True,
+                            "remaining_cards_action": "nothing",
+                        }
+                        self.broadcast_event(choose_event)
+                        self.set_decision({
+                            "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                            "decision_player": effect_player_id,
+                            "all_card_seen": cheer_options,
+                            "cards_can_choose": cheer_options,
+                            "from_zone": "holomem",
+                            "to_zone": "archive",
+                            "amount_min": amount,
+                            "amount_max": amount,
+                            "reveal_chosen": True,
+                            "remaining_cards_action": "nothing",
+                            "source_card_id": effect["source_card_id"],
+                            "effect_resolution": self.handle_choose_cards_result,
+                            "continuation": self.continue_resolving_effects,
+                        })
+
+                self.begin_resolving_effects(before_archive_effects, archive_cheer_continuation)
             case EffectType.EffectType_ArchiveFromHand:
                 amount = effect["amount"]
                 ability_source = effect["ability_source"]

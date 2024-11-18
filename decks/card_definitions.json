@@ -1985,6 +1985,43 @@
         ]
     },
     {
+        "card_id": "hSD03-013",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "card_names": ["okanyan"],
+        "rarity": "c",
+        "colors": [],
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "on_take_damage",
+                "conditions": [{ "condition": "attached_owner_is_location", "condition_location": "center_or_collab" }],
+                "effect_type": "reduce_damage",
+                "amount": 10
+            },
+            {
+                "timing": "before_archive_cheer",
+                "conditions": [
+                    { "condition": "attached_to", "required_member_name": "nekomata_okayu" }
+                ],
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "timing": "before_archive_cheer",
+                        "effect_type": "archive_this_attachment",
+                        "and": [
+                            {
+                                "effect_type": "reduce_required_archive_count",
+                                "amount": 1
+                            }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD03-014",
         "card_type": "support",
         "sub_type": "fan",
