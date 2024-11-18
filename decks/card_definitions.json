@@ -1454,6 +1454,81 @@
     {
         "NOTE": "hSD03 CARDS START",
 
+        "card_id": "hSD03-001",
+        "card_type": "oshi",
+        "card_names": ["nekomata_okayu"],
+        "colors": ["blue"],
+        "rarity": "oc",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "bluemic",
+                "cost": 2,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "hide_effect_text": true,
+                        "skill_id": "bluemic",
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_turn",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "bluemic" }
+                        ]
+                    },
+                    {
+                        "effect_type": "add_turn_effect",
+                        "turn_effect": {
+                            "timing": "before_art",
+                            "conditions": [
+                                { "condition": "performer_is_center" },
+                                { "condition": "performer_is_color", "condition_colors": ["blue"] }
+                            ],
+                            "effect_type": "power_boost",
+                            "amount": 20
+                        }
+                    }
+                ]
+            }
+        ],
+        "effects": [
+            {
+                "full_english_text": "OSHI_CHEER_04_FULL_TEXT",
+                "oshi_effect": "true",
+                "skill_id": "backshot",
+                "cost": 1,
+                "limit": "once_per_game",
+                "conditions": [
+                    { "condition": "not_used_once_per_game_effect", "condition_effect_id": "backshot" },
+                    { "condition": "holopower_at_least", "amount": 1 },
+                    { "condition": "damaged_holomem_is_backstage", "still_on_stage": true },
+                    { "condition": "damage_ability_is_color", "condition_color": "blue", "include_oshi_ability": false }
+                ],
+                "timing": "after_deal_damage",
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "oshi_effect": "true",
+                        "skill_id": "backshot",
+                        "cost": 1,
+                        "limit": "once_per_game",
+                        "effect_type": "deal_damage",
+                        "special": true,
+                        "amount": 50,
+                        "target": "current_damage_target",
+                        "opponent": true,
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 1 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "backshot" },
+                            { "effect_type": "oshi_activation", "limit": "once_per_game", "skill_id": "backshot" }
+                        ]
+                    },
+                    { "effect_type": "pass" }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hSD03-002",
         "card_type": "holomem_debut",
         "card_names": ["nekomata_okayu"],
