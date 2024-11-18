@@ -1001,6 +1001,12 @@ class PlayerState:
         # Put the bloom card where the target card was.
         zone.append(bloom_card)
 
+        # For any ongoing turn effects, make sure to point them at the new card.
+        for effect in self.turn_effects:
+            for condition in effect.get("conditions", []):
+                if condition.get("required_id", "") == target_card_id:
+                    condition["required_id"] = bloom_card_id
+
         bloom_event = {
             "event_type": EventType.EventType_Bloom,
             "bloom_player_id": self.player_id,

@@ -1123,6 +1123,98 @@ class Test_hSD04(unittest.TestCase):
     ])
 
 
+  def test_hSD04_013_omurice_heal_powerboost_cooking_even_bloomed(self):
+    p1_deck = generate_deck_with("hSD04-001", # oshi choco
+    {
+      "hSD04-002": 2,
+      "hSD04-005": 2,
+      "hSD04-013": 4,
+    },
+    {
+      "hY05-001": 20,
+    })
+    initialize_game_to_third_turn(self, p1_deck)
+
+    engine = self.engine
+
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    reset_mainstep(self)
+
+    """Test"""
+    self.assertEqual(len(p1.hand), 3)
+    p1.center = []
+    test_card = put_card_in_play(self, p1, "hSD04-002", p1.center)
+    spawn_cheer_on_card(self, p1, p1.center[0]["game_card_id"], "purple", "p1")
+    reset_mainstep(self)
+
+    # Play some events.
+    event1 = add_card_to_hand(self, p1, "hSD04-013")
+    event2 = add_card_to_hand(self, p1, "hSD04-013")
+
+    p1.center[0]["damage"] = 20
+    # Play omurice
+    engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+      "card_id": event1["game_card_id"],
+    })
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PlaySupportCard, { "card_id": event1["game_card_id"] }),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
+    ])
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+        "card_ids": [p1.center[0]["game_card_id"]],
+    })
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_RestoreHP, { "healed_amount": 20, "new_damage": 0 }),
+      (EventType.EventType_AddTurnEffect, {  }),
+      (EventType.EventType_MoveCard, { "from_zone": "floating", "to_zone": "archive" }),
+      (EventType.EventType_Decision_MainStep, {}),
+    ])
+
+    # Play omurice 2
+    engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+      "card_id": event2["game_card_id"],
+    })
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PlaySupportCard, { "card_id": event2["game_card_id"] }),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
+    ])
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+        "card_ids": [p1.center[0]["game_card_id"]],
+    })
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_AddTurnEffect, {  }),
+      (EventType.EventType_MoveCard, { "from_zone": "floating", "to_zone": "archive" }),
+      (EventType.EventType_Decision_MainStep, {}),
+    ])
+
+    bloom_card = add_card_to_hand(self, p1, "hSD04-005")
+    do_bloom(self, p1, bloom_card["game_card_id"], p1.center[0]["game_card_id"])
+    begin_performance(self)
+
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "otsukareito",
+      "performer_id": bloom_card["game_card_id"],
+      "target_id": p2.center[0]["game_card_id"]
+    })
+    events = engine.grab_events()
+
+    events = validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "otsukareito", "power": 20 }),
+      (EventType.EventType_BoostStat, { "stat": "power", "amount": 20 }),
+      (EventType.EventType_BoostStat, { "stat": "power", "amount": 20 }),
+      (EventType.EventType_DamageDealt, { "damage": 60 }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {}),
+    ])
+
+
   def test_hSD04_014_bloom_chocolat(self):
     p1_deck = generate_deck_with("hSD04-001", # oshi choco
     {
