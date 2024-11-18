@@ -2158,11 +2158,11 @@ class Test_hbp01_Support(unittest.TestCase):
             "stat": "power",
             "amount": 10
         })
-        validate_event(self, events[4], EventType.EventType_Draw, self.player1, {
-        })
-        validate_event(self, events[6], EventType.EventType_DamageDealt, self.player1, {
+        validate_event(self, events[4], EventType.EventType_DamageDealt, self.player1, {
             "damage": 40,
             "special": False
+        })
+        validate_event(self, events[6], EventType.EventType_Draw, self.player1, {
         })
         self.assertEqual(len(player1.hand), 4)
         reset_performancestep(self)
