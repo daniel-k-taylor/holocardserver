@@ -2007,7 +2007,7 @@
                 "effect_type": "choice",
                 "choice": [
                     {
-                        "timing": "before_archive_cheer",
+                        "full_english_text": "MASCOT_HSD03_013_PARTIAL_TEXT",
                         "effect_type": "archive_this_attachment",
                         "and": [
                             {

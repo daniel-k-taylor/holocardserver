@@ -95,8 +95,7 @@ class Test_hSD03_013(unittest.TestCase):
     ])
 
 
-  # substitute archive
-  def test_hsd03_013_substitue_archive(self):
+  def test_hsd03_013_substitute_archive(self):
     engine = self.engine
   
     p1: PlayerState = engine.get_player(self.player1)
@@ -141,7 +140,51 @@ class Test_hSD03_013(unittest.TestCase):
     self.assertCountEqual(ids_from_cards(p1.archive), [mascot_card_id])
 
 
-  # only 1 mascot
+  def test_hsd03_013_do_not_use_substitute_archive(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup to have 1st Okayu in the center attached with Okanyan
+    p1.center = []
+    center_card, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-006", p1.center))
+    _, cheer_card_id = unpack_game_id(spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1"))
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+    _, mascot_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-013", center_card["attached_support"]))
+
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "shaa",
+      "performer_id": center_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 }) # do not archive Okanyan instead
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive", "attached_id": cheer_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True }),
+      (EventType.EventType_DamageDealt, { "damage": 40 }),
+      *end_turn_events()
+    ])
+
+    self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [mascot_card_id])
+    self.assertCountEqual(ids_from_cards(p1.archive), [cheer_card_id])
+
+
   def test_hsd03_013_only_one_mascot(self):
     engine = self.engine
   

@@ -2874,6 +2874,7 @@ class GameEngine:
                     elif amount == len(cheer_options):
                         # Do it immediately.
                         effect_player.archive_attached_cards(cheer_options)
+                        self.continue_resolving_effects()
                     else:
                         choose_event = {
                             "event_type": EventType.EventType_Decision_ChooseCards,
