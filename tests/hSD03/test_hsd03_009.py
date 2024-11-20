@@ -295,6 +295,179 @@ class Test_hSD03_009(unittest.TestCase):
     self.assertEqual(len([card for card in p1.archive if card["card_type"] == "cheer" and "blue" in card["colors"]]), 2) # 2 blue cheers
 
 
+  def test_hsd03_009_okayu_with_suisei_oshi_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Suisei oshi
+    p1.generate_holopower(2)
+    change_oshi(self, p1, "hBP01-007")
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-009", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b2")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w2") # any color
+
+    # Green holomem in player2's center and only one backstage
+    p2.center = []
+    _, p2_center_card_id = unpack_game_id(put_card_in_play(self, p2, "hSD01-010", p2.center))
+    _, back_chosen_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "okayu",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 }) # skip shooting star
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # comet
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "okayu", "power": 100 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "comet" }),
+      (EventType.EventType_DamageDealt, { "damage": 50, "special": True, "target_id": back_chosen_id }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
+
+
+  def test_hsd03_009_okayu_with_suisei_oshi_SP_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Suisei oshi
+    p1.generate_holopower(2)
+    change_oshi(self, p1, "hBP01-007")
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-009", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b2")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w2") # any color
+
+    # Green holomem in player2's center and only one backstage
+    p2.center = []
+    _, p2_center_card_id = unpack_game_id(put_card_in_play(self, p2, "hSD01-010", p2.center))
+    _, back_chosen_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "okayu",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # shooting star
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "okayu", "power": 100 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "shootingstar" }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }), # same as center
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
+
+
+  def test_hsd03_009_okayu_with_kobo_oshi_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup kobo oshi
+    p1.generate_holopower(1)
+    change_oshi(self, p1, "hBP01-008")
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-009", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b2")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w2") # any color
+
+    # Green holomem in player2's center and only one backstage
+    p2.center = []
+    _, p2_center_card_id = unpack_game_id(put_card_in_play(self, p2, "hSD01-010", p2.center))
+    _, back_chosen_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "okayu",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [p2_center_card_id] })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "okayu", "power": 100 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
+      (EventType.EventType_DamageDealt, { "damage": 100, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "rainshamanism" }),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": [p2_center_card_id, back_chosen_id] }),
+      (EventType.EventType_DamageDealt, { "damage": 20, "special": True, "target_id": p2_center_card_id }),
+      *end_turn_events()
+    ])
+
+
   def test_hsd03_009_okayu_pass(self):
     engine = self.engine
   

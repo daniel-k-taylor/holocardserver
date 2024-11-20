@@ -12,7 +12,7 @@ class Test_hSD03_006(unittest.TestCase):
 
 
   def setUp(self):
-    p1_deck = generate_deck_with("", {
+    p1_deck = generate_deck_with("hBP01-007", { # Suisei oshi
       "hSD03-006": 1, # 1st Okayu
     })
     initialize_game_to_third_turn(self, p1_deck)
@@ -313,6 +313,160 @@ class Test_hSD03_006(unittest.TestCase):
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": back_ids[0] }),
       (EventType.EventType_DamageDealt, { "damage": 40, "special": False, "target_id": p2_center_card_id }),
+      *end_turn_events()
+    ])
+
+
+  def test_hsd03_006_shaa_effect_with_suisei_oshi_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(2)
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-006", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1")
+
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    p2.backstage = p2.backstage[:1]
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "shaa",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 }) # skip shooting star
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # comet
+    
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "comet" }),
+      (EventType.EventType_DamageDealt, { "damage": 50, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
+
+
+  def test_hsd03_006_shaa_effect_with_suisei_oshi_SP_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(2)
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-006", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1")
+
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    p2.backstage = p2.backstage[:1]
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "shaa",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # shooting star
+    
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "shootingstar" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }), # same damage as center
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 40, "target_id": p2_center_card_id }),
+      *end_turn_events()
+    ])
+
+
+  def test_hsd03_006_shaa_effect_with_kobo_oshi_skill(self):
+    engine = self.engine
+
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+    
+    p1.generate_holopower(1)
+
+    # change oshi to Kobo
+    change_oshi(self, p1, "hBP01-008")
+
+    # Setup to have Okayu in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-006", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1")
+
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    p2.backstage = p2.backstage[:1]
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "shaa",
+      "performer_id": center_card_id,
+      "target_id": p2_center_card_id
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [p2_back_card_id] })
+
+    #  Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 40, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "rainshamanism" }),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": [p2_center_card_id, p2_back_card_id] }),
+      (EventType.EventType_DamageDealt, { "damage": 20, "special": True, "target_id": p2_back_card_id }),
       *end_turn_events()
     ])
 

@@ -271,7 +271,6 @@ class Test_hSD03_004(unittest.TestCase):
 
     # Events
     events = engine.grab_events()
-    jsonprint(events)
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, {}),
       (EventType.EventType_Decision_Choice, {}),

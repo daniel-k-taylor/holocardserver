@@ -386,3 +386,16 @@ def end_turn_events(for_validation=True, new_center=False) -> list:
         events += [EventType.EventType_Draw, EventType.EventType_CheerStep]
 
     return [(event, {}) if for_validation else events for event in events]
+
+def change_oshi(self: unittest.TestCase, player: PlayerState, oshi_id: str) -> list:
+    engine: GameEngine = self.engine
+
+    oshi_card = engine.card_db.get_card_by_id(oshi_id)
+    self.assertIsNotNone(oshi_card, f"Invalid oshi id: {oshi_id}")
+    self.assertEqual(oshi_card["card_type"], "oshi", f"Card {oshi_id} is not an oshi card")
+
+    player.oshi_id = oshi_card["card_id"]
+    player.oshi_card = oshi_card
+    player.oshi_card["game_card_id"] = player.player_id + "_oshi"
+
+    return reset_mainstep(self)

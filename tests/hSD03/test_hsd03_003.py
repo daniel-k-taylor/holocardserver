@@ -12,7 +12,7 @@ class Test_hSD03_003(unittest.TestCase):
 
 
   def setUp(self):
-    p1_deck = generate_deck_with("", {
+    p1_deck = generate_deck_with("hBP01-007", { # Suisei oshi
       "hSD03-003": 2, # debut collab Okayu
     })
     initialize_game_to_third_turn(self, p1_deck)
@@ -290,6 +290,157 @@ class Test_hSD03_003(unittest.TestCase):
     self.assertEqual(p2_back_card["damage"], 10)
 
 
+  def test_hsd03_003_collab_effect_with_suisei_oshi_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(1)
+
+    # Setup to have Okayu in the center and the backstage
+    p1.center = []
+    put_card_in_play(self, p1, "hSD03-003", p1.center)
+    p1.backstage = p1.backstage[1:]
+    _, collab_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-003", p1.backstage))
+
+    # Setup player2
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    engine.handle_game_message(self.player1, GameAction.MainStepCollab, { "card_id": collab_card_id })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_Collab, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+    ])
+
+    # Choose to use Suisei's Oshi Skill because of collab special damage to back
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self ,self.player1, events, [
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "comet" }),
+      (EventType.EventType_DamageDealt, { "damage": 50, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
+
+
+  def test_hsd03_003_collab_effect_with_suisei_oshi_skill_sp(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(1)
+
+    # Setup to have Okayu in the center and the backstage
+    p1.center = []
+    put_card_in_play(self, p1, "hSD03-003", p1.center)
+    p1.backstage = p1.backstage[1:]
+    _, collab_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-003", p1.backstage))
+
+    # Setup player2
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    engine.handle_game_message(self.player1, GameAction.MainStepCollab, { "card_id": collab_card_id })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_Collab, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {})
+    ])
+
+    # Choose to use Suisei's Oshi SP Skill because of collab special damage to center
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "shootingstar" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_Decision_MainStep, {})
+    ])
+
+
+  def test_hsd03_003_collab_effect_with_suisei_oshi_both_skill(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    p1.generate_holopower(3)
+
+    # Setup to have Okayu in the center and the backstage
+    p1.center = []
+    put_card_in_play(self, p1, "hSD03-003", p1.center)
+    p1.backstage = p1.backstage[1:]
+    _, collab_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD03-003", p1.backstage))
+
+    # Setup player2
+    _, p2_center_card_id = unpack_game_id(p2.center[0])
+    _, p2_back_card_id = unpack_game_id(p2.backstage[0])
+    p2.backstage = p2.backstage[:1]
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    engine.handle_game_message(self.player1, GameAction.MainStepCollab, { "card_id": collab_card_id })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # shooting star
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 }) # comet triggered by shooting star
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 }) # comet
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_Collab, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "shootingstar" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }), # same damage as center
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "holopower", "to_zone": "archive" }),
+      (EventType.EventType_OshiSkillActivation, { "skill_id": "comet" }),
+      (EventType.EventType_DamageDealt, { "damage": 50, "special": True, "target_id": p2_back_card_id }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
+
+
   def test_hsd03_003_baton_pass(self):
     engine = self.engine
   
@@ -317,7 +468,6 @@ class Test_hSD03_003(unittest.TestCase):
     self.assertIsNotNone(
       next((action for action in actions if action["action_type"] == GameAction.MainStepBatonPass and action["center_id"] == center_card_id), None))
   
-
 
   def test_hsd03_003_overall_check(self):
     p1: PlayerState = self.engine.get_player(self.player1)

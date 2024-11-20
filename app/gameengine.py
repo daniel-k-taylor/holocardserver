@@ -2904,6 +2904,7 @@ class GameEngine:
                         })
 
                 self.begin_resolving_effects(before_archive_effects, archive_cheer_continuation)
+                passed_on_continuation = True
             case EffectType.EffectType_ArchiveFromHand:
                 amount = effect["amount"]
                 ability_source = effect["ability_source"]
