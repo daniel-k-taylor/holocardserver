@@ -82,6 +82,7 @@ class Test_hSD03_006(unittest.TestCase):
       (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
       (EventType.EventType_Decision_Choice, {}),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": back_ids })
     ])
   
@@ -91,7 +92,6 @@ class Test_hSD03_006(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": back_ids[0] }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 40, "special": False, "target_id": p2_center_card_id }),
       *end_turn_events()
     ])
@@ -253,6 +253,7 @@ class Test_hSD03_006(unittest.TestCase):
       (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
       (EventType.EventType_Decision_Choice, {}),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": back_ids }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_DownedHolomem_Before, {}),
@@ -270,7 +271,6 @@ class Test_hSD03_006(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2_center_card_id }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 40, "special": False, "target_id": p2_center_card_id }),
       *end_turn_events()
     ])
@@ -310,8 +310,8 @@ class Test_hSD03_006(unittest.TestCase):
       (EventType.EventType_PerformArt, { "art_id": "shaa", "power": 40 }),
       (EventType.EventType_Decision_Choice, {}),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": back_ids[0] }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": back_ids[0] }),
       (EventType.EventType_DamageDealt, { "damage": 40, "special": False, "target_id": p2_center_card_id }),
       *end_turn_events()
     ])

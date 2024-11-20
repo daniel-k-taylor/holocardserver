@@ -72,6 +72,7 @@ class Test_hSD03_003(unittest.TestCase):
     events = do_collab_get_events(self, p1, collab_card_id)
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": ids_from_cards(p2.backstage) }),
     ])
 
@@ -82,7 +83,6 @@ class Test_hSD03_003(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 
@@ -205,11 +205,11 @@ class Test_hSD03_003(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, {}),
-      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": ids_from_cards(p2.backstage) }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_DownedHolomem_Before, {}),
       (EventType.EventType_DownedHolomem, { "target_id": p2_center_card_id, "life_lost": 0, "life_loss_prevented": True }),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": ids_from_cards(p2.backstage) }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 
@@ -244,11 +244,11 @@ class Test_hSD03_003(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, {}),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_DownedHolomem_Before, {}),
       (EventType.EventType_DownedHolomem, { "target_id": p2_back_card_id, "life_lost": 0, "life_loss_prevented": True }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 
@@ -281,8 +281,8 @@ class Test_hSD03_003(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, {}),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 

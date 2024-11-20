@@ -59,7 +59,6 @@ class Test_hSD03_013(unittest.TestCase):
     ])
 
 
-  # reduce damage not in center or collab
   def test_hsd03_013_reduce_damage_only_if_center_or_collab(self):
     engine = self.engine
   
@@ -89,8 +88,8 @@ class Test_hSD03_013(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, { "collab_card_id": collab_card_id }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_back_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 

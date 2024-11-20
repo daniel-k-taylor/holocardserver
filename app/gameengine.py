@@ -2726,10 +2726,7 @@ class GameEngine:
                 if len(effect_player.deck) == 0:
                     return False
                 top_card_type = effect_player.deck[0]["card_type"]
-                for valid_type in valid_card_types:
-                    if top_card_type == valid_type:
-                        return True
-                return False
+                return top_card_type in valid_card_types
             case Condition.Condition_TopDeckCardHasAnyTag:
                 valid_tags = condition["condition_tags"]
                 if len(effect_player.deck) == 0:
@@ -3293,13 +3290,6 @@ class GameEngine:
                         target_cards = target_player.center
                     case "collab":
                         target_cards = target_player.collab
-                    case "center_and_x_backstage":
-                        # backstage damage is applied first, before center
-                        center_effect = deepcopy(effect)
-                        center_effect["target"] = "center"
-                        center_effect["multiple_targets"] = None
-                        self.do_effect(effect_player, center_effect)
-                        target_cards = target_player.backstage
                     case "center_or_collab":
                         target_cards = target_player.center + target_player.collab
                     case "current_damage_target":
@@ -3440,9 +3430,9 @@ class GameEngine:
                 if str(amount) == "last_card_count":
                     amount = self.last_card_count
                     self.last_card_count = 0
-                max_in_hand = effect.get("max_in_hand")
-                if max_in_hand:
-                    amount = max(0, max_in_hand - amount)
+                draw_to_hand_size = effect.get("draw_to_hand_size")
+                if draw_to_hand_size:
+                    amount = max(0, draw_to_hand_size - amount)
                 if amount > 0:
                     target_player = effect_player
                     if effect.get("opponent", False):

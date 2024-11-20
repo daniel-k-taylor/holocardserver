@@ -170,7 +170,7 @@ class Test_hSD03_001(unittest.TestCase):
     p1: PlayerState = engine.get_player(self.player1)
     p2: PlayerState = engine.get_player(self.player2)
 
-    # Setup to have debut Okayu in the cente and collab Okayu in backstage
+    # Setup to have debut Okayu in the center and collab Okayu in backstage
     p1.center = []
     put_card_in_play(self, p1, "hSD03-002", p1.center)
 
@@ -196,6 +196,7 @@ class Test_hSD03_001(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, { "collab_card_id": collab_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": chosen_card_id }),
       (EventType.EventType_Decision_Choice, {}),
@@ -206,12 +207,10 @@ class Test_hSD03_001(unittest.TestCase):
       (EventType.EventType_DownedHolomem, { "life_lost": 1 }),
       (EventType.EventType_Decision_SendCheer, {}),
       (EventType.EventType_MoveAttachedCard, {}),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
 
 
-  # oshi2 once per game
   def test_hsd03_001_backshot_opg(self):
     engine = self.engine
   
@@ -260,9 +259,9 @@ class Test_hSD03_001(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Collab, { "collab_card_id": collab_2_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
       # no trigger for backshot even if there is enough holopower to use it
       (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": chosen_2_card_id }),
-      (EventType.EventType_DamageDealt, { "damage": 10, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])

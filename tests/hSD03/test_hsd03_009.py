@@ -130,9 +130,9 @@ class Test_hSD03_009(unittest.TestCase):
       (EventType.EventType_Decision_Choice, {}),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": backstage_ids }),
       (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
-      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
       (EventType.EventType_DamageDealt, { "damage": 100, "special": False, "target_id": p2_center_card_id }),
       *end_turn_events()
     ])
@@ -284,8 +284,8 @@ class Test_hSD03_009(unittest.TestCase):
       (EventType.EventType_Decision_Choice, {}),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive" }),
-      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
       (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": p2_center_card_id }),
+      (EventType.EventType_DamageDealt, { "damage": 30, "special": True, "target_id": back_chosen_id }),
       (EventType.EventType_DamageDealt, { "damage": 100, "special": False, "target_id": p2_center_card_id }),
       *end_turn_events()
     ])
