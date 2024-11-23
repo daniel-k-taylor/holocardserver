@@ -140,7 +140,6 @@ class Test_hPR_001(unittest.TestCase):
 
     # Events
     events = engine.grab_events()
-    jsonprint(events)
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_PerformArt, { "power": 10 }),
       (EventType.EventType_DamageDealt, { "damage": 10 }),
