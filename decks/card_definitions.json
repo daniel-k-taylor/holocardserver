@@ -8371,6 +8371,37 @@
         ]
     },
     {
+        "card_id": "hBP02-066",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nerissa_ravencroft"],
+        "rarity": "c",
+        "colors": ["purple"],
+        "hp": 150,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Advent",
+            "#Song",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "thatsoundsgood",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            },
+            {
+                "art_id": "whatisanidolsong",
+                "costs": [
+                    { "color": "purple", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-075",
         "card_type": "support",
         "sub_type": "item",
