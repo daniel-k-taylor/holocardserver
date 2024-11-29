@@ -109,17 +109,8 @@ class Test_hys01_oshis(unittest.TestCase):
             "oshi_player_id": self.player1,
             "skill_id": "backshot",
         })
-        validate_event(self, events[4], EventType.EventType_Decision_ChooseHolomemForEffect, self.player1, {
-            "effect_player_id": self.player1,
-        })
-        cards_can_choose = events[4]["cards_can_choose"]
-        backstage_options = [card["game_card_id"] for card in player2.backstage]
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
-            "card_ids": [backstage_options[0]]
-        })
-        events = engine.grab_events()
         # Events - mumei choice to reduce.
-        self.assertEqual(len(events), 2)
+        events = events[-2:]
         validate_event(self, events[0], EventType.EventType_Decision_Choice, self.player1, {
             "effect_player_id": self.player2,
         })

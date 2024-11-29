@@ -2615,18 +2615,15 @@ class GameEngine:
                     case _:
                         holomems = effect_player.get_holomem_on_stage()
 
-                if "required_member_name" in condition:
-                    required_member_name = condition["required_member_name"]
-                    return any(required_member_name in holomem["card_names"] for holomem in holomems)
-                elif "member_name_in" in condition:
-                    member_name_in = condition["member_name_in"]
-                    return any(member_name in holomem["card_names"] for member_name in member_name_in for holomem in holomems)
-                elif "exclude_member_name" in condition:
-                    exclude_member_name = condition["exclude_member_name"]
+                if "required_member_name_in" in condition:
+                    required_names_in = condition["required_member_name_in"]
+                    return any(member_name in holomem["card_names"] for member_name in required_names_in for holomem in holomems)
+                elif "exclude_member_name_in" in condition:
+                    exclude_names_in = condition["exclude_member_name_in"]
                     if "tag_in" in condition:
                         tags = condition["tag_in"]
                         for holomem in holomems:
-                            if exclude_member_name in holomem["card_names"]:
+                            if any(exclude_name in holomem["card_names"] for exclude_name in exclude_names_in):
                                 continue
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
@@ -2634,7 +2631,6 @@ class GameEngine:
                     # No specific member needed, but still check tags.
                     if "tag_in" in condition:
                         tags = condition["tag_in"]
-                        holomems = effect_player.get_holomem_on_stage()
                         for holomem in holomems:
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
@@ -2913,12 +2909,19 @@ class GameEngine:
                 def archive_hand_continuation():
                     if self.archive_count_required > 0:
                         # Ask the player to pick cards from their hand to archive.
-                        cards_can_choose = ids_from_cards(effect_player.hand)
+                        cards_can_choose = []
+                        match effect.get("requirement"):
+                            case "holomem":
+                                cards_can_choose = ([card["game_card_id"] for card in effect_player.hand 
+                                                     if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]])
+                            case _:
+                                cards_can_choose = ids_from_cards(effect_player.hand)
+                        all_card_seen = ids_from_cards(effect_player.hand)
                         choose_event = {
                             "event_type": EventType.EventType_Decision_ChooseCards,
                             "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
                             "effect_player_id": effect_player_id,
-                            "all_card_seen": cards_can_choose,
+                            "all_card_seen": all_card_seen,
                             "cards_can_choose": cards_can_choose,
                             "from_zone": "hand",
                             "to_zone": "archive",
@@ -2933,7 +2936,7 @@ class GameEngine:
                         self.set_decision({
                             "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
                             "decision_player": effect_player_id,
-                            "all_card_seen": cards_can_choose,
+                            "all_card_seen": all_card_seen,
                             "cards_can_choose": cards_can_choose,
                             "from_zone": "hand",
                             "to_zone": "archive",
@@ -3107,7 +3110,7 @@ class GameEngine:
                 requirement_match_oshi_color = effect.get("requirement_match_oshi_color", False)
                 requirement_only_holomems_with_any_tag = effect.get("requirement_only_holomems_with_any_tag", False)
                 requirement_colors = effect.get("requirement_colors", [])
-                requirement_support_types = effect.get("requirement_support_types", [])
+                requirement_sub_types = effect.get("requirement_sub_types", [])
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 after_choose_effect = effect.get("after_choose_effect", None)
@@ -3122,7 +3125,7 @@ class GameEngine:
                     "requirement_match_oshi_color": requirement_match_oshi_color,
                     "requirement_only_holomems_with_any_tag": requirement_only_holomems_with_any_tag,
                     "requirement_colors": requirement_colors,
-                    "requirement_support_types": requirement_support_types
+                    "requirement_sub_types": requirement_sub_types
                 }
 
                 cards_to_choose_from = []
@@ -3176,24 +3179,9 @@ class GameEngine:
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
-                        case "fan":
-                            # Only include cards that are fans.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_fan(card)]
-                        case "item":
-                            # Only include cards that are items.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_item(card)]
-                        case "mascot":
-                            # Only include cards that are mascots.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_mascot(card)]
-                        case "tool":
-                            # Only include cards that are tools.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_tool(card)]
-                        case "event":
-                            # Only include cards that are events.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_event(card)]
-                        case "support_types":
-                            # Only include support cards that are of sub_type
-                            cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_support_types]
+                        case "support":
+                            # Only include cards that are supports.
+                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "support"]
                         case "cheer":
                             # Only include cards that are cheer.
                             cards_can_choose = [card for card in cards_can_choose if is_card_cheer(card)]
@@ -3217,6 +3205,10 @@ class GameEngine:
                     # Restrict to oshi color.
                     if requirement_match_oshi_color:
                         cards_can_choose = [card for card in cards_can_choose if effect_player.matches_oshi_color(card["colors"])]
+
+                    # Restrict to specified support sub types
+                    if requirement_sub_types:
+                        cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
 
                 if len(cards_can_choose) < amount_min:
                     amount_min = len(cards_can_choose)
