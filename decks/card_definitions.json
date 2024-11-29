@@ -8240,6 +8240,29 @@
         ]
     },
     {
+        "card_id": "hBP02-062",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["ninomae_inanis"],
+        "rarity": "c",
+        "colors": ["purple"],
+        "hp": 180,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "takogramwithyou",
+                "costs": [{ "color": "purple", "amount": 2 }],
+                "power": 60
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-085",
         "card_type": "support",
         "sub_type": "event",
