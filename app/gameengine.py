@@ -94,6 +94,7 @@ class EffectType:
 class Condition:
     Condition_AnyTagHolomemHasCheer = "any_tag_holomem_has_cheer"
     Condition_AttachedTo = "attached_to"
+    Condition_AttachedToHasTags = "attached_to_has_tags"
     Condition_AttachedOwnerIsLocation = "attached_owner_is_location"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
@@ -2492,6 +2493,15 @@ class GameEngine:
                         if not required_bloom_levels or self.after_damage_state.target_card.get("bloom_level", -1) in required_bloom_levels:
                             return True
                 return False
+            case Condition.Condition_AttachedToHasTags:
+                inverse = condition.get("inverse", False) # XOR the result to get the inverse
+                source_card = self.find_card(source_card_id)
+                owner_player = self.get_player(source_card["owner_id"])
+                holomems = owner_player.get_holomem_on_stage()
+                for holomem in holomems:
+                    if source_card_id in ids_from_cards(holomem["attached_support"]):
+                        return (len(set(holomem["tags"]) & set(condition["required_tags"])) > 0) ^ inverse
+                return False ^ inverse
             case Condition.Condition_AttachedOwnerIsLocation:
                 required_location = condition["condition_location"]
                 holomems = effect_player.get_holomems_with_attachment(source_card_id)

@@ -8238,6 +8238,28 @@
                 "reveal_chosen": true,
                 "remaining_cards_action": "order_on_bottom"
             }
+        ]
+    },
+    {
+        "card_id": "hBP02-086",
+        "card_type": "support",
+        "sub_type": "tool",
+        "colors": [],
+        "card_names": ["holo_sparkling_wine"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "before_art",
+                "effect_type": "power_boost",
+                "amount": 20
+            },
+            {
+                "timing": "on_take_damage",
+                "effect_type": "add_damage_taken",
+                "conditions": [{ "condition": "attached_to_has_tags", "required_tags": ["#Alcohol"], "inverse": true }],
+                "amount": 10
+            }
         ],
 
         "NOTE": "BP2 CARDS END"
