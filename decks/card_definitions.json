@@ -8105,6 +8105,38 @@
             }
         ]
     },
+    {
+        "card_id": "hBP02-015",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["shirogane_noel"],
+        "rarity": "c",
+        "colors": ["white"],
+        "hp": 180,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "ohamuscle",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            },
+            {
+                "art_id": "otsumuscle",
+                "costs": [
+                    { "color": "white", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60
+            }
+        ],
+
+        "NOTE": "BP2 CARDS END"
+    },
 
     {
         "NOTE": "PR CARDS START",
