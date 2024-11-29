@@ -8214,6 +8214,30 @@
                     }
                 ]
             }
+        ]
+    },
+    {
+        "card_id": "hBP02-085",
+        "card_type": "support",
+        "sub_type": "event",
+        "colors": [],
+        "card_names": ["hololive_fantasy"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [{ "condition": "cards_in_hand", "amount_max": 7 }],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem",
+                "requirement_tags": ["#Gen3"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
         ],
 
         "NOTE": "BP2 CARDS END"
