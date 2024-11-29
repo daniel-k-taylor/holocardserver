@@ -18,13 +18,95 @@ class Test_hBP02_065(unittest.TestCase):
     initialize_game_to_third_turn(self, p1_deck)
 
 
-  def test_hbp02_065_fn_name(self):
+  def test_hbp02_065_hiyadarlings(self):
     engine = self.engine
   
     p1: PlayerState = engine.get_player(self.player1)
-    
-  # art1 red cheer
-  # baton pass
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Nerissa in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-065", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # Any color
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "hiyadarlings",
+      "performer_id": center_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "hiyadarlings", "power": 30 }),
+      (EventType.EventType_DamageDealt, { "damage": 30 }),
+      *end_turn_events()
+    ])
+
+
+  def test_hbp02_065_hiyadarlings_effect(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Nerissa in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-065", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "red", "r1") # Any color
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "hiyadarlings",
+      "performer_id": center_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "hiyadarlings", "power": 30 }),
+      (EventType.EventType_BoostStat, { "amount": 10 }),
+      (EventType.EventType_DamageDealt, { "damage": 40 }),
+      *end_turn_events()
+    ])
+
+
+  def test_hbp02_065_baton_pass(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+  
+    # Setup
+    p1.center = []
+    center_card, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-065", p1.center))
+  
+  
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+  
+    # no cheers to use baton pass
+    self.assertEqual(len(center_card["attached_cheer"]), 0)
+  
+    # Events
+    actions = reset_mainstep(self)
+    self.assertIsNone(
+      next((action for action in actions if action["action_type"] == GameAction.MainStepBatonPass and action["center_id"] == center_card_id), None))
+  
+    # with sufficient cheers
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+    actions = reset_mainstep(self)
+    self.assertIsNotNone(
+      next((action for action in actions if action["action_type"] == GameAction.MainStepBatonPass and action["center_id"] == center_card_id), None))
 
 
   def test_hbp02_065_overall_check(self):

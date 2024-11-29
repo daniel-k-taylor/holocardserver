@@ -8340,6 +8340,37 @@
         ]
     },
     {
+        "card_id": "hBP02-065",
+        "card_type": "holomem_debut",
+        "card_names": ["nerissa_ravencroft"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["purple"],
+        "hp": 90,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Advent",
+            "#Song",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "hiyadarlings",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "conditions": [{ "condition": "self_has_cheer_color", "condition_colors": ["red"], "amount_min": 1 }],
+                        "amount": 10
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-075",
         "card_type": "support",
         "sub_type": "item",
