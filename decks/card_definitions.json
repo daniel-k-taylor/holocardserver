@@ -8082,6 +8082,31 @@
     },
 
     {
+        "NOTE": "BP2 CARDS START",
+
+        "card_id": "hBP02-014",
+        "card_type": "holomem_debut",
+        "card_names": ["shirogane_noel"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["white"],
+        "hp": 130,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "konmuscle",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 20
+            }
+        ]
+    },
+
+    {
         "NOTE": "PR CARDS START",
 
         "card_id": "hBD24-001",
