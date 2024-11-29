@@ -8171,6 +8171,49 @@
                 "requirement_bloom_levels": [1],
                 "requirement_tags": ["#Gen3"]
             }
+        ]
+    },
+    {
+        "card_id": "hBP02-017",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "buzz": "true",
+        "card_names": ["shirogane_noel"],
+        "rarity": "rr",
+        "colors": ["white"],
+        "hp": 260,
+        "baton_cost": 2,
+        "down_life_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "afluffymeatheadedknight",
+                "costs": [{ "color": "any", "amount": 2 }],
+                "power": 50
+            },
+            {
+                "art_id": "thirdgenerationpower",
+                "costs": [
+                    { "color": "white", "amount": 1 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 60,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "this_card_is_collab" }],
+                        "effect_type": "power_boost_per_holomem",
+                        "has_tag": "#Gen3",
+                        "exclude": "self",
+                        "amount": 20,
+                        "limit": 4
+                    }
+                ]
+            }
         ],
 
         "NOTE": "BP2 CARDS END"

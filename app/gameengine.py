@@ -3636,9 +3636,12 @@ class GameEngine:
             case EffectType.EffectType_PowerBoostPerHolomem:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
+                match effect.get("exclude"):
+                    case "self":
+                        holomems = [h for h in holomems if h["game_card_id"] != effect["source_card_id"]]
                 if "has_tag" in effect:
                     holomems = [holomem for holomem in holomems if effect["has_tag"] in holomem["tags"]]
-                total = per_amount * len(holomems)
+                total = per_amount * min(len(holomems), effect.get("limit", 99))
                 if total != 0:
                     self.performance_artstatboosts.power += total
                     self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
