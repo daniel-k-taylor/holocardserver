@@ -8263,6 +8263,38 @@
         ]
     },
     {
+        "card_id": "hBP02-063",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["ninomae_inanis"],
+        "rarity": "u",
+        "colors": ["purple"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "areyouallreadytowah",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "restore_hp",
+                "target": "holomem",
+                "limitation": "tag_in",
+                "limitation_tags": ["#Myth"],
+                "amount": 20
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-085",
         "card_type": "support",
         "sub_type": "event",

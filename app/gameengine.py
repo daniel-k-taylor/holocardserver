@@ -3714,6 +3714,9 @@ class GameEngine:
                         match limitation:
                             case "color_in":
                                 holomems = [holomem for holomem in holomems if any(color in holomem["colors"] for color in limitation_colors)]
+                            case "tag_in":
+                                limitation_tags = effect.get("limitation_tags", [])
+                                holomems = [holomem for holomem in holomems if any(color in holomem["tags"] for color in limitation_tags)]
                         target_options = ids_from_cards(holomems)
                     case "self":
                         target_options = [effect["source_card_id"]]
