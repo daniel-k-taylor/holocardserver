@@ -8340,6 +8340,30 @@
         ]
     },
     {
+        "card_id": "hBP02-075",
+        "card_type": "support",
+        "sub_type": "item",
+        "colors": [],
+        "card_names": ["idol_felt_pen"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [{ "condition": "cards_in_hand", "amount_max": 7 }],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem",
+                "requirement_tags": ["#Art"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-085",
         "card_type": "support",
         "sub_type": "event",
