@@ -8260,6 +8260,29 @@
                 "conditions": [{ "condition": "attached_to_has_tags", "required_tags": ["#Alcohol"], "inverse": true }],
                 "amount": 10
             }
+        ]
+    },
+    {
+        "card_id": "hBP02-100",
+        "card_type": "support",
+        "sub_type": "fan",
+        "card_names": ["shirogane_danin"],
+        "rarity": "c",
+        "colors": [],
+        "play_conditions": [{ "condition": "holomem_on_stage", "required_member_name_in": ["shirogane_noel"] }],
+        "effects": [
+            {
+                "effect_type": "attach_card_to_holomem",
+                "to_limitation": "specific_member_name",
+                "to_limitation_name": "shirogane_noel"
+            }
+        ],
+        "attached_effects": [
+            {
+                "timing": "on_take_damage",
+                "effect_type": "reduce_damage",
+                "amount": 10
+            }
         ],
 
         "NOTE": "BP2 CARDS END"
