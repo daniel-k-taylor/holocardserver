@@ -14,6 +14,7 @@ class Test_hSD02_011(unittest.TestCase):
   def setUp(self):
     p1_deck = generate_deck_with("", {
       "hSD02-011": 2, # spot Mio
+      "hSD02-012": 4, # support AyaFubuMi
     })
     initialize_game_to_third_turn(self, p1_deck)
 
@@ -191,7 +192,46 @@ class Test_hSD02_011(unittest.TestCase):
     ])    
 
 
-  # baton pass
+  def test_hsd02_011_collab_only_holomem_can_be_archived(self):
+    engine = self.engine
+  
+    p1: PlayerState = engine.get_player(self.player1)
+    
+    # Setup to have Mio in the backstage
+    p1.backstage = []
+    _, collab_card_id = unpack_game_id(put_card_in_play(self, p1, "hSD02-011", p1.backstage))
+    _, center_card_id = unpack_game_id(p1.center[0])
+
+    # Hand is all support cards except one
+    p1.hand = p1.hand[:1]
+    _, hand_card_id = unpack_game_id(p1.hand[0])
+    add_card_to_hand(self, p1, "hSD02-012")
+    add_card_to_hand(self, p1, "hSD02-012")
+    add_card_to_hand(self, p1, "hSD02-012")
+    add_card_to_hand(self, p1, "hSD02-012")
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    engine.handle_game_message(self.player1, GameAction.MainStepCollab, { "card_id": collab_card_id })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [hand_card_id] })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_Collab, {}),
+      (EventType.EventType_Decision_Choice, {}),
+      (EventType.EventType_Decision_ChooseCards, { "cards_can_choose": [hand_card_id] }),
+      (EventType.EventType_MoveCard, { "from_zone": "hand", "to_zone": "archive", "card_id": hand_card_id }),
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "cheer_deck", "to_holomem_id": center_card_id }),
+      (EventType.EventType_Decision_MainStep, {})
+    ])
+
+    self.assertCountEqual(ids_from_cards(p1.archive), [hand_card_id])
+
+
   def test_hsd02_011_baton_pass(self):
     engine = self.engine
   
@@ -218,7 +258,6 @@ class Test_hSD02_011(unittest.TestCase):
     self.assertIsNotNone(
       next((action for action in actions if action["action_type"] == GameAction.MainStepBatonPass and action["center_id"] == center_card_id), None))
     
-
 
   def test_hsd02_011_overall_check(self):
     p1: PlayerState = self.engine.get_player(self.player1)
