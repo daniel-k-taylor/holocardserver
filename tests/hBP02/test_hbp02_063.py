@@ -20,7 +20,7 @@ class Test_hBP02_063(unittest.TestCase):
     initialize_game_to_third_turn(self, p1_deck)
 
 
-  def test_hbp02_063_areyouallreadytowah(self):
+  def test_hbp02_063_letshavefun(self):
     engine = self.engine
   
     p1: PlayerState = engine.get_player(self.player1)
@@ -37,7 +37,7 @@ class Test_hBP02_063(unittest.TestCase):
 
     begin_performance(self)
     engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
-      "art_id": "areyouallreadytowah",
+      "art_id": "letshavefun",
       "performer_id": center_card_id,
       "target_id": p2.center[0]["game_card_id"]
     })
@@ -45,7 +45,7 @@ class Test_hBP02_063(unittest.TestCase):
     # Events
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
-      (EventType.EventType_PerformArt, { "art_id": "areyouallreadytowah", "power": 30 }),
+      (EventType.EventType_PerformArt, { "art_id": "letshavefun", "power": 30 }),
       (EventType.EventType_DamageDealt, { "damage": 30 }),
       *end_turn_events()
     ])

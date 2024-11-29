@@ -8279,7 +8279,7 @@
         ],
         "arts": [
             {
-                "art_id": "areyouallreadytowah",
+                "art_id": "letshavefun",
                 "costs": [{ "color": "any", "amount": 1 }],
                 "power": 30
             }
@@ -8322,7 +8322,7 @@
                 "art_effects": [
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "holomem_on_archive", "amount_min": 5, "tag_in": ["#Myth"] }],
+                        "conditions": [{ "condition": "holomem_in_archive", "amount_min": 5, "tag_in": ["#Myth"] }],
                         "effect_type": "send_cheer",
                         "amount_min": 0,
                         "amount_max": 1,
@@ -8331,7 +8331,7 @@
                     },
                     {
                         "timing": "before_art",
-                        "conditions": [{ "condition": "holomem_on_archive", "amount_min": 10, "tag_in": ["#Myth"] }],
+                        "conditions": [{ "condition": "holomem_in_archive", "amount_min": 10, "tag_in": ["#Myth"] }],
                         "effect_type": "power_boost",
                         "amount": 50
                     }
