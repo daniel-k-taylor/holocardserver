@@ -8217,6 +8217,29 @@
         ]
     },
     {
+        "card_id": "hBP02-061",
+        "card_type": "holomem_debut",
+        "card_names": ["ninomae_inanis"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["purple"],
+        "hp": 140,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "wah",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 10
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-085",
         "card_type": "support",
         "sub_type": "event",
