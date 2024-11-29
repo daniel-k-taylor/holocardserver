@@ -116,6 +116,7 @@ class Condition:
     Condition_HasAttachmentOfType = "has_attachment_of_type"
     Condition_HasAttachedCard = "has_attached_card"
     Condition_HasStackedHolomem = "has_stacked_holomem"
+    Condition_HolomemOnArchive = "holomem_on_archive"
     Condition_HolomemOnStage = "holomem_on_stage"
     Condition_HolopowerAtLeast = "holopower_at_least"
     Condition_NotUsedOncePerGameEffect = "not_used_once_per_game_effect"
@@ -2615,6 +2616,15 @@ class GameEngine:
                     if stacked_card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]:
                         return True
                 return False
+            case Condition.Condition_HolomemOnArchive:
+                holomems = [holomem for holomem in effect_player.archive if holomem["card_type"].startswith("holomem")]
+                if "tag_in" in condition:
+                    tags = condition["tag_in"]
+                    holomems = [holomem for holomem in holomems if any(tag in holomem["tags"] for tag in tags)]
+
+                amount_min = condition.get("amount_min", 1)
+                amount_max = condition.get("amount_max", len(holomems))
+                return amount_min <= len(holomems) <= amount_max
             case Condition.Condition_HolomemOnStage:
                 holomems = []
                 match condition.get("location"):

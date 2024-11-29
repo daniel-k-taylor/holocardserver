@@ -4996,7 +4996,7 @@
         "card_id": "hBP01-051",
         "card_type": "holomem_bloom",
         "bloom_level": 1,
-        "buzz": "true",
+        "buzz": true,
         "card_names": ["kazama_iroha"],
         "rarity": "rr",
         "alt_id": "hBP01-051",
@@ -8177,7 +8177,7 @@
         "card_id": "hBP02-017",
         "card_type": "holomem_bloom",
         "bloom_level": 1,
-        "buzz": "true",
+        "buzz": true,
         "card_names": ["shirogane_noel"],
         "rarity": "rr",
         "colors": ["white"],
@@ -8291,6 +8291,51 @@
                 "limitation": "tag_in",
                 "limitation_tags": ["#Myth"],
                 "amount": 20
+            }
+        ]
+    },
+    {
+        "card_id": "hBP02-064",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "buzz": true,
+        "card_names": ["ninomae_inanis"],
+        "rarity": "rr",
+        "colors": ["purple"],
+        "hp": 250,
+        "baton_cost": 2,
+        "down_life_cost": 2,
+        "tags": [
+            "#EN",
+            "#Myth",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "archaicsmile",
+                "costs": [
+                    { "color": "purple", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "holomem_on_archive", "amount_min": 5, "tag_in": ["#Myth"] }],
+                        "effect_type": "send_cheer",
+                        "amount_min": 0,
+                        "amount_max": 1,
+                        "from": "self",
+                        "to": "holomem"
+                    },
+                    {
+                        "timing": "before_art",
+                        "conditions": [{ "condition": "holomem_on_archive", "amount_min": 10, "tag_in": ["#Myth"] }],
+                        "effect_type": "power_boost",
+                        "amount": 50
+                    }
+                ]
             }
         ]
     },
