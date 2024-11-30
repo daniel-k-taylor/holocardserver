@@ -8402,6 +8402,43 @@
         ]
     },
     {
+        "card_id": "hBP02-067",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["nerissa_ravencroft"],
+        "rarity": "u",
+        "colors": ["purple"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#EN",
+            "#Advent",
+            "#Song",
+            "#Bird"
+        ],
+        "arts": [
+            {
+                "art_id": "teaisbetterthancoffee",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 20
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 3,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 1,
+                "requirement": "holomem",
+                "requirement_tags": ["#Song"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-075",
         "card_type": "support",
         "sub_type": "item",
