@@ -8429,7 +8429,7 @@
                 "from": "deck",
                 "look_at": 3,
                 "destination": "hand",
-                "amount_min": 0,
+                "amount_min": 1,
                 "amount_max": 1,
                 "requirement": "holomem",
                 "requirement_tags": ["#Song"],
@@ -8440,7 +8440,8 @@
     },
     {
         "card_id": "hBP02-068",
-        "card_type": "holomem_debut",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
         "card_names": ["nerissa_ravencroft"],
         "rarity": "r",
         "colors": ["purple"],
