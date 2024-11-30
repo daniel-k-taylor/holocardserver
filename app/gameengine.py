@@ -100,6 +100,7 @@ class Condition:
     Condition_CanArchiveFromHand = "can_archive_from_hand"
     Condition_CanMoveFrontStage = "can_move_front_stage"
     Condition_CardsInHand = "cards_in_hand"
+    Condition_CardTypeInHand = "card_type_in_hand"
     Condition_CenterIsColor = "center_is_color"
     Condition_CenterHasAnyTag = "center_has_any_tag"
     Condition_CheerInPlay = "cheer_in_play"
@@ -2535,6 +2536,9 @@ class GameEngine:
                 if amount_max == -1:
                     amount_max = UNLIMITED_SIZE
                 return amount_min <= len(effect_player.hand) <= amount_max
+            case Condition.Condition_CardTypeInHand:
+                card_types = condition["condition_card_types"]
+                return any(card["card_type"] in card_types for card in effect_player.hand)
             case Condition.Condition_CenterIsColor:
                 if len(effect_player.center) == 0:
                     return False
@@ -3131,6 +3135,7 @@ class GameEngine:
                 requirement_only_holomems_with_any_tag = effect.get("requirement_only_holomems_with_any_tag", False)
                 requirement_colors = effect.get("requirement_colors", [])
                 requirement_sub_types = effect.get("requirement_sub_types", [])
+                requirement_same_name_as_last_choice = effect.get("requirement_same_name_as_last_choice", False)
                 reveal_chosen = effect.get("reveal_chosen", False)
                 remaining_cards_action = effect["remaining_cards_action"]
                 after_choose_effect = effect.get("after_choose_effect", None)
@@ -3176,14 +3181,15 @@ class GameEngine:
                     match requirement:
                         case "buzz":
                             cards_can_choose = [card for card in cards_can_choose if "buzz" in card and card["buzz"]]
+                        case "cheer":
+                            # Only include cards that are cheer.
+                            cards_can_choose = [card for card in cards_can_choose if is_card_cheer(card)]
                         case "color_in":
                             requirement_colors = effect.get("requirement_colors", [])
                             cards_can_choose = [card for card in cards_can_choose if any(color in card["colors"] for color in requirement_colors)]
                         case "color_matches_holomems":
                             # Only include cards that match the colors of the holomems on stage.
                             cards_can_choose = [card for card in cards_can_choose if effect_player.matches_stage_holomems_color(card["colors"], tag_requirement=requirement_only_holomems_with_any_tag)]
-                        case "specific_card":
-                            cards_can_choose = [card for card in cards_can_choose if card["card_id"] == requirement_id]
                         case "holomem":
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut", "holomem_spot" ]]
                         case "holomem_bloom":
@@ -3199,12 +3205,11 @@ class GameEngine:
                         case "limited":
                             # only include cards that are limited
                             cards_can_choose = [card for card in cards_can_choose if is_card_limited(card)]
+                        case "specific_card":
+                            cards_can_choose = [card for card in cards_can_choose if card["card_id"] == requirement_id]
                         case "support":
                             # Only include cards that are supports.
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "support"]
-                        case "cheer":
-                            # Only include cards that are cheer.
-                            cards_can_choose = [card for card in cards_can_choose if is_card_cheer(card)]
 
                     # Exclude LIMITED if asked.
                     if requirement_block_limited:
@@ -3229,6 +3234,13 @@ class GameEngine:
                     # Restrict to specified support sub types
                     if requirement_sub_types:
                         cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
+                    
+                    if requirement_same_name_as_last_choice:
+                        same_name_cards = []
+                        for card_id in self.last_chosen_cards:
+                            card = self.find_card(card_id)
+                            same_name_cards += card["card_names"]
+                        cards_can_choose = [card for card in cards_can_choose if any(name in card["card_names"] for name in same_name_cards)]
 
                 if len(cards_can_choose) < amount_min:
                     amount_min = len(cards_can_choose)
@@ -5344,6 +5356,10 @@ class GameEngine:
                         "continuation": lambda :
                             self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
                     })
+        elif to_zone == "bottom_of_deck":
+            for card_id in card_ids:
+                player.move_card(card_id, "deck", hidden_info=not reveal_chosen, add_to_bottom=True)
+            self.choose_cards_cleanup_remaining(performing_player_id, remaining_card_ids, remaining_cards_action, from_zone, from_zone, continuation)
         else:
             for card_id in card_ids:
                 player.move_card(card_id, to_zone, zone_card_id="", hidden_info=not reveal_chosen)
