@@ -8830,6 +8830,31 @@
         ]
     },
     {
+        "card_id": "hBP02-095",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["dokurokun"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "before_art",
+                "effect_type": "power_boost",
+                "amount": 10
+            },
+            {
+                "timing": "on_bloom",
+                "conditions": [
+                    { "condition": "attached_to", "required_member_name": "houshou_marine" },
+                    { "condition": "attached_owner_is_location", "condition_location": "center" }
+                ],
+                "effect_type": "draw",
+                "amount": 1
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-100",
         "card_type": "support",
         "sub_type": "fan",
