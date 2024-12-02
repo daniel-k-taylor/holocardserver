@@ -3152,7 +3152,8 @@ class GameEngine:
                     "requirement_match_oshi_color": requirement_match_oshi_color,
                     "requirement_only_holomems_with_any_tag": requirement_only_holomems_with_any_tag,
                     "requirement_colors": requirement_colors,
-                    "requirement_sub_types": requirement_sub_types
+                    "requirement_sub_types": requirement_sub_types,
+                    "requirement_same_name_as_last_choice": requirement_same_name_as_last_choice
                 }
 
                 cards_to_choose_from = []
