@@ -797,7 +797,7 @@ class PlayerState:
         holomems = []
         if source_card:
             for stacked_card in source_card["stacked_cards"]:
-                if stacked_card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]:
+                if is_card_holomem(stacked_card):
                     holomems.append(stacked_card)
         return holomems
 
@@ -911,7 +911,7 @@ class PlayerState:
             self.engine.broadcast_event(move_card_event)
 
     def reset_card_stats(self, card):
-        if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]:
+        if is_card_holomem(card):
             card["played_this_turn"] = False
             card["bloomed_this_turn"] = False
             card["attached_cheer"] = []
@@ -1335,6 +1335,9 @@ def is_card_item(card):
 
 def is_card_cheer(card):
     return card["card_type"] == "cheer"
+
+def is_card_holomem(card):
+    return card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]
 
 def filter_effects_at_timing(effects, timing):
     return deepcopy([effect for effect in effects if effect["timing"] == timing])
@@ -2617,11 +2620,11 @@ class GameEngine:
             case Condition.Condition_HasStackedHolomem:
                 card, _, _ = effect_player.find_card(source_card_id)
                 for stacked_card in card["stacked_cards"]:
-                    if stacked_card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]:
+                    if is_card_holomem(stacked_card):
                         return True
                 return False
             case Condition.Condition_HolomemInArchive:
-                holomems = [holomem for holomem in effect_player.archive if holomem["card_type"].startswith("holomem")]
+                holomems = [holomem for holomem in effect_player.archive if is_card_holomem(holomem)]
                 if "tag_in" in condition:
                     tags = condition["tag_in"]
                     holomems = [holomem for holomem in holomems if any(tag in holomem["tags"] for tag in tags)]
@@ -2936,8 +2939,7 @@ class GameEngine:
                         cards_can_choose = []
                         match effect.get("requirement"):
                             case "holomem":
-                                cards_can_choose = ([card["game_card_id"] for card in effect_player.hand 
-                                                     if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]])
+                                cards_can_choose = ([card["game_card_id"] for card in effect_player.hand if is_card_holomem(card)])
                             case _:
                                 cards_can_choose = ids_from_cards(effect_player.hand)
                         all_card_seen = ids_from_cards(effect_player.hand)
@@ -3191,7 +3193,7 @@ class GameEngine:
                             # Only include cards that match the colors of the holomems on stage.
                             cards_can_choose = [card for card in cards_can_choose if effect_player.matches_stage_holomems_color(card["colors"], tag_requirement=requirement_only_holomems_with_any_tag)]
                         case "holomem":
-                            cards_can_choose = [card for card in cards_can_choose if card["card_type"] in ["holomem_bloom", "holomem_debut", "holomem_spot" ]]
+                            cards_can_choose = [card for card in cards_can_choose if is_card_holomem(card)]
                         case "holomem_bloom":
                             cards_can_choose = [card for card in cards_can_choose if card["card_type"] == "holomem_bloom"]
                         case "holomem_debut":
@@ -3236,11 +3238,11 @@ class GameEngine:
                         cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
                     
                     if requirement_same_name_as_last_choice:
-                        same_name_cards = []
+                        same_names = []
                         for card_id in self.last_chosen_cards:
                             card = self.find_card(card_id)
-                            same_name_cards += card["card_names"]
-                        cards_can_choose = [card for card in cards_can_choose if any(name in card["card_names"] for name in same_name_cards)]
+                            same_names += card["card_names"]
+                        cards_can_choose = [card for card in cards_can_choose if any(name in card["card_names"] for name in same_names)]
 
                 if len(cards_can_choose) < amount_min:
                     amount_min = len(cards_can_choose)
@@ -3643,7 +3645,7 @@ class GameEngine:
                     self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
-                holomems_in_archive = [card for card in effect_player.archive if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
+                holomems_in_archive = [card for card in effect_player.archive if is_card_holomem(card)]
                 total = per_amount * len(holomems_in_archive)
                 if total != 0:
                     self.performance_artstatboosts.power += total
@@ -3680,7 +3682,7 @@ class GameEngine:
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
-                stacked_holomems = [card for card in stacked_cards if card["card_type"] in ["holomem_debut", "holomem_bloom", "holomem_spot"]]
+                stacked_holomems = [card for card in stacked_cards if is_card_holomem(card)]
                 total = per_amount * len(stacked_holomems)
                 if total != 0:
                     self.performance_artstatboosts.power += total
