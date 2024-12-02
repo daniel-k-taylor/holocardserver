@@ -8306,6 +8306,38 @@
         ]
     },
     {
+        "card_id": "hBP02-031",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["houshou_marine"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 130,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "letssailtogether",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "deal_damage",
+                "special": true,
+                "amount": 20,
+                "target": "collab",
+                "opponent": true
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],
