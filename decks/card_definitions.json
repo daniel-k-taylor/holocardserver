@@ -8217,6 +8217,29 @@
         ]
     },
     {
+        "card_id": "hBP02-028",
+        "card_type": "holomem_debut",
+        "card_names": ["houshou_marine"],
+        "special_deck_limit": 50,
+        "rarity": "c",
+        "colors": ["red"],
+        "hp": 100,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "captainofthepirates",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],
