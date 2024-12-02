@@ -8240,6 +8240,41 @@
         ]
     },
     {
+        "card_id": "hBP02-029",
+        "card_type": "holomem_debut",
+        "card_names": ["houshou_marine"],
+        "rarity": "u",
+        "colors": ["red"],
+        "hp": 70,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Art",
+            "#Sea",
+            "#Alcohol"
+        ],
+        "arts": [
+            {
+                "art_id": "itscaptainmarine",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 30
+            }
+        ],
+        "collab_effects": [
+            {
+                "effect_type": "deal_damage",
+                "special": true,
+                "amount": 20,
+                "target": "collab",
+                "opponent": true
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],
