@@ -8377,6 +8377,71 @@
         ]
     },
     {
+        "card_id": "hBP02-033",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "card_names": ["houshou_marine"],
+        "rarity": "rr",
+        "colors": ["red"],
+        "hp": 200,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gen3",
+            "#Art",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "kimitachi",
+                "costs": [
+                    { "color": "red", "amount": 1 },
+                    { "color": "any", "amount": 2 }
+                ],
+                "power": 80,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "purple" }]
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost_per_stacked",
+                        "amount": 20
+                    }
+                ]
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choice",
+                "choice": [
+                    {
+                        "effect_type": "choose_cards",
+                        "from": "archive",
+                        "look_at": -1,
+                        "destination": "hand",
+                        "amount_min": 1,
+                        "amount_max": 1,
+                        "requirement": "holomem",
+                        "remaining_cards_action": "nothing"
+                    },
+                    { "effect_type": "pass" }
+                ]
+            },
+            {
+                "effect_type": "deal_damage",
+                "conditions": [{ "condition": "has_stacked_holomem", "amount_min": 3 }],
+                "special": true,
+                "amount": 50,
+                "target": "center_or_collab",
+                "opponent": true
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],

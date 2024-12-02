@@ -2618,11 +2618,10 @@ class GameEngine:
                         return True
                 return False
             case Condition.Condition_HasStackedHolomem:
+                amount_min = condition.get("amount_min", 1)
                 card, _, _ = effect_player.find_card(source_card_id)
-                for stacked_card in card["stacked_cards"]:
-                    if is_card_holomem(stacked_card):
-                        return True
-                return False
+                stacked_holomems = [is_card_holomem(card) for card in card["stacked_cards"]]
+                return amount_min <= len(stacked_holomems)
             case Condition.Condition_HolomemInArchive:
                 holomems = [holomem for holomem in effect_player.archive if is_card_holomem(holomem)]
                 if "tag_in" in condition:
