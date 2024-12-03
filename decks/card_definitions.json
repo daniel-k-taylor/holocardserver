@@ -8084,6 +8084,62 @@
     {
         "NOTE": "BP2 CARDS START",
 
+        "card_id": "hBP02-003",
+        "card_type": "oshi",
+        "card_names": ["houshou_marine"],
+        "colors": ["red"],
+        "rarity": "osr",
+        "life": 5,
+        "actions": [
+            {
+                "skill_id": "ahoy",
+                "cost": 3,
+                "limit": "once_per_turn",
+                "effects": [
+                    {
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_turn",
+                        "skill_id": "ahoy",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 3 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "ahoy" }
+                        ]
+                    },
+                    {
+                        "effect_type": "bloom_already_bloomed_this_turn",
+                        "limitation": "tag_in",
+                        "limitation_tags": ["#Gen3"]
+                    }
+                ]
+            },
+            {
+                "skill_id": "shukkou",
+                "cost": 2,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_game",
+                        "skill_id": "shukkou",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 2 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "shukkou" }
+                        ]
+                    },
+                    {
+                        "effect_type": "deal_damage_per_stacked",
+                        "conditions": [{ "condition": "holomem_on_stage", "location": "center", "required_member_name_in": ["houshou_marine"] }],
+                        "special": true,
+                        "amount": 50,
+                        "target": "center_or_collab",
+                        "opponent": true,
+                        "limitation": "center"
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-014",
         "card_type": "holomem_debut",
         "card_names": ["shirogane_noel"],
@@ -8222,6 +8278,8 @@
         "card_names": ["houshou_marine"],
         "special_deck_limit": 50,
         "rarity": "c",
+        "alt_id": "hBP02-028",
+        "alternates": ["p"],
         "colors": ["red"],
         "hp": 100,
         "baton_cost": 1,
