@@ -3280,6 +3280,7 @@ class GameEngine:
                     if requirement_sub_types:
                         cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
                     
+                    # Restrict to same name as last choice from previous choose cards effect
                     if requirement_same_name_as_last_choice:
                         same_names = []
                         for card_id in self.last_chosen_cards:
