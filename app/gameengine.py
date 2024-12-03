@@ -2622,7 +2622,7 @@ class GameEngine:
             case Condition.Condition_HasStackedHolomem:
                 amount_min = condition.get("amount_min", 1)
                 card, _, _ = effect_player.find_card(source_card_id)
-                stacked_holomems = [is_card_holomem(card) for card in card["stacked_cards"]]
+                stacked_holomems = [card for card in card["stacked_cards"] if is_card_holomem(card)]
                 return amount_min <= len(stacked_holomems)
             case Condition.Condition_HolomemInArchive:
                 holomems = [holomem for holomem in effect_player.archive if is_card_holomem(holomem)]
@@ -3444,7 +3444,7 @@ class GameEngine:
                         holomems = effect_player.center
                     case _:
                         holomems = effect_player.get_holomem_on_stage()
-                num_of_stacked_cards = len([is_card_holomem(card) for holomem in holomems for card in holomem["stacked_cards"]])
+                num_of_stacked_cards = len([card for holomem in holomems for card in holomem["stacked_cards"] if is_card_holomem(card)])
                 effect["amount"] *= num_of_stacked_cards
                 effect["effect_type"] = EffectType.EffectType_DealDamage
                 self.do_effect(effect_player, effect)
