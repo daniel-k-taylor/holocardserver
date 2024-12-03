@@ -8583,6 +8583,40 @@
         ]
     },
     {
+        "card_id": "hBP02-038",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["sakamata_chloe"],
+        "rarity": "u",
+        "colors": ["blue"],
+        "hp": 110,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "thisiswhereienjoyit",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 30
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "cheer_deck",
+                "look_at": 3,
+                "destination": "holomem",
+                "amount_min": 1,
+                "amount_max": 1,
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],
