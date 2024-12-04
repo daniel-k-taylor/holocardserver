@@ -3439,15 +3439,17 @@ class GameEngine:
                 self.deal_damage(source_player, target_player, dealing_card, target_card, amount, special, prevent_life_loss, {}, self.continue_resolving_effects)
                 passed_on_continuation = True
             case EffectType.EffectType_DealDamagePerStacked:
-                match effect.get("limitation"):
+                holomems = []
+                match effect.get("stack_source"):
                     case "center":
                         holomems = effect_player.center
-                    case _:
+                    case "all":
                         holomems = effect_player.get_holomem_on_stage()
                 num_of_stacked_cards = len([card for holomem in holomems for card in holomem["stacked_cards"] if is_card_holomem(card)])
-                effect["amount"] *= num_of_stacked_cards
-                effect["effect_type"] = EffectType.EffectType_DealDamage
-                self.do_effect(effect_player, effect)
+                effect_copy = deepcopy(effect)
+                effect_copy["amount"] *= num_of_stacked_cards
+                effect_copy["effect_type"] = EffectType.EffectType_DealDamage
+                self.add_effects_to_front([effect_copy])
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
                 required_damage = effect["required_damage"]
