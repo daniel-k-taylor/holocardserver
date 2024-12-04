@@ -36,6 +36,7 @@ class EffectType:
     EffectType_AfterArchiveCheerCheck = "after_archive_check"
     EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
+    EffectType_ArchiveRevealedCards = "archive_revealed_cards"
     EffectType_ArchiveThisAttachment = "archive_this_attachment"
     EffectType_ArchiveTopStackedHolomem = "archive_top_stacked_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
@@ -68,6 +69,7 @@ class EffectType:
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_PowerBoostPerHolomem = "power_boost_per_holomem"
+    EffectType_PowerBoostPerRevealedCard = "power_boost_per_revealed_card"
     EffectType_PowerBoostPerStacked = "power_boost_per_stacked"
     EffectType_PowerBoostPerPlayedSupport = "power_boost_per_played_support"
     EffectType_RecordEffectCardIdUsedThisTurn = "record_effect_card_id_used_this_turn"
@@ -142,6 +144,7 @@ class Condition:
     Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCenter = "this_card_is_center"
     Condition_ThisCardIsCollab = "this_card_is_collab"
+    Condition_ThisCardIsPerforming = "this_card_is_performing"
     Condition_TopDeckCardHasAnyCardType = "top_deck_has_any_card_type"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
     Condition_ColorOnStage = "color_on_stage"
@@ -392,6 +395,7 @@ class PlayerState:
         self.clock_time_used = 0
         self.performance_cleanup_effects_pending = []
         self.performance_attacked_this_turn = False
+        self.last_revealed_cards = []
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -953,6 +957,7 @@ class PlayerState:
         self.played_support_types_this_turn = {}
         self.effects_used_this_turn = []
         self.card_effects_used_this_turn = []
+        self.last_revealed_cards = []
         for card in self.get_holomem_on_stage():
             card["used_art_this_turn"] = False
             card["played_this_turn"] = False
@@ -2745,12 +2750,15 @@ class GameEngine:
                 if len(effect_player.collab) == 0:
                     return False
                 return effect_player.collab[0]["game_card_id"] == source_card_id
+            case Condition.Condition_ThisCardIsPerforming:
+                return self.performance_performer_card["game_card_id"] == source_card_id
             case Condition.Condition_TopDeckCardHasAnyCardType:
-                valid_card_types = condition["condition_card_types"]
                 if len(effect_player.deck) == 0:
                     return False
-                top_card_type = effect_player.deck[0]["card_type"]
-                return top_card_type in valid_card_types
+                amount = condition.get("amount", 1)
+                valid_card_types = condition["condition_card_types"]
+                top_card_types = [card["card_type"] for card in effect_player.deck[:amount]]
+                return any(valid_card_type in top_card_types for valid_card_type in valid_card_types)
             case Condition.Condition_TopDeckCardHasAnyTag:
                 valid_tags = condition["condition_tags"]
                 if len(effect_player.deck) == 0:
@@ -2978,6 +2986,15 @@ class GameEngine:
                     else:
                         self.continue_resolving_effects()
                 self.begin_resolving_effects(before_archive_effects, archive_hand_continuation)
+                passed_on_continuation = True
+            case EffectType.EffectType_ArchiveRevealedCards:
+                self.archive_count_required = len(effect_player.last_revealed_cards)
+                before_archive_effects = effect_player.get_effects_at_timing("before_archive", None)
+                def archive_revealed_cards_continuation():
+                    for revealed_card in effect_player.last_revealed_cards:
+                        effect_player.move_card(revealed_card["game_card_id"], "archive")
+                    self.continue_resolving_effects()
+                self.begin_resolving_effects(before_archive_effects, archive_revealed_cards_continuation)
                 passed_on_continuation = True
             case EffectType.EffectType_ArchiveThisAttachment:
                 attachment_id = effect["source_card_id"]
@@ -3210,6 +3227,8 @@ class GameEngine:
                         cards_to_choose_from = effect_player.hand
                     case "holopower":
                         cards_to_choose_from = effect_player.holopower
+                    case "last_revealed_cards":
+                        cards_to_choose_from = effect_player.last_revealed_cards
                     case "stacked_holomem":
                         cards_to_choose_from = effect_player.get_holomem_under(effect["source_card_id"])
 
@@ -3733,6 +3752,16 @@ class GameEngine:
                 if total != 0:
                     self.performance_artstatboosts.power += total
                     self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+            case EffectType.EffectType_PowerBoostPerRevealedCard:
+                per_amount = effect["amount"]
+                revealed_cards = effect_player.last_revealed_cards
+                match effect.get("limitation"):
+                    case "holomem":
+                        revealed_cards = [card for card in revealed_cards if is_card_holomem(card)]
+                total = per_amount * len(revealed_cards)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
@@ -3888,11 +3917,13 @@ class GameEngine:
                     })
             case EffectType.EffectType_RevealTopDeck:
                 if len(effect_player.deck) > 0:
-                    top_card = effect_player.deck[0]
+                    amount = effect.get("amount", 1)
+                    top_cards = effect_player.deck[:amount]
+                    effect_player.last_revealed_cards = top_cards
                     reveal_event = {
                         "event_type": EventType.EventType_RevealCards,
                         "effect_player_id": effect_player_id,
-                        "card_ids": [top_card["game_card_id"]],
+                        "card_ids": ids_from_cards(top_cards),
                         "source": "topdeck"
                     }
                     self.broadcast_event(reveal_event)
@@ -5463,6 +5494,13 @@ class GameEngine:
                         "bottom": True,
                         "continuation": continuation,
                     })
+                case "remove_choice_from_last_revealed_cards":
+                    last_revealed_cards = []
+                    for card_id in remaining_card_ids:
+                        card = self.find_card(card_id)
+                        if card:
+                            last_revealed_cards.append(card)
+                    player.last_revealed_cards = last_revealed_cards
                 case _:
                     raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
 
