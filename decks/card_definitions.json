@@ -9165,6 +9165,36 @@
         ]
     },
     {
+        "card_id": "hBP02-096",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["inu"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "before_art",
+                "effect_type": "power_boost",
+                "amount": 10
+            },
+            {
+                "timing": "on_kill",
+                "conditions": [
+                    { "condition": "attached_to", "required_member_name": "sakamata_chloe" },
+                    { "condition": "downed_card_belongs_to_opponent" }
+                ],
+                "effect_type": "send_cheer",
+                "amount_min": 1,
+                "amount_max": 1,
+                "from": "archive",
+                "to": "holomem",
+                "to_limitation": "tag_in",
+                "to_limitation_tags": ["#SecretSocietyholoX"]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-100",
         "card_type": "support",
         "sub_type": "fan",
