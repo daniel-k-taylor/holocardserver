@@ -8684,6 +8684,74 @@
         ]
     },
     {
+        "card_id": "hBP02-040",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "card_names": ["sakamata_chloe"],
+        "rarity": "rr",
+        "colors": ["blue"],
+        "hp": 190,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#SecretSocietyholoX",
+            "#Sea"
+        ],
+        "arts": [
+            {
+                "art_id": "holoxslots",
+                "costs": [
+                    { "color": "blue", "amount": 2 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 100,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "amount": 50,
+                        "conditions": [{ "condition": "target_color", "color_requirement": "white" }]
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "choice",
+                        "choice": [
+                            {
+                                "effect_type": "reveal_top_deck",
+                                "amount": 3,
+                                "and": [
+                                    {
+                                        "effect_type": "power_boost_per_revealed_card",
+                                        "amount": 20,
+                                        "limitation": "holomem"
+                                    },
+                                    {
+                                        "effect_type": "archive_revealed_cards"
+                                    }
+                                ]
+                            },
+                            { "effect_type": "pass" }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "gift_effects": [
+            {
+                "timing": "after_reveal",
+                "conditions": [
+                    { "condition": "effect_card_id_not_used_this_turn" },
+                    { "condition": "revealed_cards_has_same_type", "condition_same_type": "holomem_bloom" },
+                    { "condition": "this_card_is_performing" }
+                ],
+                "effect_type": "deal_life_damage",
+                "amount": 1,
+                "opponent": true,
+                "and": [{ "effect_type": "record_effect_card_id_used_this_turn" }]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-061",
         "card_type": "holomem_debut",
         "card_names": ["ninomae_inanis"],
