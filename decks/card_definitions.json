@@ -9094,6 +9094,30 @@
         ]
     },
     {
+        "card_id": "hBP02-078",
+        "card_type": "support",
+        "sub_type": "event",
+        "colors": [],
+        "card_names": ["kanata_construction"],
+        "rarity": "u",
+        "limited": true,
+        "play_conditions": [{ "condition": "cards_in_hand", "amount_max": 7 }],
+        "effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": 4,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 4,
+                "requirement": "holomem_named",
+                "requirement_names": ["amane_kanata", "azki", "sakamata_chloe"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "order_on_bottom"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-085",
         "card_type": "support",
         "sub_type": "event",
