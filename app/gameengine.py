@@ -40,6 +40,7 @@ class EffectType:
     EffectType_ArchiveTopStackedHolomem = "archive_top_stacked_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
     EffectType_AttachCardToHolomem_Internal = "attach_card_to_holomem_internal"
+    EffectType_BloomAlreadyBloomedThisTurn = "bloom_already_bloomed_this_turn"
     EffectType_BloomDebutPlayedThisTurnTo1st = "bloom_debut_played_this_turn_to_1st"
     EffectType_BlockOpponentMovement = "block_opponent_movement"
     EffectType_BonusHp = "bonus_hp"
@@ -47,6 +48,7 @@ class EffectType:
     EffectType_ChooseCards = "choose_cards"
     EffectType_DealDamage = "deal_damage"
     EffectType_DealDamage_Internal = "deal_damage_INTERNAL"
+    EffectType_DealDamagePerStacked = "deal_damage_per_stacked"
     EffectType_DownHolomem = "down_holomem"
     EffectType_Draw = "draw"
     EffectType_ForceDieResult = "force_die_result"
@@ -2618,11 +2620,10 @@ class GameEngine:
                         return True
                 return False
             case Condition.Condition_HasStackedHolomem:
+                amount_min = condition.get("amount_min", 1)
                 card, _, _ = effect_player.find_card(source_card_id)
-                for stacked_card in card["stacked_cards"]:
-                    if is_card_holomem(stacked_card):
-                        return True
-                return False
+                stacked_holomems = [card for card in card["stacked_cards"] if is_card_holomem(card)]
+                return amount_min <= len(stacked_holomems)
             case Condition.Condition_HolomemInArchive:
                 holomems = [holomem for holomem in effect_player.archive if is_card_holomem(holomem)]
                 if "tag_in" in condition:
@@ -3059,6 +3060,47 @@ class GameEngine:
                             effect_player.archive_attached_cards([attached_support["game_card_id"]])
                             break
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
+            case EffectType.EffectType_BloomAlreadyBloomedThisTurn:
+                bloomed_cards_this_turn = [holomem for holomem in effect_player.get_holomem_on_stage() if holomem["bloomed_this_turn"]]
+                match effect.get("limitation"):
+                    case "tag_in":
+                        limitation_tags = effect.get("limitation_tags", [])
+                        bloomed_cards_this_turn = [h for h in bloomed_cards_this_turn if any(tag in h["tags"] for tag in limitation_tags)]
+                valid_blooms_dict = {}
+                for bloomed_card in bloomed_cards_this_turn:
+                    for card_in_hand in effect_player.hand:
+                        game_card_id = card_in_hand["game_card_id"]
+                        if effect_player.can_bloom_with_card(bloomed_card, card_in_hand) and game_card_id not in valid_blooms_dict:
+                            valid_blooms_dict[game_card_id] = card_in_hand
+                valid_blooms_in_hand = list(valid_blooms_dict.values())
+                if len(valid_blooms_in_hand) > 0:
+                    decision_event = {
+                        "event_type": EventType.EventType_Decision_ChooseCards,
+                        "desired_response": GameAction.EffectResolution_ChooseCardsForEffect,
+                        "effect_player_id": effect_player_id,
+                        "all_card_seen": ids_from_cards(valid_blooms_in_hand),
+                        "cards_can_choose": ids_from_cards(valid_blooms_in_hand),
+                        "from_zone": "hand",
+                        "to_zone": "holomem",
+                        "amount_min": 0,
+                        "amount_max": 1,
+                        "special_reason": "bloom_already_bloomed_this_turn",
+                        "reveal_chosen": True,
+                        "remaining_cards_action": "nothing"
+                    }
+                    self.broadcast_event(decision_event)
+                    self.set_decision({
+                        "decision_type": DecisionType.DecisionEffect_ChooseCardsForEffect,
+                        "decision_player": effect_player_id,
+                        "all_card_seen": ids_from_cards(valid_blooms_in_hand),
+                        "cards_can_choose": ids_from_cards(valid_blooms_in_hand),
+                        "amount_min": 0,
+                        "amount_max": 1,
+                        "target_cards": bloomed_cards_this_turn,
+                        "effect": effect,
+                        "effect_resolution": self.handle_chose_bloom_now_choose_target,
+                        "continuation": self.continue_resolving_effects
+                    })
             case EffectType.EffectType_BloomDebutPlayedThisTurnTo1st:
                 location = effect["location"]
                 debuts = effect_player.get_debuts_played_this_turn(location)
@@ -3152,7 +3194,8 @@ class GameEngine:
                     "requirement_match_oshi_color": requirement_match_oshi_color,
                     "requirement_only_holomems_with_any_tag": requirement_only_holomems_with_any_tag,
                     "requirement_colors": requirement_colors,
-                    "requirement_sub_types": requirement_sub_types
+                    "requirement_sub_types": requirement_sub_types,
+                    "requirement_same_name_as_last_choice": requirement_same_name_as_last_choice
                 }
 
                 cards_to_choose_from = []
@@ -3395,6 +3438,18 @@ class GameEngine:
                 prevent_life_loss = effect["prevent_life_loss"]
                 self.deal_damage(source_player, target_player, dealing_card, target_card, amount, special, prevent_life_loss, {}, self.continue_resolving_effects)
                 passed_on_continuation = True
+            case EffectType.EffectType_DealDamagePerStacked:
+                holomems = []
+                match effect.get("stack_source"):
+                    case "center":
+                        holomems = effect_player.center
+                    case "all":
+                        holomems = effect_player.get_holomem_on_stage()
+                num_of_stacked_cards = len([card for holomem in holomems for card in holomem["stacked_cards"] if is_card_holomem(card)])
+                effect_copy = deepcopy(effect)
+                effect_copy["amount"] *= num_of_stacked_cards
+                effect_copy["effect_type"] = EffectType.EffectType_DealDamage
+                self.add_effects_to_front([effect_copy])
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
                 required_damage = effect["required_damage"]
