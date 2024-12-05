@@ -36,6 +36,7 @@ class EffectType:
     EffectType_AfterArchiveCheerCheck = "after_archive_check"
     EffectType_ArchiveCheerFromHolomem = "archive_cheer_from_holomem"
     EffectType_ArchiveFromHand = "archive_from_hand"
+    EffectType_ArchiveRevealedCards = "archive_revealed_cards"
     EffectType_ArchiveThisAttachment = "archive_this_attachment"
     EffectType_ArchiveTopStackedHolomem = "archive_top_stacked_holomem"
     EffectType_AttachCardToHolomem = "attach_card_to_holomem"
@@ -49,6 +50,7 @@ class EffectType:
     EffectType_DealDamage = "deal_damage"
     EffectType_DealDamage_Internal = "deal_damage_INTERNAL"
     EffectType_DealDamagePerStacked = "deal_damage_per_stacked"
+    EffectType_DealLifeDamage = "deal_life_damage"
     EffectType_DownHolomem = "down_holomem"
     EffectType_Draw = "draw"
     EffectType_ForceDieResult = "force_die_result"
@@ -68,6 +70,7 @@ class EffectType:
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_PowerBoostPerHolomem = "power_boost_per_holomem"
+    EffectType_PowerBoostPerRevealedCard = "power_boost_per_revealed_card"
     EffectType_PowerBoostPerStacked = "power_boost_per_stacked"
     EffectType_PowerBoostPerPlayedSupport = "power_boost_per_played_support"
     EffectType_RecordEffectCardIdUsedThisTurn = "record_effect_card_id_used_this_turn"
@@ -134,6 +137,7 @@ class Condition:
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
+    Condition_RevealedCardsHasSameType = "revealed_cards_has_same_type"
     Condition_SelfHasCheerColor = "self_has_cheer_color"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
@@ -142,6 +146,7 @@ class Condition:
     Condition_TargetIsNotBackstage = "target_is_not_backstage"
     Condition_ThisCardIsCenter = "this_card_is_center"
     Condition_ThisCardIsCollab = "this_card_is_collab"
+    Condition_ThisCardIsPerforming = "this_card_is_performing"
     Condition_TopDeckCardHasAnyCardType = "top_deck_has_any_card_type"
     Condition_TopDeckCardHasAnyTag = "top_deck_card_has_any_tag"
     Condition_ColorOnStage = "color_on_stage"
@@ -178,6 +183,7 @@ class EventType:
     EventType_InitialPlacementBegin = "initial_placement_begin"
     EventType_InitialPlacementPlaced = "initial_placement_placed"
     EventType_InitialPlacementReveal = "initial_placement_reveal"
+    EventType_LifeDamageDealt = "life_damage_dealt"
     EventType_MainStepStart = "main_step_start"
     EventType_ModifyHP = "modify_hp"
     EventType_MoveCard = "move_card"
@@ -392,6 +398,7 @@ class PlayerState:
         self.clock_time_used = 0
         self.performance_cleanup_effects_pending = []
         self.performance_attacked_this_turn = False
+        self.last_revealed_cards = []
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -953,6 +960,7 @@ class PlayerState:
         self.played_support_types_this_turn = {}
         self.effects_used_this_turn = []
         self.card_effects_used_this_turn = []
+        self.last_revealed_cards = []
         for card in self.get_holomem_on_stage():
             card["used_art_this_turn"] = False
             card["played_this_turn"] = False
@@ -2164,6 +2172,67 @@ class GameEngine:
         }
         self.deal_damage(active_player, target_owner, self.performance_performer_card, self.performance_target_card, total_power, is_special_damage, False, art_info, self.performance_continuation)
 
+    def deal_life_damage(self, target_player: PlayerState, dealing_card, damage: int, continuation):
+        game_over = False
+        game_over_reason = ""
+        life_to_distribute = []
+        life_lost = damage
+
+        current_life = len(target_player.life)
+        if life_lost >= current_life:
+            game_over = True
+            game_over_reason = GameOverReason.GameOverReason_NoLifeLeft
+
+        if not game_over:
+            life_to_distribute = ids_from_cards(target_player.life[:life_lost])
+
+        # Send the life damage dealt event
+        life_damage_event = {
+            "event_type": EventType.EventType_LifeDamageDealt,
+            "target_player": target_player.player_id,
+            "source_card_id": dealing_card["game_card_id"],
+            "life_lost": life_lost
+        }
+        self.broadcast_event(life_damage_event)
+
+        if game_over:
+            # For making logging look nice, go ahead and remove any life lost.
+            for _ in range(life_lost):
+                if target_player.life:
+                    target_player.life.pop()
+            self.end_game(target_player.player_id, game_over_reason)
+        elif life_to_distribute:
+            # Tell the owner to distribute this life amongst their holomems.
+            remaining_holomems = ids_from_cards(target_player.get_holomem_on_stage())
+            cheer_on_each_mem = target_player.get_cheer_on_each_holomem()
+            decision_event = {
+                "event_type": EventType.EventType_Decision_SendCheer,
+                "desired_response": GameAction.EffectResolution_MoveCheerBetweenHolomems,
+                "effect_player_id": target_player.player_id,
+                "amount_min": len(life_to_distribute),
+                "amount_max": len(life_to_distribute),
+                "from_zone": "life",
+                "to_zone": "holomem",
+                "from_options": life_to_distribute,
+                "to_options": remaining_holomems,
+                "cheer_on_each_mem": cheer_on_each_mem,
+                "multi_to": True,
+            }
+            self.broadcast_event(decision_event)
+            self.set_decision({
+                "decision_type": DecisionType.DecisionEffect_MoveCheerBetweenHolomems,
+                "decision_player": target_player.player_id,
+                "amount_min": len(life_to_distribute),
+                "amount_max": len(life_to_distribute),
+                "available_cheer": life_to_distribute,
+                "available_targets": remaining_holomems,
+                "continuation": continuation,
+                "multi_to": True,
+            })
+        else:
+            continuation()
+
+
     def deal_damage(self, dealing_player : PlayerState, target_player : PlayerState, dealing_card, target_card, damage, special, prevent_life_loss, art_info, continuation):
         if target_card["damage"] >= target_player.get_card_hp(target_card):
             # Already dead somehow!
@@ -2711,6 +2780,20 @@ class GameEngine:
                 return False
             case Condition.Condition_PlayedSupportThisTurn:
                 return effect_player.played_support_this_turn
+            case Condition.Condition_RevealedCardsHasSameType:
+                revealed_cards = effect_player.last_revealed_cards
+                if len(revealed_cards) == 0:
+                    return False
+                match condition.get("condition_same_type"):
+                    case "holomem_bloom":
+                        # Cards should be holomem and of the same bloom level (Debut is level 0)
+                        base_card = revealed_cards[0] # the card that the rest of the cards will be compared to
+                        if not is_card_holomem(base_card):
+                            return False
+                        card_type = base_card["card_type"]
+                        bloom_level = base_card.get("bloom_level", 0)
+                        return all([card["card_type"] == card_type and card.get("bloom_level", 0) == bloom_level for card in revealed_cards[1:]])
+                return False
             case Condition.Condition_SelfHasCheerColor:
                 condition_colors = condition["condition_colors"]
                 amount_min = condition["amount_min"]
@@ -2745,12 +2828,15 @@ class GameEngine:
                 if len(effect_player.collab) == 0:
                     return False
                 return effect_player.collab[0]["game_card_id"] == source_card_id
+            case Condition.Condition_ThisCardIsPerforming:
+                return self.performance_performer_card["game_card_id"] == source_card_id
             case Condition.Condition_TopDeckCardHasAnyCardType:
-                valid_card_types = condition["condition_card_types"]
                 if len(effect_player.deck) == 0:
                     return False
-                top_card_type = effect_player.deck[0]["card_type"]
-                return top_card_type in valid_card_types
+                amount = condition.get("amount", 1)
+                valid_card_types = condition["condition_card_types"]
+                top_card_types = [card["card_type"] for card in effect_player.deck[:amount]]
+                return any(valid_card_type in top_card_types for valid_card_type in valid_card_types)
             case Condition.Condition_TopDeckCardHasAnyTag:
                 valid_tags = condition["condition_tags"]
                 if len(effect_player.deck) == 0:
@@ -2978,6 +3064,15 @@ class GameEngine:
                     else:
                         self.continue_resolving_effects()
                 self.begin_resolving_effects(before_archive_effects, archive_hand_continuation)
+                passed_on_continuation = True
+            case EffectType.EffectType_ArchiveRevealedCards:
+                self.archive_count_required = len(effect_player.last_revealed_cards)
+                before_archive_effects = effect_player.get_effects_at_timing("before_archive", None)
+                def archive_revealed_cards_continuation():
+                    for revealed_card in effect_player.last_revealed_cards:
+                        effect_player.move_card(revealed_card["game_card_id"], "archive")
+                    self.continue_resolving_effects()
+                self.begin_resolving_effects(before_archive_effects, archive_revealed_cards_continuation)
                 passed_on_continuation = True
             case EffectType.EffectType_ArchiveThisAttachment:
                 attachment_id = effect["source_card_id"]
@@ -3210,6 +3305,8 @@ class GameEngine:
                         cards_to_choose_from = effect_player.hand
                     case "holopower":
                         cards_to_choose_from = effect_player.holopower
+                    case "last_revealed_cards":
+                        cards_to_choose_from = effect_player.last_revealed_cards
                     case "stacked_holomem":
                         cards_to_choose_from = effect_player.get_holomem_under(effect["source_card_id"])
 
@@ -3280,6 +3377,7 @@ class GameEngine:
                     if requirement_sub_types:
                         cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
                     
+                    # Restrict to same name as last choice from previous choose cards effect
                     if requirement_same_name_as_last_choice:
                         same_names = []
                         for card_id in self.last_chosen_cards:
@@ -3450,6 +3548,20 @@ class GameEngine:
                 effect_copy["amount"] *= num_of_stacked_cards
                 effect_copy["effect_type"] = EffectType.EffectType_DealDamage
                 self.add_effects_to_front([effect_copy])
+            case EffectType.EffectType_DealLifeDamage:
+                amount = effect["amount"]
+                opponent = effect.get("opponent", False)
+                source_player = self.get_player(effect_player_id)
+                target_player = self.other_player(effect_player_id) if opponent else effect_player
+                source_holomem_card, _, _ = source_player.find_card(effect["source_card_id"])
+                if not source_holomem_card:
+                    # Assume this is an attachment, find it on the holomem.
+                    for holomem in source_player.get_holomem_on_stage():
+                        for attachment in holomem["attached_support"]:
+                            if attachment["game_card_id"] == effect["source_card_id"]:
+                                source_holomem_card = holomem
+                                break
+                self.deal_life_damage(target_player, source_holomem_card, amount, self.continue_resolving_effects)
             case EffectType.EffectType_DownHolomem:
                 target = effect["target"]
                 required_damage = effect["required_damage"]
@@ -3734,6 +3846,16 @@ class GameEngine:
                 if total != 0:
                     self.performance_artstatboosts.power += total
                     self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+            case EffectType.EffectType_PowerBoostPerRevealedCard:
+                per_amount = effect["amount"]
+                revealed_cards = effect_player.last_revealed_cards
+                match effect.get("limitation"):
+                    case "holomem":
+                        revealed_cards = [card for card in revealed_cards if is_card_holomem(card)]
+                total = per_amount * len(revealed_cards)
+                if total != 0:
+                    self.performance_artstatboosts.power += total
+                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
@@ -3889,14 +4011,23 @@ class GameEngine:
                     })
             case EffectType.EffectType_RevealTopDeck:
                 if len(effect_player.deck) > 0:
-                    top_card = effect_player.deck[0]
+                    amount = effect.get("amount", 1)
+                    top_cards = effect_player.deck[:amount]
+                    effect_player.last_revealed_cards = top_cards
                     reveal_event = {
                         "event_type": EventType.EventType_RevealCards,
                         "effect_player_id": effect_player_id,
-                        "card_ids": [top_card["game_card_id"]],
+                        "card_ids": ids_from_cards(top_cards),
                         "source": "topdeck"
                     }
                     self.broadcast_event(reveal_event)
+                    after_reveal_effects = effect_player.get_effects_at_timing("after_reveal", None)
+                    if self.performance_art:
+                        # Queue to cleanup effects.
+                        effect_player.add_performance_cleanup(after_reveal_effects)
+                    else:
+                        # Add it to the rear of the queue.
+                        self.add_effects_to_rear(after_reveal_effects)
             case EffectType.EffectType_RerollDie:
                 rigged = False
                 if effect_player.set_next_die_roll:
@@ -5464,6 +5595,13 @@ class GameEngine:
                         "bottom": True,
                         "continuation": continuation,
                     })
+                case "remove_choice_from_last_revealed_cards":
+                    last_revealed_cards = []
+                    for card_id in remaining_card_ids:
+                        card = self.find_card(card_id)
+                        if card:
+                            last_revealed_cards.append(card)
+                    player.last_revealed_cards = last_revealed_cards
                 case _:
                     raise NotImplementedError(f"Unimplemented remaining cards action: {remaining_cards_action}")
 
