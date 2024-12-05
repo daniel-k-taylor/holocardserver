@@ -8143,6 +8143,76 @@
         ]
     },
     {
+        "card_id": "hBP02-004",
+        "card_type": "oshi",
+        "card_names": ["sakamata_chloe"],
+        "colors": ["blue"],
+        "rarity": "osr",
+        "life": 6,
+        "actions": [
+            {
+                "skill_id": "poepoepoe",
+                "cost": 1,
+                "limit": "once_per_turn",
+                "action_conditions": [
+                    { "condition": "holomem_on_stage", "location": "center", "required_member_name_in": ["sakamata_chloe"] }
+                ],
+                "effects": [
+                    {
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_turn",
+                        "skill_id": "poepoepoe",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 1 },
+                            { "effect_type": "record_used_once_per_turn_effect", "effect_id": "poepoepoe" }
+                        ]
+                    },
+                    {
+                        "effect_type": "reveal_top_deck",
+                        "amount": 3
+                    },
+                    {
+                        "effect_type": "choice",
+                        "choice": [
+                            {
+                                "effect_type": "archive_revealed_cards"
+                            },
+                            {
+                                "effect_type": "order_cards",
+                                "from": "deck",
+                                "destination": "deck",
+                                "amount": 3
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "skill_id": "liferesetbutton",
+                "cost": 3,
+                "limit": "once_per_game",
+                "effects": [
+                    {
+                        "effect_type": "oshi_activation",
+                        "limit": "once_per_game",
+                        "skill_id": "liferesetbutton",
+                        "pre_effects": [
+                            { "effect_type": "spend_holopower", "amount": 3 },
+                            { "effect_type": "record_used_once_per_game_effect", "effect_id": "liferesetbutton" }
+                        ]
+                    },
+                    {
+                        "effect_type": "shuffle_hand_to_deck",
+                        "and": [
+                            { "effect_type": "shuffle_archive_to_deck", "limitation": "holomem" },
+                            { "effect_type": "draw", "amount": "last_card_count" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-014",
         "card_type": "holomem_debut",
         "card_names": ["shirogane_noel"],

@@ -92,6 +92,7 @@ class EffectType:
     EffectType_SendCheer = "send_cheer"
     EffectType_SendCollabBack = "send_collab_back"
     EffectType_SetCenterHP = "set_center_hp"
+    EffectType_ShuffleArchiveToDeck = "shuffle_archive_to_deck"
     EffectType_ShuffleHandToDeck = "shuffle_hand_to_deck"
     EffectType_SpendHolopower = "spend_holopower"
     EffectType_SwitchCenterWithBack = "switch_center_with_back"
@@ -1878,6 +1879,10 @@ class GameEngine:
             skill_cost = action["cost"]
             if skill_cost > len(active_player.holopower):
                 continue
+
+            if "action_conditions" in action:
+                if not self.are_conditions_met(active_player, active_player.oshi_card["game_card_id"], action["action_conditions"]):
+                    continue
 
             available_actions.append({
                 "action_type": GameAction.MainStepOshiSkill,
@@ -3774,7 +3779,8 @@ class GameEngine:
                 amount = len(cards_to_order) if amount == -1 else min(amount, len(cards_to_order))
                 cards_to_order = cards_to_order[:amount]
                 self.last_card_count = len(cards_to_order)
-                self.choose_cards_cleanup_remaining(order_player.player_id, cards_to_order, "order_on_bottom", from_zone, to_zone,
+                order = "order_on_bottom" if bottom else "order_on_top"
+                self.choose_cards_cleanup_remaining(order_player.player_id, cards_to_order, order, from_zone, to_zone,
                     self.continue_resolving_effects
                 )
                 passed_on_continuation = True
@@ -4357,7 +4363,16 @@ class GameEngine:
                     affected_player = self.other_player(effect_player_id)
                 if len(affected_player.center) > 0:
                     affected_player.set_holomem_hp(affected_player.center[0]["game_card_id"], amount)
+            case EffectType.EffectType_ShuffleArchiveToDeck:
+                archived_cards = effect_player.archive
+                match effect.get("limitation"):
+                    case "holomem":
+                        archived_cards = [card for card in archived_cards if is_card_holomem(card)]
+                for card in archived_cards:
+                    effect_player.move_card(card["game_card_id"], "deck", hidden_info=False)
+                effect_player.shuffle_deck()
             case EffectType.EffectType_ShuffleHandToDeck:
+                self.last_card_count = len(effect_player.hand)
                 effect_player.shuffle_hand_to_deck()
             case EffectType.EffectType_SpendHolopower:
                 amount = effect["amount"]
@@ -5573,7 +5588,8 @@ class GameEngine:
                         player.shuffle_cheer_deck()
                     else:
                         raise NotImplementedError(f"Unimplemented shuffle zone action: {from_zone}")
-                case "order_on_bottom":
+                case "order_on_bottom" | "order_on_top":
+                    bottom = remaining_cards_action == "order_on_bottom"
                     order_cards_event = {
                         "event_type": EventType.EventType_Decision_OrderCards,
                         "desired_response": GameAction.EffectResolution_OrderCards,
@@ -5581,7 +5597,7 @@ class GameEngine:
                         "card_ids": remaining_card_ids,
                         "from_zone": from_zone,
                         "to_zone": to_zone,
-                        "bottom": True,
+                        "bottom": bottom,
                         "hidden_info_player": performing_player_id,
                         "hidden_info_fields": ["card_ids"],
                     }
@@ -5592,7 +5608,7 @@ class GameEngine:
                         "card_ids": remaining_card_ids,
                         "from_zone": from_zone,
                         "to_zone": to_zone,
-                        "bottom": True,
+                        "bottom": bottom,
                         "continuation": continuation,
                     })
                 case "remove_choice_from_last_revealed_cards":
