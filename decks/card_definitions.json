@@ -8668,6 +8668,7 @@
         ],
         "gift_effects": [
             {
+                "full_english_text": "CHLOE_BP02_039_FULL_TEXT",
                 "timing": "before_archive",
                 "conditions": [
                     { "condition": "effect_card_id_not_used_this_turn" },
@@ -8741,6 +8742,7 @@
         ],
         "gift_effects": [
             {
+                "full_english_text": "CHLOE_BP02_040_FULL_TEXT",
                 "timing": "after_reveal",
                 "conditions": [
                     { "condition": "effect_card_id_not_used_this_turn" },
