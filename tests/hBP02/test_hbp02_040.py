@@ -13,7 +13,7 @@ class Test_hBP02_040(unittest.TestCase):
 
   def setUp(self):
     p1_deck = generate_deck_with("", {
-      "hBP02-040": 1, # 2nd Chloe
+      "hBP02-040": 2, # 2nd Chloe
       "hBP02-076": 1, # support item
       "hBP02-035": 1, # debut Chloe
     })
@@ -47,6 +47,9 @@ class Test_hBP02_040(unittest.TestCase):
       "target_id": p2.center[0]["game_card_id"]
     })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+      "placements": { p2.life[0]["game_card_id"]: p2.center[0]["game_card_id"] }
+    })
 
     # Events
     events = engine.grab_events()
@@ -60,9 +63,12 @@ class Test_hBP02_040(unittest.TestCase):
       (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
       (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": center_card_id }),
       (EventType.EventType_Decision_SendCheer, {}),
+
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
+      *end_turn_events()
     ])
 
     self.assertEqual(len(p1.archive), 3)
@@ -199,6 +205,97 @@ class Test_hBP02_040(unittest.TestCase):
       (EventType.EventType_DownedHolomem, {}),
       (EventType.EventType_Decision_SendCheer, {})
     ])
+
+
+  def test_hbp02_040_gift_only_triggers_own_effect(self):
+    engine = self.engine
+
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Chloe in the center and collab
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-040", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b2")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+
+    p1.collab = []
+    _, collab_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-040", p1.collab))
+    spawn_cheer_on_card(self, p1, collab_card_id, "blue", "b3")
+    spawn_cheer_on_card(self, p1, collab_card_id, "blue", "b3")
+    spawn_cheer_on_card(self, p1, collab_card_id, "white", "w2") # any color
+
+    # Give p2 center high hp
+    p2.center[0]["hp"] = 999
+
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "holoxslots",
+      "performer_id": center_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+      "placements": { p2.life[0]["game_card_id"]: p2.center[0]["game_card_id"] }
+    })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "holoxslots", "power": 100 }),
+      (EventType.EventType_BoostStat, { "amount": 50 }), # color advantage
+      (EventType.EventType_Decision_Choice, {}),
+
+      (EventType.EventType_RevealCards, {}),
+      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": center_card_id }),
+      (EventType.EventType_Decision_SendCheer, {}),
+
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
+      (EventType.EventType_Decision_PerformanceStep, {})
+    ])
+
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "holoxslots",
+      "performer_id": collab_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+    engine.handle_game_message(self.player2, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
+      "placements": { p2.life[0]["game_card_id"]: p2.center[0]["game_card_id"] }
+    })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "holoxslots", "power": 100 }),
+      (EventType.EventType_BoostStat, { "amount": 50 }), # color advantage
+      (EventType.EventType_Decision_Choice, {}),
+
+      (EventType.EventType_RevealCards, {}),
+      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": collab_card_id }),
+      (EventType.EventType_Decision_SendCheer, {}),
+
+      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
+      *end_turn_events()
+    ])
+
+    self.assertEqual(len(p1.archive), 6)
+    self.assertEqual(len(p2.life), 3)
     
     
   def test_hbp02_040_baton_pass(self):

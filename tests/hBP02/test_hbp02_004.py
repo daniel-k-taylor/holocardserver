@@ -66,14 +66,14 @@ class Test_hBP02_004(unittest.TestCase):
     put_card_in_play(self, p1, "hBP02-035", p1.center)
 
     # top three cards
-    top_three_ids_reversed = ids_from_cards(p1.deck[:3])[::-1]
+    top_three_ids = ids_from_cards(p1.deck[:3])
 
     """Test"""
     self.assertEqual(engine.active_player_id, self.player1)
 
     engine.handle_game_message(self.player1, GameAction.MainStepOshiSkill, { "skill_id": "poepoepoe" })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 1 })
-    engine.handle_game_message(self.player1, GameAction.EffectResolution_OrderCards, { "card_ids": top_three_ids_reversed })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_OrderCards, { "card_ids": top_three_ids })
 
     # Events
     events = engine.grab_events()
@@ -91,7 +91,7 @@ class Test_hBP02_004(unittest.TestCase):
       (EventType.EventType_Decision_MainStep, {})
     ])
 
-    self.assertCountEqual(ids_from_cards(p1.deck[:3]), top_three_ids_reversed)
+    self.assertEqual(ids_from_cards(p1.deck[:3]), top_three_ids)
 
 
   def test_hbp02_004_oshi_skill_cannot_activate_if_center_is_not_chloe(self):

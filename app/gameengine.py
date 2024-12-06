@@ -4028,12 +4028,7 @@ class GameEngine:
                     }
                     self.broadcast_event(reveal_event)
                     after_reveal_effects = effect_player.get_effects_at_timing("after_reveal", None)
-                    if self.performance_art:
-                        # Queue to cleanup effects.
-                        effect_player.add_performance_cleanup(after_reveal_effects)
-                    else:
-                        # Add it to the rear of the queue.
-                        self.add_effects_to_rear(after_reveal_effects)
+                    self.add_effects_to_rear(after_reveal_effects)
             case EffectType.EffectType_RerollDie:
                 rigged = False
                 if effect_player.set_next_die_roll:
@@ -5302,7 +5297,8 @@ class GameEngine:
         bottom = self.current_decision["bottom"]
 
         # The cards are in the order they should be put at that location.
-        for card_id in card_ids:
+        # The ids needs to be reversed if they go on top
+        for card_id in card_ids[::1 if bottom else -1]:
             player.move_card(card_id, to_zone, zone_card_id="", hidden_info=True, add_to_bottom=bottom)
 
         continuation = self.clear_decision()
