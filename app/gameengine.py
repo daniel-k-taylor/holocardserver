@@ -2790,7 +2790,7 @@ class GameEngine:
                 if len(revealed_cards) == 0:
                     return False
                 match condition.get("condition_same_type"):
-                    case "holomem_bloom":
+                    case "holomem_same_bloom":
                         # Cards should be holomem and of the same bloom level (Debut is level 0)
                         base_card = revealed_cards[0] # the card that the rest of the cards will be compared to
                         if not is_card_holomem(base_card):
