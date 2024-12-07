@@ -59,14 +59,14 @@ class Test_hBP02_040(unittest.TestCase):
       (EventType.EventType_Decision_Choice, {}),
 
       (EventType.EventType_RevealCards, {}),
-      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": center_card_id }),
       (EventType.EventType_Decision_SendCheer, {}),
 
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
       *end_turn_events()
     ])
@@ -252,14 +252,14 @@ class Test_hBP02_040(unittest.TestCase):
       (EventType.EventType_Decision_Choice, {}),
 
       (EventType.EventType_RevealCards, {}),
-      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": center_card_id }),
       (EventType.EventType_Decision_SendCheer, {}),
 
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
       (EventType.EventType_Decision_PerformanceStep, {})
     ])
@@ -282,14 +282,14 @@ class Test_hBP02_040(unittest.TestCase):
       (EventType.EventType_Decision_Choice, {}),
 
       (EventType.EventType_RevealCards, {}),
-      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
-      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_LifeDamageDealt, { "life_lost": 1, "target_player": self.player2, "source_card_id": collab_card_id }),
       (EventType.EventType_Decision_SendCheer, {}),
 
       (EventType.EventType_MoveAttachedCard, { "from_holomem_id": "life", "to_holomem_id": p2.center[0]["game_card_id"] }),
+      (EventType.EventType_BoostStat, { "amount": 20 * 3 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
       (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 3 }),
       *end_turn_events()
     ])
