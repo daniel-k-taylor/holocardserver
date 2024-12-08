@@ -2801,7 +2801,7 @@ class GameEngine:
                     return False
                 return effect_player.collab[0]["game_card_id"] == source_card_id
             case Condition.Condition_ThisCardIsPerforming:
-                return self.performance_performer_card["game_card_id"] == source_card_id
+                return self.performance_performer_card and (self.performance_performer_card["game_card_id"] == source_card_id)
             case Condition.Condition_TopDeckCardHasAnyCardType:
                 if len(effect_player.deck) == 0:
                     return False
