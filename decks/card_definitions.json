@@ -9341,6 +9341,32 @@
         ]
     },
     {
+        "card_id": "hBP02-090",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["nejimakitsune"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 20
+            },
+            {
+                "timing": "on_down",
+                "effect_type": "send_cheer",
+                "conditions": [{ "condition": "attached_to", "required_member_name": "shirakami_fubuki" }],
+                "amount_min": 1,
+                "amount_max": 1,
+                "from": "downed_holomem",
+                "to": "holomem",
+                "multi_to": true
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-095",
         "card_type": "support",
         "sub_type": "mascot",
