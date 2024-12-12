@@ -1089,10 +1089,18 @@ class PlayerState:
         }
         self.engine.broadcast_event(collab_event)
 
+        # Extra collab effects that happen on collabs (like from attachments).
+        on_collab_extra_effects = self.get_effects_at_timing("on_collab", collab_card, "")
+
         # Handle collab effects.
         collab_effects = deepcopy(collab_card["collab_effects"]) if "collab_effects" in collab_card else []
         add_ids_to_effects(collab_effects, self.player_id, collab_card_id)
-        self.engine.begin_resolving_effects(collab_effects, continuation)
+
+        # Handle all collab effects
+        all_collab_effects = []
+        all_collab_effects.extend(on_collab_extra_effects)
+        all_collab_effects.extend(collab_effects)
+        self.engine.begin_resolving_effects(all_collab_effects, continuation)
 
     def spend_holopower(self, amount):
         for _ in range(amount):
