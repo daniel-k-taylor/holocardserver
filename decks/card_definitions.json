@@ -8237,6 +8237,38 @@
         ]
     },
     {
+        "card_id": "hBP02-010",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["shirakami_fubuki"],
+        "rarity": "c",
+        "colors": "white",
+        "hp": 150,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen1",
+            "#Gamers",
+            "#AnimalEars",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "sweetosmanthus",
+                "costs": [{ "color": "white", "amount": 1 }],
+                "power": 40
+            },
+            {
+                "art_id": "thankyoufriends",
+                "costs": [
+                    { "color": "white", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 60
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-014",
         "card_type": "holomem_debut",
         "card_names": ["shirogane_noel"],
