@@ -9367,6 +9367,35 @@
         ]
     },
     {
+        "card_id": "hBP02-091",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["fubuchun"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 20
+            },
+            {
+                "timing": "on_collab",
+                "effect_type": "choose_cards",
+                "conditions": [{ "condition": "attached_to", "required_member_name": "shirakami_fubuki" }],
+                "from": "archive",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 0,
+                "amount_max": 1,
+                "requirement": "support",
+                "requirement_sub_types": ["mascot"],
+                "remaining_cards_action": "nothing"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-095",
         "card_type": "support",
         "sub_type": "mascot",
