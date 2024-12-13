@@ -8237,6 +8237,40 @@
         ]
     },
     {
+        "card_id": "hBP02-009",
+        "card_type": "holomem_debut",
+        "card_names": ["shirakami_fubuki"],
+        "rarity": "u",
+        "colors": ["white"],
+        "hp": 80,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen1",
+            "#Gamers",
+            "#AnimalEars",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "otsukon",
+                "costs": [{ "color": "white", "amount": 1 }],
+                "power": 20
+            }
+        ],
+        "gift_effects": [
+            {
+                "timing": "before_art",
+                "effect_type": "power_boost",
+                "conditions": [
+                    { "condition": "this_card_is_collab" },
+                    { "condition": "performer_has_attachment_of_type", "condition_type": "mascot" }
+                ],
+                "amount": 10
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-010",
         "card_type": "holomem_bloom",
         "bloom_level": 1,

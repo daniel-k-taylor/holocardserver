@@ -138,6 +138,7 @@ class Condition:
     Condition_PerformerIsColor = "performer_is_color"
     Condition_PerformerIsSpecificId = "performer_is_specific_id"
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
+    Condition_PerformerHasAttachmentOfType = "performer_has_attachment_of_type"
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
     Condition_RevealedCardsHaveSameType = "revealed_cards_have_same_type"
     Condition_SelfHasCheerColor = "self_has_cheer_color"
@@ -2791,6 +2792,14 @@ class GameEngine:
                 valid_tags = condition["condition_tags"]
                 for tag in self.performance_performer_card["tags"]:
                     if tag in valid_tags:
+                        return True
+                return False
+            case Condition.Condition_PerformerHasAttachmentOfType:
+                if not self.performance_performer_card:
+                    return False
+                attachment_type = condition["condition_type"]
+                for attachment in self.performance_performer_card["attached_support"]:
+                    if attachment.get("sub_type") == attachment_type:
                         return True
                 return False
             case Condition.Condition_PlayedSupportThisTurn:
