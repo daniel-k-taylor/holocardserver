@@ -8303,6 +8303,44 @@
         ]
     },
     {
+        "card_id": "hBP02-011",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["shirakami_fubuki"],
+        "rarity": "c",
+        "colors": ["white"],
+        "hp": 120,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen1",
+            "#Gamers",
+            "#AnimalEars",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "damedesuyo",
+                "costs": [{ "color": "any", "amount": 1 }],
+                "power": 40
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "deck",
+                "look_at": -1,
+                "destination": "hand",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement": "support",
+                "requirement_tags": ["#ShirakamiCharacter"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-014",
         "card_type": "holomem_debut",
         "card_names": ["shirogane_noel"],
@@ -9357,6 +9395,7 @@
         "card_type": "support",
         "sub_type": "mascot",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["oruyanke"],
         "rarity": "c",
         "effects": [{ "effect_type": "attach_card_to_holomem" }],
@@ -9379,6 +9418,7 @@
         "card_type": "support",
         "sub_type": "mascot",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["nejimakitsune"],
         "rarity": "c",
         "effects": [{ "effect_type": "attach_card_to_holomem" }],
@@ -9405,6 +9445,7 @@
         "card_type": "support",
         "sub_type": "mascot",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["fubuchun"],
         "rarity": "c",
         "effects": [{ "effect_type": "attach_card_to_holomem" }],
@@ -9434,6 +9475,7 @@
         "card_type": "support",
         "sub_type": "mascot",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["fubuzilla"],
         "rarity": "u",
         "effects": [{ "effect_type": "attach_card_to_holomem" }],
@@ -9481,6 +9523,7 @@
         "card_type": "support",
         "sub_type": "mascot",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["miteiru"],
         "rarity": "c",
         "effects": [{ "effect_type": "attach_card_to_holomem" }],
@@ -9561,6 +9604,7 @@
         "card_type": "support",
         "sub_type": "fan",
         "colors": [],
+        "tags": ["#ShirakamiCharacter"],
         "card_names": ["sukonbu"],
         "rarity": "c",
         "play_conditions": [{ "condition": "holomem_on_stage", "required_member_name_in": ["shirakami_fubuki"] }],
