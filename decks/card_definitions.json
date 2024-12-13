@@ -9442,6 +9442,31 @@
         ]
     },
     {
+        "card_id": "hBP02-093",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["miteiru"],
+        "rarity": "c",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 20
+            },
+            {
+                "timing": "on_take_damage",
+                "effect_type": "reduce_damage",
+                "conditions": [
+                    { "condition": "attached_to", "required_member_name": "shirakami_fubuki" },
+                    { "condition": "attached_owner_is_location", "condition_location": "backstage" }
+                ],
+                "amount": "all"
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-095",
         "card_type": "support",
         "sub_type": "mascot",
