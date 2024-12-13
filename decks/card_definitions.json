@@ -8242,7 +8242,7 @@
         "bloom_level": 1,
         "card_names": ["shirakami_fubuki"],
         "rarity": "c",
-        "colors": "white",
+        "colors": ["white"],
         "hp": 150,
         "baton_cost": 1,
         "tags": [
@@ -9392,6 +9392,52 @@
                 "requirement": "support",
                 "requirement_sub_types": ["mascot"],
                 "remaining_cards_action": "nothing"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP02-092",
+        "card_type": "support",
+        "sub_type": "mascot",
+        "colors": [],
+        "card_names": ["fubuzilla"],
+        "rarity": "u",
+        "effects": [{ "effect_type": "attach_card_to_holomem" }],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 20
+            }
+        ],
+        "attached_actions": [
+            {
+                "effect_id": "fubuzilla",
+                "conditions": [
+                    { "condition": "cheer_in_play", "amount_min": 2, "amount_max": -1 },
+                    { "condition": "attached_to", "required_member_name": "shirakami_fubuki" },
+                    { "condition": "effect_card_id_not_used_this_turn" }
+                ],
+                "effects": [
+                    {
+                        "effect_type": "archive_cheer_from_holomem",
+                        "ability_source": "support_card",
+                        "from": "holomem",
+                        "amount": 2,
+                        "and": [
+                            {
+                                "effect_type": "add_turn_effect",
+                                "turn_effect": {
+                                    "timing": "before_art",
+                                    "conditions": [{ "condition": "attached_owner_is_performing" }],
+                                    "effect_type": "power_boost",
+                                    "amount": 50
+                                }
+                            },
+                            { "effect_type": "record_effect_card_id_used_this_turn" }
+                        ]
+                    }
+                ]
             }
         ]
     },

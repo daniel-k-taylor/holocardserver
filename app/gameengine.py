@@ -102,6 +102,7 @@ class Condition:
     Condition_AttachedTo = "attached_to"
     Condition_AttachedToHasTags = "attached_to_has_tags"
     Condition_AttachedOwnerIsLocation = "attached_owner_is_location"
+    Condition_AttachedOwnerIsPerforming = "attached_owner_is_performing"
     Condition_BloomTargetIsDebut = "bloom_target_is_debut"
     Condition_CanArchiveFromHand = "can_archive_from_hand"
     Condition_CanMoveFrontStage = "can_move_front_stage"
@@ -158,6 +159,7 @@ class TurnEffectType:
 
 class EventType:
     EventType_AddTurnEffect = "add_turn_effect"
+    EventType_AttachedActionActivation = "attached_action_activation"
     EventType_Bloom = "bloom"
     EventType_BoostStat = "boost_stat"
     EventType_CheerStep = "cheer_step"
@@ -279,6 +281,12 @@ class GameAction:
     PlaceCheerActionFields = {
         # A dict of all cheer placed with its target id.
         "placements": Dict[str, str],
+    }
+
+    MainStepAttachedAction = "mainstep_attached_action"
+    MainStepAttachedActionFields = {
+        "effect_id": str,
+        "support_id": str,
     }
 
     MainStepPlaceHolomem = "mainstep_place_holomem"
@@ -1111,6 +1119,11 @@ class PlayerState:
         action = next(action for action in self.oshi_card["actions"] if action["skill_id"] == skill_id)
         return deepcopy(action["effects"])
 
+    def get_support_attached_action_effects(self, support_id: str, effect_id: str):
+        support_card = self.find_attachment(support_id)
+        action = next(action for action in support_card["attached_actions"] if action["effect_id"] == effect_id)
+        return deepcopy(action["effects"])
+
     def find_and_remove_attached(self, attached_id):
         previous_holder_id = None
         found_card = None
@@ -1898,7 +1911,22 @@ class GameEngine:
                 "skill_id": skill_id,
             })
 
-        # E. Use Support Cards
+        # E. Use effects from attached support cards.
+        for holomem in active_player.get_holomem_on_stage():
+            for attached_support in holomem["attached_support"]:
+                for action in attached_support.get("attached_actions", []):
+                    if "conditions" in action:
+                        if not self.are_conditions_met(active_player, attached_support["game_card_id"], action["conditions"]):
+                            continue
+
+                    available_actions.append({
+                        "action_type": GameAction.MainStepAttachedAction,
+                        "effect_id": action["effect_id"],
+                        "support_id": attached_support["game_card_id"],
+                        "owning_holomem_id": holomem["game_card_id"]
+                    })
+
+        # F. Use Support Cards
         for card in active_player.hand:
             if card["card_type"] == "support":
                 if is_card_limited(card):
@@ -1927,7 +1955,7 @@ class GameEngine:
                     "cheer_on_each_mem": cheer_on_each_mem,
                 })
 
-        # F. Pass the baton
+        # G. Pass the baton
         # If center holomem is not resting, can swap with a back who is not resting by archiving Cheer.
         # Must be able to archive that much cheer from the center.
         if len(active_player.center) > 0:
@@ -1949,13 +1977,13 @@ class GameEngine:
                         "available_cheer": ids_from_cards(cheer_on_mem),
                     })
 
-        # G. Begin Performance
+        # H. Begin Performance
         if not (self.first_turn_player_id == active_player.player_id and active_player.first_turn):
             available_actions.append({
                 "action_type": GameAction.MainStepBeginPerformance,
             })
 
-        # H. End Turn
+        # I. End Turn
         available_actions.append({
             "action_type": GameAction.MainStepEndTurn,
         })
@@ -2577,6 +2605,9 @@ class GameEngine:
                             if holomems[0] in effect_player.center + effect_player.collab:
                                 return True
                 return False
+            case Condition.Condition_AttachedOwnerIsPerforming:
+                holomems = effect_player.get_holomems_with_attachment(source_card_id)
+                return self.performance_performer_card and self.performance_performer_card["game_card_id"] in ids_from_cards(holomems)
             case Condition.Condition_BloomTargetIsDebut:
                 bloom_card, _, _ = effect_player.find_card(source_card_id)
                 # Bloom target is always in the 0 slot.
@@ -2942,6 +2973,8 @@ class GameEngine:
                         case "self":
                             source_card, _, _ = effect_player.find_card(effect["source_card_id"])
                             target_holomems.append(source_card)
+                        case "holomem":
+                            target_holomems = effect_player.get_holomem_on_stage()
                     cheer_options = []
                     for holomem in target_holomems:
                         if required_colors:
@@ -4552,6 +4585,8 @@ class GameEngine:
                     handled = self.handle_choose_new_center(player_id, action_data)
                 case GameAction.PlaceCheer:
                     handled = self.handle_place_cheer(player_id, action_data)
+                case GameAction.MainStepAttachedAction:
+                    handled = self.handle_main_step_attached_action(player_id, action_data)
                 case GameAction.MainStepPlaceHolomem:
                     handled = self.handle_main_step_place_holomem(player_id, action_data)
                 case GameAction.MainStepBloom:
@@ -4786,6 +4821,54 @@ class GameEngine:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
             return False
 
+        return True
+
+    def validate_main_step_attached_action(self, player_id: str, action_data: dict) -> bool:
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepAttachedActionFields):
+            return False
+
+        player = self.get_player(player_id)
+
+        # Validate that the support card exists
+        support_id = action_data["support_id"]
+        support_card = player.find_attachment(support_id)
+        if not support_card:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Support card not found."))
+            return False
+
+        # Validate that the action is part of the current decision's available actions
+        effect_id = action_data["effect_id"]
+        action_found = False
+        for action in self.current_decision["available_actions"]:
+            if action["action_type"] == GameAction.MainStepAttachedAction \
+                and action["effect_id"] == effect_id and action["support_id"] == support_id:
+                action_found = True
+        if not action_found:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
+            return False
+
+        return True
+
+    def handle_main_step_attached_action(self, player_id: str, action_data: dict):
+        if not self.validate_main_step_attached_action(player_id, action_data):
+            return False
+
+        continuation = self.clear_decision()
+
+        player = self.get_player(player_id)
+        support_id = action_data["support_id"]
+        effect_id = action_data["effect_id"]
+
+        action_effects = player.get_support_attached_action_effects(support_id, effect_id)
+        add_ids_to_effects(action_effects, player_id, support_id)
+
+        self.broadcast_event({
+            "event_type": EventType.EventType_AttachedActionActivation,
+            "player_id": player_id,
+            "effect_id": effect_id,
+            "support_id": support_id
+        })
+        self.begin_resolving_effects(action_effects, continuation)
         return True
 
     def handle_main_step_place_holomem(self, player_id:str, action_data:dict):
