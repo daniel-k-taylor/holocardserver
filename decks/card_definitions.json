@@ -9412,6 +9412,7 @@
         ],
         "attached_actions": [
             {
+                "full_english_text": "FUBUKI_BP02_092_FULL_TEXT",
                 "effect_id": "fubuzilla",
                 "conditions": [
                     { "condition": "cheer_in_play", "amount_min": 2, "amount_max": -1 },
