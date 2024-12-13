@@ -9522,6 +9522,29 @@
         ]
     },
     {
+        "card_id": "hBP02-099",
+        "card_type": "support",
+        "sub_type": "fan",
+        "colors": [],
+        "card_names": ["sukonbu"],
+        "rarity": "c",
+        "play_conditions": [{ "condition": "holomem_on_stage", "required_member_name_in": ["shirakami_fubuki"] }],
+        "effects": [
+            {
+                "effect_type": "attach_card_to_holomem",
+                "to_limitation": "specific_member_name",
+                "to_limitation_name": "shirakami_fubuki"
+            }
+        ],
+        "attached_effects": [
+            {
+                "timing": "check_hp",
+                "effect_type": "bonus_hp",
+                "amount": 10
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-100",
         "card_type": "support",
         "sub_type": "fan",
