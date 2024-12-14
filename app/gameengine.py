@@ -1907,6 +1907,7 @@ class GameEngine:
                 # Baked in restriction for mascots and tools
                 if is_card_mascot(card) or is_card_tool(card):
                     sub_type = card["sub_type"]
+                    # Checks if there are available holomem on stage that can still be attached with the support card
                     if not self.is_condition_met(active_player, card["game_card_id"],{
                         "condition": "holomem_on_stage_can_be_attached_with",
                         "sub_type": sub_type
@@ -3101,6 +3102,7 @@ class GameEngine:
                 card_to_attach, _, _ = effect_player.find_card(source_card_id)
                 card_sub_type = card_to_attach.get("sub_type")
                 if card_sub_type in ["mascot", "tool"]:
+                    # filters out holomem with an already existing support of the same sub-type attached
                     holomem_targets = [holomem for holomem in holomem_targets \
                                        if all(card.get("sub_type") != card_sub_type for card in holomem["attached_support"])]
 
