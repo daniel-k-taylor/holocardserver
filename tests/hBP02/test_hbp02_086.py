@@ -136,21 +136,27 @@ class Test_hBP02_086(unittest.TestCase):
     _, attached_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-086", center_card["attached_support"]))
     _, tool_card_id = unpack_game_id(add_card_to_hand(self, p1, "hBP02-086"))
 
+    valid_target_ids = ids_from_cards(p1.backstage)
+    chosen_card, chosen_card_id = unpack_game_id(p1.backstage[0])
+
 
     """Test"""
     self.assertEqual(engine.active_player_id, self.player1)
 
     engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, { "card_id": tool_card_id })
-    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [center_card_id] })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [chosen_card_id] })
 
     # Events
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_PlaySupportCard, { "card_id": tool_card_id }),
-      (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": valid_target_ids }),
 
-      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": center_card_id, "to_holomem_id": "archive", "attached_id": attached_card_id }),
-      (EventType.EventType_MoveCard, { "from_zone": "floating", "to_zone": "holomem", "zone_card_id": center_card_id, "card_id": tool_card_id }),
+      (EventType.EventType_MoveCard, { "from_zone": "floating", "to_zone": "holomem", "zone_card_id": chosen_card_id, "card_id": tool_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
+
+    self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [attached_card_id])
+    self.assertCountEqual(ids_from_cards(chosen_card["attached_support"]), [tool_card_id])
+    self.assertTrue(center_card_id not in valid_target_ids)
     

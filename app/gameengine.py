@@ -125,6 +125,7 @@ class Condition:
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemInArchive = "holomem_in_archive"
     Condition_HolomemOnStage = "holomem_on_stage"
+    Condition_HolomemOnStageCanBeAttachedWith = "holomem_on_stage_can_be_attached_with"
     Condition_HolopowerAtLeast = "holopower_at_least"
     Condition_NotUsedOncePerGameEffect = "not_used_once_per_game_effect"
     Condition_NotUsedOncePerTurnEffect = "not_used_once_per_turn_effect"
@@ -1903,6 +1904,15 @@ class GameEngine:
                     if not self.are_conditions_met(active_player, card["game_card_id"], card["play_conditions"]):
                         continue
 
+                # Baked in restriction for mascots and tools
+                if is_card_mascot(card) or is_card_tool(card):
+                    sub_type = card["sub_type"]
+                    if not self.is_condition_met(active_player, card["game_card_id"],{
+                        "condition": "holomem_on_stage_can_be_attached_with",
+                        "sub_type": sub_type
+                    }):
+                        continue
+
                 play_requirements = {}
                 if "play_requirements" in card:
                     play_requirements = card["play_requirements"]
@@ -2704,6 +2714,14 @@ class GameEngine:
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
                 return False
+            case Condition.Condition_HolomemOnStageCanBeAttachedWith:
+                holomems = effect_player.get_holomem_on_stage()
+                sub_type = condition["sub_type"]
+                can_be_attached_with = 0
+                for holomem in holomems:
+                    if not any([card["sub_type"] == sub_type for card in holomem["attached_support"]]):
+                        can_be_attached_with += 1
+                return can_be_attached_with > 0
             case Condition.Condition_HolopowerAtLeast:
                 amount = condition["amount"]
                 return len(effect_player.holopower) >= amount
@@ -3078,6 +3096,14 @@ class GameEngine:
                             if any(tag in holomem["tags"] for tag in to_limitation_tags)]
                     case "backstage":
                         holomem_targets = effect_player.backstage
+
+                # restriction for mascots and tools
+                card_to_attach, _, _ = effect_player.find_card(source_card_id)
+                card_sub_type = card_to_attach.get("sub_type")
+                if card_sub_type in ["mascot", "tool"]:
+                    holomem_targets = [holomem for holomem in holomem_targets \
+                                       if all(card.get("sub_type") != card_sub_type for card in holomem["attached_support"])]
+
                 if len(holomem_targets) > 0:
                     attach_effect = {
                         "effect_type": EffectType.EffectType_AttachCardToHolomem_Internal,
@@ -3118,14 +3144,6 @@ class GameEngine:
                 card_to_attach = None
                 card_to_attach, _, _ = effect_player.find_card(card_to_attach_id)
                 target_holomem_id = effect["card_ids"][0]
-                target_holomem, _, _ = effect_player.find_card(target_holomem_id)
-                if card_to_attach["card_type"] == "support" and card_to_attach["sub_type"] in ["mascot", "tool"]:
-                    # You can only have 1 of each attached mascot/tool, so if they have one attached,
-                    # then move it to archive.
-                    for attached_support in target_holomem["attached_support"]:
-                        if attached_support["sub_type"] == card_to_attach["sub_type"]:
-                            effect_player.archive_attached_cards([attached_support["game_card_id"]])
-                            break
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
             case EffectType.EffectType_BloomAlreadyBloomedThisTurn:
                 bloomed_cards_this_turn = [holomem for holomem in effect_player.get_holomem_on_stage() if holomem["bloomed_this_turn"]]
