@@ -8307,7 +8307,7 @@
         "card_type": "holomem_bloom",
         "bloom_level": 1,
         "card_names": ["shirakami_fubuki"],
-        "rarity": "c",
+        "rarity": "u",
         "colors": ["white"],
         "hp": 120,
         "baton_cost": 1,
@@ -8337,6 +8337,67 @@
                 "requirement_tags": ["#ShirakamiCharacter"],
                 "reveal_chosen": true,
                 "remaining_cards_action": "shuffle"
+            }
+        ]
+    },
+    {
+        "card_id": "hBP02-012",
+        "card_type": "holomem_bloom",
+        "bloom_level": 1,
+        "card_names": ["shirakami_fubuki"],
+        "rarity": "r",
+        "colors": ["white"],
+        "hp": 100,
+        "baton_cost": 1,
+        "tags": [
+            "#JP",
+            "#Gen1",
+            "#Gamers",
+            "#AnimalEars",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "pleaseuseyourstrength",
+                "costs": [
+                    { "color": "white", "amount": 1 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 50,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "add_turn_effect",
+                        "turn_effect": {
+                            "timing": "before_art",
+                            "effect_type": "power_boost",
+                            "conditions": [{ "condition": "performer_has_attachment_of_type", "condition_type": "mascot" }],
+                            "amount": 20
+                        },
+                        "and": [
+                            {
+                                "hide_effect_text": true,
+                                "timing": "before_art",
+                                "effect_type": "power_boost",
+                                "conditions": [{ "condition": "performer_has_attachment_of_type", "condition_type": "mascot" }],
+                                "amount": 20
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "bloom_effects": [
+            {
+                "effect_type": "choose_cards",
+                "from": "attached_support",
+                "look_at": -1,
+                "destination": "holomem",
+                "amount_min": 1,
+                "amount_max": 1,
+                "requirement_sub_types": ["mascot"],
+                "reveal_chosen": true,
+                "remaining_cards_action": "nothing"
             }
         ]
     },

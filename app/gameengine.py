@@ -3179,6 +3179,9 @@ class GameEngine:
                 card_to_attach_id = effect["card_id"]
                 card_to_attach = None
                 card_to_attach, _, _ = effect_player.find_card(card_to_attach_id)
+                if not card_to_attach:
+                    # if card's not found in the normal zones, check if it's an attachment
+                    card_to_attach = effect_player.find_attachment(card_to_attach_id)
                 target_holomem_id = effect["card_ids"][0]
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
             case EffectType.EffectType_BloomAlreadyBloomedThisTurn:
@@ -3323,6 +3326,9 @@ class GameEngine:
                 match from_zone:
                     case "archive":
                         cards_to_choose_from = effect_player.archive
+                    case "attached_support":
+                        for holomem in effect_player.get_holomem_on_stage():
+                            cards_to_choose_from.extend(holomem["attached_support"])
                     case "cheer_deck":
                         cards_to_choose_from = effect_player.cheer_deck
                     case "deck":
