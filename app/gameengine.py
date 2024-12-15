@@ -1903,6 +1903,10 @@ class GameEngine:
                     if not self.are_conditions_met(active_player, card["game_card_id"], card["play_conditions"]):
                         continue
 
+                # Restrictions for mascots and tools with regards to attaching to holomem.
+                if not self.card_has_available_target_to_attach_to(active_player, card):
+                    continue
+
                 play_requirements = {}
                 if "play_requirements" in card:
                     play_requirements = card["play_requirements"]
@@ -3078,6 +3082,14 @@ class GameEngine:
                             if any(tag in holomem["tags"] for tag in to_limitation_tags)]
                     case "backstage":
                         holomem_targets = effect_player.backstage
+
+                # restriction for mascots and tools
+                card_to_attach, _, _ = effect_player.find_card(source_card_id)
+                card_sub_type = card_to_attach.get("sub_type")
+                if card_sub_type in ["mascot", "tool"]:
+                    # filters out holomem with an already existing support of the same sub-type attached
+                    holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_sub_type(holomem, card_sub_type)]
+
                 if len(holomem_targets) > 0:
                     attach_effect = {
                         "effect_type": EffectType.EffectType_AttachCardToHolomem_Internal,
@@ -3118,14 +3130,6 @@ class GameEngine:
                 card_to_attach = None
                 card_to_attach, _, _ = effect_player.find_card(card_to_attach_id)
                 target_holomem_id = effect["card_ids"][0]
-                target_holomem, _, _ = effect_player.find_card(target_holomem_id)
-                if card_to_attach["card_type"] == "support" and card_to_attach["sub_type"] in ["mascot", "tool"]:
-                    # You can only have 1 of each attached mascot/tool, so if they have one attached,
-                    # then move it to archive.
-                    for attached_support in target_holomem["attached_support"]:
-                        if attached_support["sub_type"] == card_to_attach["sub_type"]:
-                            effect_player.archive_attached_cards([attached_support["game_card_id"]])
-                            break
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
             case EffectType.EffectType_BloomAlreadyBloomedThisTurn:
                 bloomed_cards_this_turn = [holomem for holomem in effect_player.get_holomem_on_stage() if holomem["bloomed_this_turn"]]
@@ -5618,3 +5622,16 @@ class GameEngine:
         self.end_game(player_id, GameOverReason.GameOverReason_Resign)
 
         return True
+
+    def holomem_can_be_attached_with_sub_type(self, holomem, sub_type: str) -> bool:
+        return all([card.get("sub_type") != sub_type for card in holomem["attached_support"]])
+
+    def card_has_available_target_to_attach_to(self, player: PlayerState, card) -> bool:
+        sub_type = card.get("sub_type")
+        if sub_type not in ["mascot", "tool"]:
+            return True
+
+        for holomem in player.get_holomem_on_stage():
+            if self.holomem_can_be_attached_with_sub_type(holomem, sub_type):
+                return True
+        return False
