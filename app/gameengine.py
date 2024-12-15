@@ -60,6 +60,7 @@ class EffectType:
     EffectType_OshiActivation = "oshi_activation"
     EffectType_ModifyNextLifeLoss = "modify_next_life_loss"
     EffectType_MoveCheerBetweenHolomems = "move_cheer_between_holomems"
+    EffectType_MultipleDieRoll = "multiple_die_roll"
     EffectType_OrderCards = "order_cards"
     EffectType_Pass = "pass"
     EffectType_PerformanceLifeLostIncrease = "performance_life_lost_increase"
@@ -75,6 +76,7 @@ class EffectType:
     EffectType_PowerBoostPerStacked = "power_boost_per_stacked"
     EffectType_PowerBoostPerPlayedSupport = "power_boost_per_played_support"
     EffectType_RecordEffectCardIdUsedThisTurn = "record_effect_card_id_used_this_turn"
+    EffectType_RecordLastDieResult = "record_last_die_result"
     EffectType_RecordUsedOncePerGameEffect = "record_used_once_per_game_effect"
     EffectType_RecordUsedOncePerTurnEffect = "record_used_once_per_turn_effect"
     EffectType_RecoverDownedHolomemCards = "recover_downed_holomem_cards"
@@ -127,6 +129,7 @@ class Condition:
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemInArchive = "holomem_in_archive"
     Condition_HolomemOnStage = "holomem_on_stage"
+    Condition_LastDieRolls = "last_die_rolls"
     Condition_HolopowerAtLeast = "holopower_at_least"
     Condition_NotUsedOncePerGameEffect = "not_used_once_per_game_effect"
     Condition_NotUsedOncePerTurnEffect = "not_used_once_per_turn_effect"
@@ -410,6 +413,7 @@ class PlayerState:
         self.performance_cleanup_effects_pending = []
         self.performance_attacked_this_turn = False
         self.last_revealed_cards = []
+        self.last_die_roll_results = []
 
         # Set up Oshi.
         self.oshi_id = player_info["oshi_id"]
@@ -2749,6 +2753,11 @@ class GameEngine:
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
                 return False
+            case Condition.Condition_LastDieRolls:
+                match condition.get("roll_results"):
+                    case "one_odd":
+                        return any([value % 2 == 1 for value in effect_player.last_die_roll_results])
+                return False
             case Condition.Condition_HolopowerAtLeast:
                 amount = condition["amount"]
                 return len(effect_player.holopower) >= amount
@@ -3786,6 +3795,25 @@ class GameEngine:
                         "available_targets": available_targets,
                         "continuation": self.continue_resolving_effects,
                     })
+            case EffectType.EffectType_MultipleDieRoll:
+                effect_player.last_die_roll_results = [] # reset the results
+
+                amount = effect["amount"]
+                match amount:
+                    case "per_two_mascots":
+                        holomems = effect_player.get_holomem_on_stage()
+                        mascots = [attached for holomem in holomems for attached in holomem["attached_support"] if is_card_mascot(attached)]
+                        amount = len(mascots) // 2
+
+                die_effects = effect["die_effects"]
+                roll_effects = []
+                for _ in range(amount):
+                    roll_effects.extend(deepcopy(die_effects))
+
+                add_ids_to_effects(roll_effects, effect_player_id, effect["source_card_id"])
+                self.add_effects_to_front(roll_effects)
+                self.continue_resolving_effects()
+                passed_on_continuation = True
             case EffectType.EffectType_OrderCards:
                 for_opponent = effect.get("opponent", False)
                 from_zone = effect["from"]
@@ -3890,6 +3918,8 @@ class GameEngine:
                 self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
+            case EffectType.EffectType_RecordLastDieResult:
+                effect_player.last_die_roll_results.append(self.last_die_value)
             case EffectType.EffectType_RecordUsedOncePerGameEffect:
                 effect_player.record_effect_used_this_game(effect["effect_id"])
             case EffectType.EffectType_RecordUsedOncePerTurnEffect:
