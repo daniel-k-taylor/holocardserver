@@ -48,6 +48,7 @@ class AIPlayer:
 
         self.event_handlers = {
             EventType.EventType_AddTurnEffect: self._handle_event_ignore,
+            EventType.EventType_LifeDamageDealt: self._handle_event_ignore,
             EventType.EventType_AttachedActionActivation: self._handle_event_ignore,
             EventType.EventType_Bloom: self._handle_event_ignore,
             EventType.EventType_BoostStat: self._handle_event_ignore,

@@ -8494,6 +8494,7 @@
                 "destination": "holomem",
                 "amount_min": 1,
                 "amount_max": 1,
+                "requirement": "support",
                 "requirement_sub_types": ["mascot"],
                 "reveal_chosen": true,
                 "remaining_cards_action": "nothing"
