@@ -66,6 +66,7 @@ class EffectType:
     EffectType_PlaceHolomem = "place_holomem"
     EffectType_PowerBoost = "power_boost"
     EffectType_PowerBoostPerAllFans = "power_boost_per_all_fans"
+    EffectType_PowerBoostPerAllMascots = "power_boost_per_all_mascots"
     EffectType_PowerBoostPerArchivedHolomem = "power_boost_per_archived_holomem"
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
@@ -3139,10 +3140,8 @@ class GameEngine:
                     # If card is not in the normal zones, check if it is attached
                     # TODO: should finding for attached cards be included in the `find_card` so everything is in one place?
                     card_to_attach = effect_player.find_attachment(source_card_id)
-                card_sub_type = card_to_attach.get("sub_type")
-                if card_sub_type in ["mascot", "tool"]:
-                    # filters out holomem with an already existing support of the same sub-type attached
-                    holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_sub_type(holomem, card_sub_type)]
+                # filters out cards that can be attached against support card restrictions
+                holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_support_card(holomem, card_to_attach)]
 
                 if len(holomem_targets) > 0:
                     attach_effect = {
@@ -3828,28 +3827,24 @@ class GameEngine:
                         case "last_die_value":
                             multiplier = self.last_die_value
                 amount *= multiplier
-                if amount != 0:
-                    self.performance_artstatboosts.power += amount
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", amount, for_art=True)
+                self.handle_power_boost_event(amount, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerAllFans:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
-                fan_count = 0
-                for holomem in holomems:
-                    for attached in holomem["attached_support"]:
-                        if is_card_fan(attached):
-                            fan_count += 1
-                total = per_amount * fan_count
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                fans = [attached for holomem in holomems for attached in holomem["attached_support"] if is_card_fan(attached)]
+                total = per_amount * len(fans)
+                self.handle_power_boost_event(total, effect["source_card_id"])
+            case EffectType.EffectType_PowerBoostPerAllMascots:
+                per_amount = effect["amount"]
+                holomems = effect_player.get_holomem_on_stage()
+                mascots = [attached for holomem in holomems for attached in holomem["attached_support"] if is_card_mascot(attached)]
+                total = per_amount * len(mascots)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerArchivedHolomem:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if is_card_holomem(card)]
                 total = per_amount * len(holomems_in_archive)
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
                 limit = effect["limit"]
@@ -3857,16 +3852,12 @@ class GameEngine:
                 cheer_count = len(source_card["attached_cheer"])
                 multiplier = min(cheer_count, limit)
                 total = per_amount * multiplier
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerBackstage:
                 per_amount = effect["amount"]
                 backstage_mems = len(effect_player.backstage)
                 total = per_amount * backstage_mems
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerHolomem:
                 per_amount = effect["amount"]
                 holomems = effect_player.get_holomem_on_stage()
@@ -3876,9 +3867,7 @@ class GameEngine:
                 if "has_tag" in effect:
                     holomems = [holomem for holomem in holomems if effect["has_tag"] in holomem["tags"]]
                 total = per_amount * min(len(holomems), effect.get("limit", 99))
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerRevealedCard:
                 per_amount = effect["amount"]
                 revealed_cards = effect_player.last_revealed_cards
@@ -3886,25 +3875,19 @@ class GameEngine:
                     case "holomem":
                         revealed_cards = [card for card in revealed_cards if is_card_holomem(card)]
                 total = per_amount * len(revealed_cards)
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerStacked:
                 per_amount = effect["amount"]
                 stacked_cards = self.performance_performer_card.get("stacked_cards", [])
                 stacked_holomems = [card for card in stacked_cards if is_card_holomem(card)]
                 total = per_amount * len(stacked_holomems)
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerPlayedSupport:
                 per_amount = effect["amount"]
                 sub_type = effect["support_sub_type"]
                 num_played = effect_player.played_support_types_this_turn.get(sub_type, 0)
                 total = per_amount * num_played
-                if total != 0:
-                    self.performance_artstatboosts.power += total
-                    self.send_boost_event(self.performance_performer_card["game_card_id"], effect["source_card_id"], "power", total, for_art=True)
+                self.handle_power_boost_event(total, effect["source_card_id"])
             case EffectType.EffectType_RecordEffectCardIdUsedThisTurn:
                 effect_player.record_card_effect_used_this_turn(effect["source_card_id"])
             case EffectType.EffectType_RecordUsedOncePerGameEffect:
@@ -5728,8 +5711,27 @@ class GameEngine:
 
         return True
 
-    def holomem_can_be_attached_with_sub_type(self, holomem, sub_type: str) -> bool:
-        return all([card.get("sub_type") != sub_type for card in holomem["attached_support"]])
+    def handle_power_boost_event(self, amount: int, source_card_id: str):
+        if amount != 0:
+            self.performance_artstatboosts.power += amount
+            self.send_boost_event(self.performance_performer_card["game_card_id"], source_card_id, "power", amount, for_art=True)
+
+    def holomem_can_be_attached_with_support_card(self, holomem, support_card) -> bool:
+        sub_type = support_card.get("sub_type")
+        match sub_type:
+            case "mascot":
+                mascot_count_limit = holomem.get("mascot_count_limit", 1)
+                attached_mascots = [card for card in holomem["attached_support"] if is_card_mascot(card)]
+                match holomem.get("mascot_count_requirement"):
+                    case "unique_name":
+                        # Fail if the support card's name is already present in the attached supports
+                        if any([not set(mascot["card_names"]).isdisjoint(set(support_card["card_names"])) for mascot in attached_mascots]):
+                            return False
+                return len(attached_mascots) < mascot_count_limit
+            case "tool":
+                return all([card.get("sub_type") != sub_type for card in holomem["attached_support"]])
+
+        return True # not a support card or support card sub-type has no restrictions
 
     def card_has_available_target_to_attach_to(self, player: PlayerState, card) -> bool:
         sub_type = card.get("sub_type")
@@ -5737,6 +5739,6 @@ class GameEngine:
             return True
 
         for holomem in player.get_holomem_on_stage():
-            if self.holomem_can_be_attached_with_sub_type(holomem, sub_type):
+            if self.holomem_can_be_attached_with_support_card(holomem, card):
                 return True
         return False

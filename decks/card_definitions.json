@@ -8402,6 +8402,48 @@
         ]
     },
     {
+        "card_id": "hBP02-013",
+        "card_type": "holomem_bloom",
+        "bloom_level": 2,
+        "card_names": ["shirakami_fubuki"],
+        "mascot_count_limit": 2,
+        "mascot_count_requirement": "unique_name",
+        "rarity": "rr",
+        "colors": ["white"],
+        "hp": 180,
+        "baton_cost": 2,
+        "tags": [
+            "#JP",
+            "#Gen1",
+            "#Gamers",
+            "#AnimalEars",
+            "#Art"
+        ],
+        "arts": [
+            {
+                "art_id": "acornucopia",
+                "costs": [
+                    { "color": "white", "amount": 2 },
+                    { "color": "any", "amount": 1 }
+                ],
+                "power": 80,
+                "art_effects": [
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost",
+                        "conditions": [{ "condition": "target_color", "color_requirement": "purple" }],
+                        "amount": 50
+                    },
+                    {
+                        "timing": "before_art",
+                        "effect_type": "power_boost_per_all_mascots",
+                        "amount": 20
+                    }
+                ]
+            }
+        ]
+    },
+    {
         "card_id": "hBP02-014",
         "card_type": "holomem_debut",
         "card_names": ["shirogane_noel"],
