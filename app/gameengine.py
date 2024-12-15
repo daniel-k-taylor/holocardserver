@@ -125,7 +125,6 @@ class Condition:
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemInArchive = "holomem_in_archive"
     Condition_HolomemOnStage = "holomem_on_stage"
-    Condition_HolomemOnStageCanBeAttachedWith = "holomem_on_stage_can_be_attached_with"
     Condition_HolopowerAtLeast = "holopower_at_least"
     Condition_NotUsedOncePerGameEffect = "not_used_once_per_game_effect"
     Condition_NotUsedOncePerTurnEffect = "not_used_once_per_turn_effect"
@@ -1904,15 +1903,9 @@ class GameEngine:
                     if not self.are_conditions_met(active_player, card["game_card_id"], card["play_conditions"]):
                         continue
 
-                # Baked in restriction for mascots and tools
-                if is_card_mascot(card) or is_card_tool(card):
-                    sub_type = card["sub_type"]
-                    # Checks if there are available holomem on stage that can still be attached with the support card
-                    if not self.is_condition_met(active_player, card["game_card_id"],{
-                        "condition": "holomem_on_stage_can_be_attached_with",
-                        "sub_type": sub_type
-                    }):
-                        continue
+                # Restrictions for mascots and tools with regards to attaching to holomem.
+                if not self.card_has_available_target_to_attach_to(active_player, card):
+                    continue
 
                 play_requirements = {}
                 if "play_requirements" in card:
@@ -2715,14 +2708,6 @@ class GameEngine:
                             if any(tag in holomem["tags"] for tag in tags):
                                 return True
                 return False
-            case Condition.Condition_HolomemOnStageCanBeAttachedWith:
-                holomems = effect_player.get_holomem_on_stage()
-                sub_type = condition["sub_type"]
-                can_be_attached_with = 0
-                for holomem in holomems:
-                    if not any([card["sub_type"] == sub_type for card in holomem["attached_support"]]):
-                        can_be_attached_with += 1
-                return can_be_attached_with > 0
             case Condition.Condition_HolopowerAtLeast:
                 amount = condition["amount"]
                 return len(effect_player.holopower) >= amount
@@ -3103,8 +3088,7 @@ class GameEngine:
                 card_sub_type = card_to_attach.get("sub_type")
                 if card_sub_type in ["mascot", "tool"]:
                     # filters out holomem with an already existing support of the same sub-type attached
-                    holomem_targets = [holomem for holomem in holomem_targets \
-                                       if all(card.get("sub_type") != card_sub_type for card in holomem["attached_support"])]
+                    holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_sub_type(holomem, card_sub_type)]
 
                 if len(holomem_targets) > 0:
                     attach_effect = {
@@ -5638,3 +5622,16 @@ class GameEngine:
         self.end_game(player_id, GameOverReason.GameOverReason_Resign)
 
         return True
+
+    def holomem_can_be_attached_with_sub_type(self, holomem, sub_type: str) -> bool:
+        return all([card.get("sub_type") != sub_type for card in holomem["attached_support"]])
+
+    def card_has_available_target_to_attach_to(self, player: PlayerState, card) -> bool:
+        sub_type = card.get("sub_type")
+        if sub_type not in ["mascot", "tool"]:
+            return True
+
+        for holomem in player.get_holomem_on_stage():
+            if self.holomem_can_be_attached_with_sub_type(holomem, sub_type):
+                return True
+        return False
