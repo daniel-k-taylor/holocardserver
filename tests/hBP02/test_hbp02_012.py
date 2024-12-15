@@ -262,7 +262,7 @@ class Test_hBP02_012(unittest.TestCase):
     ])
 
 
-  def test_hbp02_012_bloom_effect_target_has_mascot(self):
+  def test_hbp02_012_bloom_effect_exclude_holomem_that_has_mascot(self):
     engine = self.engine
   
     p1: PlayerState = engine.get_player(self.player1)
@@ -273,8 +273,10 @@ class Test_hBP02_012(unittest.TestCase):
     _, mascot_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-089", center_card["attached_support"]))
     bloom_card, bloom_card_id = unpack_game_id(add_card_to_hand(self, p1, "hBP02-012"))
 
-    target_card, target_card_id = unpack_game_id(p1.backstage[0])
-    _, target_mascot_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-089", target_card["attached_support"]))
+    excluded_card = p1.backstage[0]
+    _, excluded_mascot_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-089", excluded_card["attached_support"]))
+    valid_target_ids = ids_from_cards(p1.backstage[1:])
+    target_card, target_card_id = unpack_game_id(p1.backstage[1])
 
 
     """Test"""
@@ -288,17 +290,16 @@ class Test_hBP02_012(unittest.TestCase):
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
       (EventType.EventType_Bloom, { "bloom_card_id": bloom_card_id }),
-      (EventType.EventType_Decision_ChooseCards, { "cards_can_choose": [mascot_card_id, target_mascot_card_id] }),
+      (EventType.EventType_Decision_ChooseCards, { "cards_can_choose": [mascot_card_id, excluded_mascot_card_id] }),
 
-      (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
+      (EventType.EventType_Decision_ChooseHolomemForEffect, { "cards_can_choose": valid_target_ids }),
 
-      (EventType.EventType_MoveAttachedCard, { "from_holomem_id": target_card_id, "to_holomem_id": "archive", "attached_id": target_mascot_card_id }),
       (EventType.EventType_MoveCard, { "from_zone": bloom_card_id, "to_zone": "holomem", "zone_card_id": target_card_id, "card_id": mascot_card_id }),
       (EventType.EventType_Decision_MainStep, {})
     ])
     self.assertEqual(len(bloom_card["attached_support"]), 0)
     self.assertCountEqual(ids_from_cards(target_card["attached_support"]), [mascot_card_id])
-    self.assertCountEqual(ids_from_cards(p1.archive), [target_mascot_card_id])
+    self.assertCountEqual(ids_from_cards(excluded_card["attached_support"]), [excluded_mascot_card_id])
 
 
   def test_hbp02_012_baton_pass(self):

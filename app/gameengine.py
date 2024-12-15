@@ -3135,6 +3135,10 @@ class GameEngine:
 
                 # restriction for mascots and tools
                 card_to_attach, _, _ = effect_player.find_card(source_card_id)
+                if not card_to_attach:
+                    # If card is not in the normal zones, check if it is attached
+                    # TODO: should finding for attached cards be included in the `find_card` so everything is in one place?
+                    card_to_attach = effect_player.find_attachment(source_card_id)
                 card_sub_type = card_to_attach.get("sub_type")
                 if card_sub_type in ["mascot", "tool"]:
                     # filters out holomem with an already existing support of the same sub-type attached
@@ -3177,11 +3181,6 @@ class GameEngine:
                     passed_on_continuation = True
             case EffectType.EffectType_AttachCardToHolomem_Internal:
                 card_to_attach_id = effect["card_id"]
-                card_to_attach = None
-                card_to_attach, _, _ = effect_player.find_card(card_to_attach_id)
-                if not card_to_attach:
-                    # if card's not found in the normal zones, check if it's an attachment
-                    card_to_attach = effect_player.find_attachment(card_to_attach_id)
                 target_holomem_id = effect["card_ids"][0]
                 effect_player.move_card(card_to_attach_id, "holomem", target_holomem_id)
             case EffectType.EffectType_BloomAlreadyBloomedThisTurn:
