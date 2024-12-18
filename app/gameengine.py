@@ -164,7 +164,6 @@ class TurnEffectType:
 
 class EventType:
     EventType_AddTurnEffect = "add_turn_effect"
-    EventType_AttachedActionActivation = "attached_action_activation"
     EventType_Bloom = "bloom"
     EventType_BoostStat = "boost_stat"
     EventType_CheerStep = "cheer_step"
@@ -210,6 +209,7 @@ class EventType:
     EventType_RevealCards = "reveal_cards"
     EventType_RollDie = "roll_die"
     EventType_ShuffleDeck = "shuffle_deck"
+    EventType_SpecialActionActivation = "special_action_activation"
     EventType_TurnStart = "turn_start"
 
 class GameOverReason:
@@ -288,12 +288,6 @@ class GameAction:
         "placements": Dict[str, str],
     }
 
-    MainStepAttachedAction = "mainstep_attached_action"
-    MainStepAttachedActionFields = {
-        "effect_id": str,
-        "support_id": str,
-    }
-
     MainStepPlaceHolomem = "mainstep_place_holomem"
     MainStepPlaceHolomemFields = {
         "card_id": str,
@@ -313,6 +307,12 @@ class GameAction:
     MainStepOshiSkill = "mainstep_oshi_skill"
     MainStepOshiSkillFields = {
         "skill_id": str,
+    }
+
+    MainStepSpecialAction = "mainstep_special_action"
+    MainStepSpecialActionFields = {
+        "effect_id": str,
+        "card_id": str,
     }
 
     MainStepPlaySupport = "mainstep_play_support"
@@ -876,6 +876,15 @@ class PlayerState:
                     return attachment
         return None
 
+    def find_card_v2(self, card_id):
+        """
+        Checks in attached supports as well
+        """
+        card, _, _ = self.find_card(card_id)
+        if not card:
+            card = self.find_attachment(card_id)
+        return card
+
     def find_and_remove_card(self, card_id):
         card, zone, zone_name = self.find_card(card_id)
         if card and zone:
@@ -1123,9 +1132,9 @@ class PlayerState:
         action = next(action for action in self.oshi_card["actions"] if action["skill_id"] == skill_id)
         return deepcopy(action["effects"])
 
-    def get_support_attached_action_effects(self, support_id: str, effect_id: str):
-        support_card = self.find_attachment(support_id)
-        action = next(action for action in support_card["attached_actions"] if action["effect_id"] == effect_id)
+    def get_special_action_effects(self, card_id: str, effect_id: str):
+        card = self.find_card_v2(card_id)
+        action = next(action for action in card["special_actions"] if action["effect_id"] == effect_id)
         return deepcopy(action["effects"])
 
     def find_and_remove_attached(self, attached_id):
@@ -1909,16 +1918,16 @@ class GameEngine:
         # E. Use effects from attached support cards.
         for holomem in active_player.get_holomem_on_stage():
             for attached_support in holomem["attached_support"]:
-                for action in attached_support.get("attached_actions", []):
+                for action in attached_support.get("special_actions", []):
                     if "conditions" in action:
                         if not self.are_conditions_met(active_player, attached_support["game_card_id"], action["conditions"]):
                             continue
 
                     available_actions.append({
-                        "action_type": GameAction.MainStepAttachedAction,
+                        "action_type": GameAction.MainStepSpecialAction,
                         "effect_id": action["effect_id"],
-                        "support_id": attached_support["game_card_id"],
-                        "owning_holomem_id": holomem["game_card_id"]
+                        "card_id": attached_support["game_card_id"],
+                        "owning_card_id": holomem["game_card_id"]
                     })
 
         # F. Use Support Cards
@@ -3133,11 +3142,7 @@ class GameEngine:
                         holomem_targets = effect_player.backstage
 
                 # restriction for mascots and tools
-                card_to_attach, _, _ = effect_player.find_card(source_card_id)
-                if not card_to_attach:
-                    # If card is not in the normal zones, check if it is attached
-                    # TODO: should finding for attached cards be included in the `find_card` so everything is in one place?
-                    card_to_attach = effect_player.find_attachment(source_card_id)
+                card_to_attach = effect_player.find_card_v2(source_card_id)
                 # filters out cards that can be attached against support card restrictions
                 holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_support_card(holomem, card_to_attach)]
 
@@ -4596,8 +4601,6 @@ class GameEngine:
                     handled = self.handle_choose_new_center(player_id, action_data)
                 case GameAction.PlaceCheer:
                     handled = self.handle_place_cheer(player_id, action_data)
-                case GameAction.MainStepAttachedAction:
-                    handled = self.handle_main_step_attached_action(player_id, action_data)
                 case GameAction.MainStepPlaceHolomem:
                     handled = self.handle_main_step_place_holomem(player_id, action_data)
                 case GameAction.MainStepBloom:
@@ -4606,6 +4609,8 @@ class GameEngine:
                     handled = self.handle_main_step_collab(player_id, action_data)
                 case GameAction.MainStepOshiSkill:
                     handled = self.handle_main_step_oshi_skill(player_id, action_data)
+                case GameAction.MainStepSpecialAction:
+                    handled = self.handle_main_step_special_action(player_id, action_data)
                 case GameAction.MainStepPlaySupport:
                     handled = self.handle_main_step_play_support(player_id, action_data)
                 case GameAction.MainStepBatonPass:
@@ -4834,25 +4839,25 @@ class GameEngine:
 
         return True
 
-    def validate_main_step_attached_action(self, player_id: str, action_data: dict) -> bool:
-        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepAttachedActionFields):
+    def validate_main_step_special_action(self, player_id: str, action_data: dict) -> bool:
+        if not self.validate_decision_base(player_id, action_data, DecisionType.DecisionMainStep, GameAction.MainStepSpecialActionFields):
             return False
 
         player = self.get_player(player_id)
 
-        # Validate that the support card exists
-        support_id = action_data["support_id"]
-        support_card = player.find_attachment(support_id)
-        if not support_card:
-            self.send_event(self.make_error_event(player_id, "invalid_action", "Support card not found."))
+        # Validate that the card exists
+        card_id = action_data["card_id"]
+        card = player.find_card_v2(card_id)
+        if not card:
+            self.send_event(self.make_error_event(player_id, "invalid_action", "Card not found."))
             return False
 
         # Validate that the action is part of the current decision's available actions
         effect_id = action_data["effect_id"]
         action_found = False
         for action in self.current_decision["available_actions"]:
-            if action["action_type"] == GameAction.MainStepAttachedAction \
-                and action["effect_id"] == effect_id and action["support_id"] == support_id:
+            if action["action_type"] == GameAction.MainStepSpecialAction \
+                and action["effect_id"] == effect_id and action["card_id"] == card_id:
                 action_found = True
         if not action_found:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Invalid action."))
@@ -4860,24 +4865,24 @@ class GameEngine:
 
         return True
 
-    def handle_main_step_attached_action(self, player_id: str, action_data: dict):
-        if not self.validate_main_step_attached_action(player_id, action_data):
+    def handle_main_step_special_action(self, player_id: str, action_data: dict):
+        if not self.validate_main_step_special_action(player_id, action_data):
             return False
 
         continuation = self.clear_decision()
 
         player = self.get_player(player_id)
-        support_id = action_data["support_id"]
+        card_id = action_data["card_id"]
         effect_id = action_data["effect_id"]
 
-        action_effects = player.get_support_attached_action_effects(support_id, effect_id)
-        add_ids_to_effects(action_effects, player_id, support_id)
+        action_effects = player.get_special_action_effects(card_id, effect_id)
+        add_ids_to_effects(action_effects, player_id, card_id)
 
         self.broadcast_event({
-            "event_type": EventType.EventType_AttachedActionActivation,
+            "event_type": EventType.EventType_SpecialActionActivation,
             "player_id": player_id,
             "effect_id": effect_id,
-            "support_id": support_id
+            "card_id": card_id
         })
         self.begin_resolving_effects(action_effects, continuation)
         return True

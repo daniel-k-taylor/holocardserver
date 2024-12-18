@@ -65,13 +65,13 @@ class Test_hBP02_092(unittest.TestCase):
     self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [mascot_card_id])
 
     reset_mainstep(self)
-    engine.handle_game_message(self.player1, GameAction.MainStepAttachedAction, { "effect_id": "fubuzilla", "support_id": mascot_card_id })
+    engine.handle_game_message(self.player1, GameAction.MainStepSpecialAction, { "effect_id": "fubuzilla", "card_id": mascot_card_id })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": archived_cheer_ids })
 
     # Events
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
-      (EventType.EventType_AttachedActionActivation, { "effect_id": "fubuzilla" }),
+      (EventType.EventType_SpecialActionActivation, { "effect_id": "fubuzilla" }),
       (EventType.EventType_Decision_ChooseCards, { "cards_can_choose": cheer_ids }),
 
       (EventType.EventType_MoveCard, { "from_zone": center_card_id, "to_zone": "archive" }),
@@ -125,13 +125,13 @@ class Test_hBP02_092(unittest.TestCase):
     self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [mascot_card_id])
 
     reset_mainstep(self)
-    engine.handle_game_message(self.player1, GameAction.MainStepAttachedAction, { "effect_id": "fubuzilla", "support_id": mascot_card_id })
+    engine.handle_game_message(self.player1, GameAction.MainStepSpecialAction, { "effect_id": "fubuzilla", "card_id": mascot_card_id })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": archived_cheer_ids })
 
     # Events
     events = engine.grab_events()
     validate_consecutive_events(self, self.player1, events, [
-      (EventType.EventType_AttachedActionActivation, { "effect_id": "fubuzilla" }),
+      (EventType.EventType_SpecialActionActivation, { "effect_id": "fubuzilla" }),
       (EventType.EventType_Decision_ChooseCards, { "cards_can_choose": cheer_ids }),
 
       (EventType.EventType_MoveCard, { "from_zone": p1.backstage[0]["game_card_id"], "to_zone": "archive" }),
@@ -184,7 +184,7 @@ class Test_hBP02_092(unittest.TestCase):
     self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [mascot_card_id])
 
     reset_mainstep(self)
-    engine.handle_game_message(self.player1, GameAction.MainStepAttachedAction, { "effect_id": "fubuzilla", "support_id": mascot_card_id })
+    engine.handle_game_message(self.player1, GameAction.MainStepSpecialAction, { "effect_id": "fubuzilla", "card_id": mascot_card_id })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": archived_cheer_ids })
 
     engine.grab_events()
@@ -192,7 +192,7 @@ class Test_hBP02_092(unittest.TestCase):
 
     actions = reset_mainstep(self)
     self.assertFalse(
-      any(action["action_type"] == GameAction.MainStepAttachedAction and action["effect_id"] == "fubuzilla" and action["support_id"] == mascot_card_id \
+      any(action["action_type"] == GameAction.MainStepSpecialAction and action["effect_id"] == "fubuzilla" and action["card_id"] == mascot_card_id \
           for action in actions))
 
 
@@ -216,7 +216,7 @@ class Test_hBP02_092(unittest.TestCase):
 
     actions = reset_mainstep(self)
     self.assertFalse(
-      any(action["action_type"] == GameAction.MainStepAttachedAction and action["effect_id"] == "fubuzilla" and action["support_id"] == mascot_card_id \
+      any(action["action_type"] == GameAction.MainStepSpecialAction and action["effect_id"] == "fubuzilla" and action["card_id"] == mascot_card_id \
           for action in actions))
 
 
@@ -253,7 +253,7 @@ class Test_hBP02_092(unittest.TestCase):
     self.assertCountEqual(ids_from_cards(center_card["attached_support"]), [mascot_card_id])
 
     reset_mainstep(self)
-    engine.handle_game_message(self.player1, GameAction.MainStepAttachedAction, { "effect_id": "fubuzilla", "support_id": mascot_card_id })
+    engine.handle_game_message(self.player1, GameAction.MainStepSpecialAction, { "effect_id": "fubuzilla", "card_id": mascot_card_id })
     engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": archived_cheer_ids })
 
     engine.grab_events()
@@ -302,6 +302,6 @@ class Test_hBP02_092(unittest.TestCase):
 
     actions = reset_mainstep(self)
     self.assertFalse(
-      any(action["action_type"] == GameAction.MainStepAttachedAction and action["effect_id"] == "fubuzilla" and action["support_id"] == mascot_card_id \
+      any(action["action_type"] == GameAction.MainStepSpecialAction and action["effect_id"] == "fubuzilla" and action["card_id"] == mascot_card_id \
           for action in actions))
     
