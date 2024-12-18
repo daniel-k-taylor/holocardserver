@@ -853,7 +853,7 @@ class PlayerState:
             case self.holopower: return "holopower"
             case _: return "unknown"
 
-    def find_card(self, card_id):
+    def find_card(self, card_id, include_stacked_cards = False):
         zones = [self.hand, self.archive, self.backstage, self.center, self.collab, self.deck, self.cheer_deck, self.holopower]
         for zone in zones:
             for card in zone:
@@ -865,6 +865,11 @@ class PlayerState:
                 return card, self.engine.floating_cards, "floating"
         if self.oshi_card["game_card_id"] == card_id:
             return self.oshi_card, None, "oshi"
+
+        if include_stacked_cards:
+            attached_card = self.find_attachment(card_id)
+            return attached_card, None, None
+
         # Card, Zone, Zone Name
         return None, None, None
 
@@ -875,15 +880,6 @@ class PlayerState:
                 if attachment["game_card_id"] == attachment_id:
                     return attachment
         return None
-
-    def find_card_v2(self, card_id):
-        """
-        Checks in attached supports as well
-        """
-        card, _, _ = self.find_card(card_id)
-        if not card:
-            card = self.find_attachment(card_id)
-        return card
 
     def find_and_remove_card(self, card_id):
         card, zone, zone_name = self.find_card(card_id)
@@ -1133,7 +1129,7 @@ class PlayerState:
         return deepcopy(action["effects"])
 
     def get_special_action_effects(self, card_id: str, effect_id: str):
-        card = self.find_card_v2(card_id)
+        card, _, _ = self.find_card(card_id, include_stacked_cards=True)
         action = next(action for action in card["special_actions"] if action["effect_id"] == effect_id)
         return deepcopy(action["effects"])
 
@@ -3142,7 +3138,7 @@ class GameEngine:
                         holomem_targets = effect_player.backstage
 
                 # restriction for mascots and tools
-                card_to_attach = effect_player.find_card_v2(source_card_id)
+                card_to_attach, _, _ = effect_player.find_card(source_card_id, include_stacked_cards=True)
                 # filters out cards that can be attached against support card restrictions
                 holomem_targets = [holomem for holomem in holomem_targets if self.holomem_can_be_attached_with_support_card(holomem, card_to_attach)]
 
@@ -4847,7 +4843,7 @@ class GameEngine:
 
         # Validate that the card exists
         card_id = action_data["card_id"]
-        card = player.find_card_v2(card_id)
+        card, _, _ = player.find_card(card_id, include_stacked_cards=True)
         if not card:
             self.send_event(self.make_error_event(player_id, "invalid_action", "Card not found."))
             return False
