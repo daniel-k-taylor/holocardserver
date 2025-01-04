@@ -77,6 +77,23 @@ def upload_blob(client : ContainerClient, data, blob_name, metadata):
 
     blob_client.upload_blob(data, overwrite=True, metadata=metadata)
 
+def upload_large_file_as_block_blob(client: ContainerClient, file_path: str, blob_name: str, metadata: dict = None, chunk_size: int = 4 * 1024 * 1024):
+    """
+    Uploads very large files to Azure Blob Storage as block blobs.
+    """
+    blob_client = client.get_blob_client(blob_name)
+    block_ids = []
+
+    with open(file_path, "rb") as file:
+        while chunk := file.read(chunk_size):
+            logger.info(f"Uploading chunk {len(block_ids)}")
+            block_id = str(len(block_ids)).zfill(5)  # Generate unique block IDs
+            block_ids.append(block_id)
+            blob_client.stage_block(block_id, chunk)
+
+    # Commit all the blocks
+    blob_client.commit_block_list(block_ids, metadata=metadata)
+
 def upload_game_package(game_zip_path):
     try:
         container_client = _get_azure_container_client(STATIC_FILES_CONTAINER)
@@ -84,8 +101,7 @@ def upload_game_package(game_zip_path):
             return
 
         blob_name = f"game.zip"
-        with open(game_zip_path, "rb") as data:
-            upload_blob(container_client, data, blob_name, None)
+        upload_large_file_as_block_blob(container_client, game_zip_path, blob_name)
 
     except Exception as e:
         logger.error(f"Error uploading static files to Blob Storage: {e}")
