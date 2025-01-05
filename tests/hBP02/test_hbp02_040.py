@@ -22,7 +22,7 @@ class Test_hBP02_040(unittest.TestCase):
 
   def test_hbp02_040_holoxslots(self):
     engine = self.engine
-  
+
     p1: PlayerState = engine.get_player(self.player1)
     p2: PlayerState = engine.get_player(self.player2)
 
@@ -72,11 +72,55 @@ class Test_hBP02_040(unittest.TestCase):
     ])
 
     self.assertEqual(len(p1.archive), 3)
-  
+
+
+  def test_hbp02_040_holoxslots_not_enough_in_deck(self):
+    engine = self.engine
+
+    p1: PlayerState = engine.get_player(self.player1)
+    p2: PlayerState = engine.get_player(self.player2)
+
+    # Setup Chloe in the center
+    p1.center = []
+    _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-040", p1.center))
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b1")
+    spawn_cheer_on_card(self, p1, center_card_id, "blue", "b2")
+    spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
+
+    # Remove all cards except the first 2
+    p1.deck = p1.deck[:2]
+
+    """Test"""
+    self.assertEqual(engine.active_player_id, self.player1)
+
+    begin_performance(self)
+    engine.handle_game_message(self.player1, GameAction.PerformanceStepUseArt, {
+      "art_id": "holoxslots",
+      "performer_id": center_card_id,
+      "target_id": p2.center[0]["game_card_id"]
+    })
+    engine.handle_game_message(self.player1, GameAction.EffectResolution_MakeChoice, { "choice_index": 0 })
+
+    # Events
+    events = engine.grab_events()
+    validate_consecutive_events(self, self.player1, events, [
+      (EventType.EventType_PerformArt, { "art_id": "holoxslots", "power": 100 }),
+      (EventType.EventType_BoostStat, { "amount": 50 }),
+      (EventType.EventType_Decision_Choice, {}),
+
+      (EventType.EventType_RevealCards, {}),
+      (EventType.EventType_BoostStat, { "amount": 20 * 2 }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_MoveCard, { "from_zone": "deck", "to_zone": "archive" }),
+      (EventType.EventType_DamageDealt, { "damage": 100 + 50 + 20 * 2 }),
+      (EventType.EventType_DownedHolomem_Before, {}),
+      (EventType.EventType_DownedHolomem, {}),
+      (EventType.EventType_Decision_SendCheer, {})
+    ])
 
   def test_hbp02_040_holoxslots_not_same_holomem_bloom(self):
     engine = self.engine
-  
+
     p1: PlayerState = engine.get_player(self.player1)
     p2: PlayerState = engine.get_player(self.player2)
 
@@ -123,7 +167,7 @@ class Test_hBP02_040(unittest.TestCase):
 
   def test_hbp02_040_holoxslots_pass(self):
     engine = self.engine
-  
+
     p1: PlayerState = engine.get_player(self.player1)
     p2: PlayerState = engine.get_player(self.player2)
 
@@ -162,7 +206,7 @@ class Test_hBP02_040(unittest.TestCase):
 
   def test_hbp02_040_holoxslots_not_all_holomem(self):
     engine = self.engine
-  
+
     p1: PlayerState = engine.get_player(self.player1)
     p2: PlayerState = engine.get_player(self.player2)
 
@@ -296,29 +340,29 @@ class Test_hBP02_040(unittest.TestCase):
 
     self.assertEqual(len(p1.archive), 6)
     self.assertEqual(len(p2.life), 3)
-    
-    
+
+
   def test_hbp02_040_baton_pass(self):
     engine = self.engine
-  
+
     p1: PlayerState = engine.get_player(self.player1)
-  
+
     # Setup
     p1.center = []
     center_card, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-040", p1.center))
-  
-  
+
+
     """Test"""
     self.assertEqual(engine.active_player_id, self.player1)
-  
+
     # no cheers to use baton pass
     self.assertEqual(len(center_card["attached_cheer"]), 0)
-  
+
     # Events
     actions = reset_mainstep(self)
     self.assertIsNone(
       next((action for action in actions if action["action_type"] == GameAction.MainStepBatonPass and action["center_id"] == center_card_id), None))
-  
+
     # with sufficient cheers
     spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color
     spawn_cheer_on_card(self, p1, center_card_id, "white", "w1") # any color

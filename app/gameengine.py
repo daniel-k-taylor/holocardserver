@@ -144,6 +144,7 @@ class Condition:
     Condition_PerformerHasAnyTag = "performer_has_any_tag"
     Condition_PerformerHasAttachmentOfType = "performer_has_attachment_of_type"
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
+    Condition_RevealedCardsCount = "revealed_cards_count"
     Condition_RevealedCardsHaveSameType = "revealed_cards_have_same_type"
     Condition_SelfHasCheerColor = "self_has_cheer_color"
     Condition_StageHasSpace = "stage_has_space"
@@ -615,11 +616,18 @@ class PlayerState:
     def add_performance_cleanup(self, effects):
         self.performance_cleanup_effects_pending.extend(effects)
 
-    def can_archive_from_hand(self, amount, condition_source):
-        return self.get_can_archive_from_hand_count(condition_source) >= amount
+    def can_archive_from_hand(self, amount, condition_source, requirement = None):
+        return self.get_can_archive_from_hand_count(condition_source, requirement) >= amount
 
-    def get_can_archive_from_hand_count(self, condition_source):
+    def get_can_archive_from_hand_count(self, condition_source, requirement = None):
         available_to_archive = len(self.hand)
+        if requirement:
+            match requirement:
+                case "holomem":
+                    available_to_archive = 0
+                    for card in self.hand:
+                        if is_card_holomem(card):
+                            available_to_archive += 1
         if "special_hand_archive_skill_per_turn" in self.oshi_card and self.oshi_card["special_hand_archive_skill_per_turn"] == "executivesorder":
             if condition_source == "holomem_red" and not self.has_used_once_per_turn_effect("executivesorder"):
                 # Lui can use holopower as well.
@@ -2615,8 +2623,9 @@ class GameEngine:
                 return target_card["card_type"] == "holomem_debut"
             case Condition.Condition_CanArchiveFromHand:
                 amount_min = condition.get("amount_min", 1)
+                requirement = condition.get("requirement", None)
                 condition_source = condition["condition_source"]
-                return effect_player.can_archive_from_hand(amount_min, condition_source)
+                return effect_player.can_archive_from_hand(amount_min, condition_source, requirement)
             case Condition.Condition_CanMoveFrontStage:
                 return effect_player.can_move_front_stage()
             case Condition.Condition_CardsInHand:
@@ -2808,6 +2817,9 @@ class GameEngine:
                 return False
             case Condition.Condition_PlayedSupportThisTurn:
                 return effect_player.played_support_this_turn
+            case Condition.Condition_RevealedCardsCount:
+                amount_min = condition["amount_min"]
+                return len(effect_player.last_revealed_cards) >= amount_min
             case Condition.Condition_RevealedCardsHaveSameType:
                 revealed_cards = effect_player.last_revealed_cards
                 if len(revealed_cards) == 0:
@@ -3405,7 +3417,7 @@ class GameEngine:
                     # Restrict to specified support sub types
                     if requirement_sub_types:
                         cards_can_choose = [card for card in cards_can_choose if card.get("sub_type", "") in requirement_sub_types]
-                    
+
                     # Restrict to same name as last choice from previous choose cards effect
                     if requirement_same_name_as_last_choice:
                         same_names = []
