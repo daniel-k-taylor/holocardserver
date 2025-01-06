@@ -8895,7 +8895,8 @@
                         "amount_min": 1,
                         "amount_max": 1,
                         "requirement": "holomem",
-                        "remaining_cards_action": "nothing"
+                        "remaining_cards_action": "nothing",
+                        "reveal_chosen": true
                     },
                     { "effect_type": "pass" }
                 ]
