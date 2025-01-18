@@ -2166,6 +2166,7 @@ class GameEngine:
             # An art is no longer being performed.
             self.performance_art = ""
             self.performance_artstatboosts.clear()
+            self.performance_performer_card = None
 
             self.send_performance_step_actions()
 
