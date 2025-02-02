@@ -125,6 +125,7 @@ class Condition:
     Condition_DownedCardIsColor = "downed_card_is_color"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HasAttachmentOfType = "has_attachment_of_type"
+    Condition_HasAttachmentOfTypesAny = "has_attachment_of_types_any"
     Condition_HasAttachedCard = "has_attached_card"
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemInArchive = "holomem_in_archive"
@@ -2711,6 +2712,13 @@ class GameEngine:
                 card, _, _ = effect_player.find_card(source_card_id)
                 for attachment in card["attached_support"]:
                     if "sub_type" in attachment and attachment["sub_type"] == attachment_type:
+                        return True
+                return False
+            case Condition.Condition_HasAttachmentOfTypesAny:
+                attachment_types: list = condition["condition_type"]
+                card, _, _ = effect_player.find_card(source_card_id)
+                for attachment in card["attached_support"]:
+                    if "sub_type" in attachment and attachment["sub_type"] in attachment_types:
                         return True
                 return False
             case Condition.Condition_HasStackedHolomem:
