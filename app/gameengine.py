@@ -3908,6 +3908,8 @@ class GameEngine:
                 match effect.get("limitation"):
                     case "holomem":
                         revealed_cards = [card for card in revealed_cards if is_card_holomem(card)]
+                    case "support":
+                        revealed_cards = [card for card in revealed_cards if card["card_type"] == "support"]
                 total = per_amount * len(revealed_cards)
                 self.handle_power_boost(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerStacked:
