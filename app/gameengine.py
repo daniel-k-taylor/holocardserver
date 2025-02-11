@@ -2715,10 +2715,10 @@ class GameEngine:
                         return True
                 return False
             case Condition.Condition_HasAttachmentOfTypesAny:
-                attachment_types: list = condition["condition_type"]
+                attachment_types: list = condition["condition_types"]
                 card, _, _ = effect_player.find_card(source_card_id)
                 for attachment in card["attached_support"]:
-                    if "sub_type" in attachment and attachment["sub_type"] in attachment_types:
+                    if attachment.get("sub_type") in attachment_types:
                         return True
                 return False
             case Condition.Condition_HasStackedHolomem:
