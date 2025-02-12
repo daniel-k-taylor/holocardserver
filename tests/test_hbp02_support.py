@@ -81,7 +81,7 @@ class Test_hbp02_Support(unittest.TestCase):
         actions = reset_mainstep(self)
         self.assertTrue(GameAction.MainStepPlaySupport in [action["action_type"] for action in actions])
 
-    def test_support_hbp02_084_mikkorone24_die_roll_2_4_draw_again(self):
+    def test_support_hbp02_084_mikkorone24_die_roll_2_4_draw_again(self): # This test only has test dice rolls to 2
         p1deck = generate_deck_with("", {"hBP02-084": 2 }, [])
         initialize_game_to_third_turn(self, p1deck)
         player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
@@ -129,5 +129,79 @@ class Test_hbp02_Support(unittest.TestCase):
         validate_event(self, events[10], EventType.EventType_Decision_MainStep, self.player1, {"active_player": self.player1})
 
         self.assertEqual(len(player1.hand), 6)
+        self.assertTrue(player1.used_limited_this_turn)
+        self.assertEqual(player1.archive[0]["game_card_id"], test_card["game_card_id"])
+
+    def test_support_hbp02_084_mikkorone24_die_roll_3_5_6_reveal_one_debut(self): # This test only has test dice rolls to 3
+        p1deck = generate_deck_with("", {"hBP02-084": 2 }, [])
+        initialize_game_to_third_turn(self, p1deck)
+        player1 : PlayerState = self.engine.get_player(self.players[0]["player_id"])
+        player2 : PlayerState = self.engine.get_player(self.players[1]["player_id"])
+        engine = self.engine
+        self.assertEqual(engine.active_player_id, self.player1)
+        # Has 004 and 2 005 in hand.
+        # Center is 003
+        # Backstage has 3 003 and 2 004.
+        
+        """Test"""
+        test_card = add_card_to_hand(self, player1, "hBP02-084", True)
+        actions = reset_mainstep(self)
+        self.assertEqual(len(player1.hand), 4)
+
+        set_next_die_rolls(self, [3,3])
+        engine.handle_game_message(self.player1, GameAction.MainStepPlaySupport, {
+            "card_id": test_card["game_card_id"],
+        })
+        events = self.engine.grab_events()
+        # Events - play support, draw, roll die, choose cards
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_PlaySupportCard, self.player1, {
+            "player_id": self.player1,
+            "card_id": test_card["game_card_id"],
+            "limited": True,
+        })
+        validate_event(self, events[2], EventType.EventType_Draw, self.player1, {
+            "drawing_player_id": self.player1
+        })
+        validate_event(self, events[4], EventType.EventType_RollDie, self.player1, {
+            "effect_player_id": self.player1,
+            "die_result": 3,
+            "rigged": False,
+        })
+        validate_event(self, events[6], EventType.EventType_Decision_ChooseCards, self.player1, {
+            "effect_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "amount_min": 1,
+            "amount_max": 1,
+            "reveal_chosen": True,
+            "remaining_cards_action": "shuffle",
+        })
+        # Make sure all cards are holomen debut
+        cards_can_choose = events[6]["cards_can_choose"]
+        for card_id in cards_can_choose:
+            card, _, _ = player1.find_card(card_id)
+            self.assertEqual(card["card_type"], "holomem_debut")
+
+        # Events - choose one card
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, {
+          "card_ids": [cards_can_choose[5]]
+        })
+        events = self.engine.grab_events()
+
+        # Events - move card to backstage, shuffle,discard, main step
+        self.assertEqual(len(events), 8)
+        validate_event(self, events[0], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "deck",
+            "to_zone": "hand",
+            "card_id": cards_can_choose[5]
+        })
+        validate_event(self, events[4], EventType.EventType_MoveCard, self.player1, {
+            "moving_player_id": self.player1,
+            "from_zone": "floating",
+            "to_zone": "archive",
+            "card_id": test_card["game_card_id"],
+        })
         self.assertTrue(player1.used_limited_this_turn)
         self.assertEqual(player1.archive[0]["game_card_id"], test_card["game_card_id"])
