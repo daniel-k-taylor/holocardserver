@@ -125,6 +125,7 @@ class Condition:
     Condition_DownedCardIsColor = "downed_card_is_color"
     Condition_EffectCardIdNotUsedThisTurn = "effect_card_id_not_used_this_turn"
     Condition_HasAttachmentOfType = "has_attachment_of_type"
+    Condition_HasAttachmentOfTypesAny = "has_attachment_of_types_any"
     Condition_HasAttachedCard = "has_attached_card"
     Condition_HasStackedHolomem = "has_stacked_holomem"
     Condition_HolomemInArchive = "holomem_in_archive"
@@ -2713,6 +2714,13 @@ class GameEngine:
                     if "sub_type" in attachment and attachment["sub_type"] == attachment_type:
                         return True
                 return False
+            case Condition.Condition_HasAttachmentOfTypesAny:
+                attachment_types: list = condition["condition_types"]
+                card, _, _ = effect_player.find_card(source_card_id)
+                for attachment in card["attached_support"]:
+                    if attachment.get("sub_type") in attachment_types:
+                        return True
+                return False
             case Condition.Condition_HasStackedHolomem:
                 amount_min = condition.get("amount_min", 1)
                 card, _, _ = effect_player.find_card(source_card_id)
@@ -3900,6 +3908,8 @@ class GameEngine:
                 match effect.get("limitation"):
                     case "holomem":
                         revealed_cards = [card for card in revealed_cards if is_card_holomem(card)]
+                    case "support":
+                        revealed_cards = [card for card in revealed_cards if card["card_type"] == "support"]
                 total = per_amount * len(revealed_cards)
                 self.handle_power_boost(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerStacked:
