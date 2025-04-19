@@ -406,6 +406,7 @@ class PlayerState:
         self.effects_used_this_turn = []
         self.effects_used_this_game = []
         self.used_limited_this_turn = False
+        self.event_card_whit_magic_tag = False
         self.played_support_this_turn = False
         self.played_support_types_this_turn = {}
         self.turn_effects = []
@@ -994,6 +995,7 @@ class PlayerState:
         self.turn_effects = []
         self.performance_attacked_this_turn = False
         self.used_limited_this_turn = False
+        self.event_card_whit_magic_tag = False
         self.played_support_this_turn = False
         self.played_support_types_this_turn = {}
         self.effects_used_this_turn = []
@@ -1366,6 +1368,9 @@ def attach_card(attaching_card, target_card):
 
 def is_card_limited(card):
     return "limited" in card and card["limited"]
+    
+def is_event_card_whit_magic_tag_limited(card):
+    return "magic_limited" in card and card["magic_limited"]
 
 def is_card_attach_requirements_meant(attachment, card):
     if "effects" in attachment:
@@ -1955,6 +1960,11 @@ class GameEngine:
                     if active_player.used_limited_this_turn:
                         continue
                     if self.first_turn_player_id == active_player.player_id and active_player.first_turn:
+                        continue
+
+                # event card whit magic tag limited can only be used once per turn
+                if is_event_card_whit_magic_tag_limited(card):
+                    if active_player.event_card_whit_magic_tag:
                         continue
 
                 if "play_conditions" in card:
@@ -5135,6 +5145,9 @@ class GameEngine:
         player.played_support_types_this_turn[card["sub_type"]] = amount_of_type_played + 1
         if is_card_limited(card):
             player.used_limited_this_turn = True
+
+        if is_event_card_whit_magic_tag_limited(card):
+            player.event_card_whit_magic_tag = True
 
         card_effects = card["effects"]
         add_ids_to_effects(card_effects, player.player_id, card_id)

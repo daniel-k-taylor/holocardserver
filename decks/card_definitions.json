@@ -9994,6 +9994,7 @@
         "sub_type": "event",
         "card_names": ["bakuhatsunomahou"],
         "rarity": "u",
+        "magic_limited": true,
         "tags":["#Magic"],
         "effects": [
             {
