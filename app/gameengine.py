@@ -69,6 +69,7 @@ class EffectType:
     EffectType_PowerBoostPerAllFans = "power_boost_per_all_fans"
     EffectType_PowerBoostPerAllMascots = "power_boost_per_all_mascots"
     EffectType_PowerBoostPerArchivedHolomem = "power_boost_per_archived_holomem"
+    EffectType_PowerBoostPerAllCheerColorTypes = "power_boost_per_all_cheer_color_types"
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_PowerBoostPerHolomem = "power_boost_per_holomem"
@@ -147,6 +148,7 @@ class Condition:
     Condition_PlayedSupportThisTurn = "played_support_this_turn"
     Condition_RevealedCardsCount = "revealed_cards_count"
     Condition_RevealedCardsHaveSameType = "revealed_cards_have_same_type"
+    Condition_SelfStageHasCheerColorTypes = "self_stage_has_cheer_color_types"
     Condition_SelfHasCheerColor = "self_has_cheer_color"
     Condition_StageHasSpace = "stage_has_space"
     Condition_TargetColor = "target_color"
@@ -404,6 +406,7 @@ class PlayerState:
         self.effects_used_this_turn = []
         self.effects_used_this_game = []
         self.used_limited_this_turn = False
+        self.event_card_whit_magic_tag = False
         self.played_support_this_turn = False
         self.played_support_types_this_turn = {}
         self.turn_effects = []
@@ -762,6 +765,13 @@ class PlayerState:
                         effects.append(attached_effect)
         return effects
 
+    def get_cheer_color_types_on_holomems(self):
+        cheer_color_types = set()
+        for card in self.get_holomem_on_stage():
+            for attached_card in card["attached_cheer"]:
+                if is_card_cheer(attached_card):
+                    cheer_color_types.update(attached_card["colors"])
+        return cheer_color_types
 
     def get_cheer_ids_on_holomems(self):
         cheer_ids = []
@@ -985,6 +995,7 @@ class PlayerState:
         self.turn_effects = []
         self.performance_attacked_this_turn = False
         self.used_limited_this_turn = False
+        self.event_card_whit_magic_tag = False
         self.played_support_this_turn = False
         self.played_support_types_this_turn = {}
         self.effects_used_this_turn = []
@@ -1309,6 +1320,10 @@ class PlayerState:
                 damage_dealt = self.engine.after_damage_state.damage_dealt
                 healed_amount = 10 * (damage_dealt // 10)
                 healed_amount = min(healed_amount, card["damage"])
+        elif amount == "restore_hp_per_cheer_color_types_10s":
+            multiplier = len(self.get_cheer_color_types_on_holomems())
+            healed_amount = 10 * multiplier
+            healed_amount = min(healed_amount, card["damage"])
         else:
             healed_amount = min(amount, card["damage"])
         if healed_amount > 0:
@@ -1353,6 +1368,9 @@ def attach_card(attaching_card, target_card):
 
 def is_card_limited(card):
     return "limited" in card and card["limited"]
+    
+def is_event_card_whit_magic_tag_limited(card):
+    return "magic_limited" in card and card["magic_limited"]
 
 def is_card_attach_requirements_meant(attachment, card):
     if "effects" in attachment:
@@ -1942,6 +1960,11 @@ class GameEngine:
                     if active_player.used_limited_this_turn:
                         continue
                     if self.first_turn_player_id == active_player.player_id and active_player.first_turn:
+                        continue
+
+                # event card whit magic tag limited can only be used once per turn
+                if is_event_card_whit_magic_tag_limited(card):
+                    if active_player.event_card_whit_magic_tag:
                         continue
 
                 if "play_conditions" in card:
@@ -2842,6 +2865,12 @@ class GameEngine:
                         card_type = base_card["card_type"]
                         bloom_level = base_card.get("bloom_level", 0)
                         return all([card["card_type"] == card_type and card.get("bloom_level", 0) == bloom_level for card in revealed_cards[1:]])
+                return False
+            case Condition.Condition_SelfStageHasCheerColorTypes:
+                amount_min = condition["amount_min"]
+                source_card, _, _ = effect_player.find_card(source_card_id)
+                if source_card:
+                    return amount_min <= len(effect_player.get_cheer_color_types_on_holomems())
                 return False
             case Condition.Condition_SelfHasCheerColor:
                 condition_colors = condition["condition_colors"]
@@ -3878,6 +3907,11 @@ class GameEngine:
                 per_amount = effect["amount"]
                 holomems_in_archive = [card for card in effect_player.archive if is_card_holomem(card)]
                 total = per_amount * len(holomems_in_archive)
+                self.handle_power_boost(total, effect["source_card_id"])
+            case EffectType.EffectType_PowerBoostPerAllCheerColorTypes:
+                per_amount = effect["amount"]
+                multiplier = len(effect_player.get_cheer_color_types_on_holomems())
+                total = per_amount * multiplier
                 self.handle_power_boost(total, effect["source_card_id"])
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
@@ -5111,6 +5145,9 @@ class GameEngine:
         player.played_support_types_this_turn[card["sub_type"]] = amount_of_type_played + 1
         if is_card_limited(card):
             player.used_limited_this_turn = True
+
+        if is_event_card_whit_magic_tag_limited(card):
+            player.event_card_whit_magic_tag = True
 
         card_effects = card["effects"]
         add_ids_to_effects(card_effects, player.player_id, card_id)
