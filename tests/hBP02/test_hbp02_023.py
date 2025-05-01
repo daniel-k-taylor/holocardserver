@@ -191,37 +191,33 @@ class Test_hBP02_023(unittest.TestCase):
         p1.backstage = []
         _, bloom_card_id = unpack_game_id(add_card_to_hand(self, p1, "hBP02-023"))
         _, center_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-023", p1.center))
-        _, _ = unpack_game_id(put_card_in_play(self, p1, "hBP02-023", p1.backstage))
+        _, backstage_card_id = unpack_game_id(put_card_in_play(self, p1, "hBP02-023", p1.backstage))
         
 
-        topcheer = p1.cheer_deck[0]["game_card_id"]
+        topcheer_id = p1.cheer_deck[0]["game_card_id"]
 
         """Test"""
         self.assertEqual(engine.active_player_id, self.player1)
 
         engine.handle_game_message(self.player1, GameAction.MainStepBloom, { "card_id": bloom_card_id, "target_id": center_card_id })
-
-        valid_target_ids = ids_from_cards(p1.get_holomem_on_stage())
-
-        engine.handle_game_message(self.player1, GameAction.EffectResolution_MoveCheerBetweenHolomems, {
-            "placements": {topcheer: bloom_card_id}
-        })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [topcheer_id] })
+        engine.handle_game_message(self.player1, GameAction.EffectResolution_ChooseCardsForEffect, { "card_ids": [backstage_card_id] })
         
 
         # Events
         events = engine.grab_events()
         validate_consecutive_events(self, self.player1, events, [
-        (EventType.EventType_Bloom, { "bloom_card_id": bloom_card_id }),
-        (EventType.EventType_Decision_SendCheer, { 
-            "effect_player_id": self.player1,
-            "amount_min": 1,
-            "amount_max": 1,
-            "from_zone": "cheer_deck",
-            "to_zone": "holomem",
-            "to_options": valid_target_ids }),
-        (EventType.EventType_MoveAttachedCard, { 
-            "from_holomem_id": "cheer_deck", 
-            "to_holomem_id": bloom_card_id, 
-            "attached_id": topcheer }),
-        (EventType.EventType_Decision_MainStep, {})
+            (EventType.EventType_Bloom, { "bloom_card_id": bloom_card_id }),
+            (EventType.EventType_Decision_ChooseCards, { 
+                "from_zone": "cheer_deck",
+                "to_zone": "holomem" }),
+            (EventType.EventType_Decision_ChooseHolomemForEffect, {}),
+            (EventType.EventType_MoveCard, {
+                "moving_player_id": self.player1,
+                "from_zone": "cheer_deck",
+                "to_zone": "holomem",
+                "zone_card_id": backstage_card_id,
+                "card_id": topcheer_id,
+            }),
+            (EventType.EventType_Decision_MainStep, {})
         ])

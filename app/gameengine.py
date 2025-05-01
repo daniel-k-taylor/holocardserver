@@ -70,6 +70,7 @@ class EffectType:
     EffectType_PowerBoostPerAllMascots = "power_boost_per_all_mascots"
     EffectType_PowerBoostPerArchivedHolomem = "power_boost_per_archived_holomem"
     EffectType_PowerBoostPerAllCheerColorTypes = "power_boost_per_all_cheer_color_types"
+    EffectType_PowerBoostPerCheerColorTypes = "power_boost_per_cheer_color_types"
     EffectType_PowerBoostPerAttachedCheer = "power_boost_per_attached_cheer"
     EffectType_PowerBoostPerBackstage = "power_boost_per_backstage"
     EffectType_PowerBoostPerHolomem = "power_boost_per_holomem"
@@ -3913,6 +3914,23 @@ class GameEngine:
                 multiplier = len(effect_player.get_cheer_color_types_on_holomems())
                 total = per_amount * multiplier
                 self.handle_power_boost(total, effect["source_card_id"])
+            case EffectType.EffectType_PowerBoostPerCheerColorTypes:
+                per_amount = effect["amount"]
+                match effect.get("oshi_effect_target", ""):
+                    case "center":
+                        source_card = effect_player.center
+                    case "collab":
+                        source_card = effect_player.collab
+                    case _:
+                        source_card, _, _ = effect_player.find_card(effect["source_card_id"])
+                cheer_color_types = set()
+                for card in source_card:
+                    for attached_card in card["attached_cheer"]:
+                        if is_card_cheer(attached_card):
+                            cheer_color_types.update(attached_card["colors"])
+                multiplier = len(cheer_color_types)
+                total = per_amount * multiplier
+                self.handle_power_boost(total, effect["source_card_id"]) 
             case EffectType.EffectType_PowerBoostPerAttachedCheer:
                 per_amount = effect["amount"]
                 limit = effect["limit"]
